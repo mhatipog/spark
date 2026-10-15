@@ -60,7 +60,7 @@ private[rules] object QueryProofAstTrace {
       before: TreeType,
       after: TreeType): Unit = {
     if (java.lang.Boolean.getBoolean("queryproof.ast.enabled") &&
-        executor.endsWith("Optimizer") &&
+        executor.contains("Optimizer") &&
         seen.getAndIncrement() < 2500) {
       try {
         val encode = java.util.Base64.getEncoder
@@ -248,6 +248,9 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
     var curPlan = plan
     val queryExecutionMetrics = RuleExecutor.queryExecutionMeter
     val planChangeLogger = new PlanChangeLogger[TreeType]()
+    if (java.lang.Boolean.getBoolean("queryproof.ast.enabled")) {
+      System.err.println("QUERYPROOF_PATCHED_EXECUTE\t" + name)
+    }
     val tracker: Option[QueryPlanningTracker] = QueryPlanningTracker.get
     val beforeMetrics = RuleExecutor.getCurrentMetrics()
 
