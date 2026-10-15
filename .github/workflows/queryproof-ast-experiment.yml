@@ -17,6 +17,7 @@ jobs:
         with:
           sparse-checkout: |
             tools/queryproof_spark_probe.py
+            tools/queryproof_rule_ablation.py
             tools/queryproof_instrumented
       - uses: actions/setup-java@v4
         with:
@@ -42,6 +43,14 @@ jobs:
           fi
           echo "QUERYPROOF_AST_EVENTS=$(grep -c '^QUERYPROOF_AST' artifacts/queryproof-ast.log)"
           grep '^QUERYPROOF_CASE' artifacts/queryproof-ast.log || true
+      - name: Blind structural AST candidate ranking
+        run: python tools/queryproof_instrumented/rank_ast.py artifacts/queryproof-ast.log --out artifacts/triage.json
+      - name: Test candidate optimizer rules using real Spark ablations
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=tools python -u tools/queryproof_instrumented/auto_ablate.py > artifacts/auto-ablation.log 2>&1 || { tail -n 80 artifacts/auto-ablation.log; exit 1; }
+          grep '^QUERYPROOF_ABLATION' artifacts/auto-ablation.log || true
       - name: Preserve raw structured events and Spark observations
         if: always()
         uses: actions/upload-artifact@v4
@@ -50,5 +59,8 @@ jobs:
           path: |
             artifacts/queryproof-ast.log
             artifacts/queryproof_spark_results.json
+            artifacts/triage.json
+            artifacts/automatic_ablation.json
+            artifacts/auto-ablation.log
             artifacts/queryproof-spark-overlay.jar
           retention-days: 7
