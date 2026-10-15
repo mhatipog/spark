@@ -1,0 +1,54 @@
+name: QueryProof structured Catalyst AST experiment
+on:
+  push:
+    branches: [research/queryproof-catalyst-trace-20261015]
+    paths:
+      - tools/queryproof_instrumented/**
+      - .github/workflows/queryproof-ast-experiment.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  instrumented:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_spark_probe.py
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official Spark 4.2 release
+        run: python -m pip install --no-cache-dir 'pyspark==4.2.0'
+      - name: Compile instrumented RuleExecutor against release jars
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Real Spark optimizer AST capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYSPARK_SUBMIT_ARGS="--driver-class-path $PWD/artifacts/queryproof-spark-overlay.jar --conf spark.driver.userClassPathFirst=true pyspark-shell"
+          python -u tools/queryproof_instrumented/run_instrumented.py > artifacts/queryproof-ast.log 2>&1 || { tail -n 120 artifacts/queryproof-ast.log; exit 1; }
+          if ! grep -q '^QUERYPROOF_AST' artifacts/queryproof-ast.log; then
+            echo 'Instrumentation not loaded; rejecting this run'
+            tail -n 100 artifacts/queryproof-ast.log
+            exit 1
+          fi
+          echo "QUERYPROOF_AST_EVENTS=$(grep -c '^QUERYPROOF_AST' artifacts/queryproof-ast.log)"
+          grep '^QUERYPROOF_CASE' artifacts/queryproof-ast.log || true
+      - name: Preserve raw structured events and Spark observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-structured-ast-4.2
+          path: |
+            artifacts/queryproof-ast.log
+            artifacts/queryproof_spark_results.json
+            artifacts/queryproof-spark-overlay.jar
+          retention-days: 7
