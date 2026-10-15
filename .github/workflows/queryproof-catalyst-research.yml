@@ -1,0 +1,48 @@
+name: QueryProof isolated Spark correctness research
+on:
+  push:
+    branches:
+      - research/queryproof-catalyst-trace-20261015
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1', '4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_spark_probe.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install released Spark runtime
+        run: python -m pip install --no-cache-dir "pyspark==${{ matrix.spark }}"
+      - name: Run real Spark regressions and capture Catalyst plan-change logs
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set +e
+          python tools/queryproof_spark_probe.py > artifacts/catalyst-trace.log 2>&1
+          code=$?
+          tail -n 100 artifacts/catalyst-trace.log
+          exit "$code"
+      - name: Preserve original plans, observations and full optimizer log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-spark-${{ matrix.spark }}
+          path: artifacts/
+          retention-days: 7
+          if-no-files-found: warn
