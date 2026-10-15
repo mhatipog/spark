@@ -20,11 +20,10 @@ package org.apache.spark.sql.catalyst.optimizer
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.dsl.expressions._
 import org.apache.spark.sql.catalyst.dsl.plans._
-import org.apache.spark.sql.catalyst.expressions.{Add, Alias, Exists, InSubquery, ListQuery, OuterReference, ScalarSubquery}
+import org.apache.spark.sql.catalyst.expressions.{Add, Alias, Exists, InSubquery, ListQuery, Literal, OuterReference, ScalarSubquery}
 import org.apache.spark.sql.catalyst.plans.PlanTest
 import org.apache.spark.sql.catalyst.plans.logical.{GlobalLimit, LocalLimit, LocalRelation, LogicalPlan, Offset, Project}
 import org.apache.spark.sql.catalyst.rules.RuleExecutor
-import org.apache.spark.sql.catalyst.expressions.Literal
 
 class PushProjectionThroughLimitAndOffsetSuite extends PlanTest {
   object Optimize extends RuleExecutor[LogicalPlan] {
@@ -162,8 +161,8 @@ class PushProjectionThroughLimitAndOffsetSuite extends PlanTest {
   }
 
   test("subquery projections retain limit and offset boundaries") {
-    val input = LocalRelation("a".attr.int)
-    val subquery = LocalRelation("b".attr.int)
+    val input = LocalRelation(Seq("a".attr.int))
+    val subquery = LocalRelation(Seq("b".attr.int))
     val a = input.output.head
 
     val projections = Seq(
