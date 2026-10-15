@@ -18,6 +18,11 @@ def instrumented_run(spark,query):
             case_label=name+":control"
             break
     spark._jvm.java.lang.System.setProperty("queryproof.ast.enabled","true")
+    if not getattr(instrumented_run, "_diagnosed", False):
+        cls=spark._jvm.java.lang.Class.forName("org.apache.spark.sql.catalyst.rules.RuleExecutor")
+        print("QUERYPROOF_DRIVER_CLASS_SOURCE",cls.getProtectionDomain().getCodeSource().getLocation().toString(),flush=True)
+        print("QUERYPROOF_DRIVER_PROP",spark._jvm.java.lang.System.getProperty("queryproof.ast.enabled"),flush=True)
+        instrumented_run._diagnosed=True
     spark._jvm.java.lang.System.setProperty("queryproof.query.id",case_label)
     return original_run(spark,query)
 probe.run = instrumented_run
