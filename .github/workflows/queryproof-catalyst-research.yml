@@ -19,6 +19,7 @@ jobs:
         with:
           sparse-checkout: |
             tools/queryproof_spark_probe.py
+            tools/queryproof_rule_ablation.py
           sparse-checkout-cone-mode: false
       - uses: actions/setup-java@v4
         with:
@@ -34,11 +35,19 @@ jobs:
         run: |
           mkdir -p artifacts
           set +e
-          python tools/queryproof_spark_probe.py > artifacts/catalyst-trace.log 2>&1
+          python -u tools/queryproof_spark_probe.py > artifacts/catalyst-trace.log 2>&1
           code=$?
-          tail -n 100 artifacts/catalyst-trace.log
+          tail -n 20 artifacts/catalyst-trace.log
           exit "$code"
-      - name: Preserve original plans, observations and full optimizer log
+      - name: Causal candidate probes by optimizer rule exclusion
+        shell: bash
+        run: |
+          set +e
+          python -u tools/queryproof_rule_ablation.py > artifacts/ablation-trace.log 2>&1
+          code=$?
+          tail -n 35 artifacts/ablation-trace.log
+          exit "$code"
+      - name: Preserve raw plans, controls, ablations and full optimizer logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
