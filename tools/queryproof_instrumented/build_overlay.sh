@@ -25,4 +25,10 @@ jar tf artifacts/queryproof-spark-overlay.jar |
   grep -F 'org/apache/spark/sql/catalyst/rules/RuleExecutor.class'
 jar tf artifacts/queryproof-spark-overlay.jar |
   grep -F 'org/apache/spark/sql/catalyst/rules/QueryProofAstTrace'
+# CI-only: patch disposable PySpark wheel JAR (not user source/repository).
+CATALYST=$(find "$JARS" -maxdepth 1 -name 'spark-catalyst_2.13-*.jar' | head -n 1)
+if test -z "$CATALYST"; then echo "spark-catalyst JAR missing" >&2; exit 1; fi
+cp "$CATALYST" "${CATALYST}.queryproof-original"
+jar uf "$CATALYST" -C artifacts/queryproof_classes .
+echo "QUERYPROOF_CATALYST_PATCHED=$(basename "$CATALYST")"
 echo "QUERYPROOF_OVERLAY_COMPILED"
