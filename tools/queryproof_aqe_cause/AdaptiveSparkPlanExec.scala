@@ -939,7 +939,8 @@ private[adaptive] object QueryProofAqeTrace {
         !before.fastEquals(after) &&
         sequence.incrementAndGet() <= 1000) {
       try {
-        val fields = Seq(stage, rule, nsort(before).toString, nsort(after).toString,
+        val fields = Seq(System.getProperty("queryproof.aqe.case", "unlabelled"),
+          stage, rule, nsort(before).toString, nsort(after).toString,
           before.nodeName, after.nodeName,
           before.outputOrdering.mkString("|"), after.outputOrdering.mkString("|"),
           before.outputPartitioning.toString, after.outputPartitioning.toString,
