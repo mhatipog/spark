@@ -1,0 +1,51 @@
+name: QueryProof minimized ordering counterexample repeatability
+on:
+  push:
+    branches: [research/queryproof-counterexample-synthesis-20261016]
+    paths:
+      - tools/queryproof_synthesis/repeat_minimized.py
+      - tools/queryproof_synthesis/minimized_witness.json
+      - .github/workflows/queryproof-synthesis-repeat.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1','4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_synthesis
+            tools/queryproof_physical
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir 'pyspark==${{ matrix.spark }}'
+      - name: Compile external Spark ordering inspector
+        run: bash tools/queryproof_physical/build_probe.sh
+      - name: Repeat minimal witness in randomized configuration order
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYSPARK_SUBMIT_ARGS="--jars $PWD/artifacts/queryproof-ordering-probe.jar --driver-class-path $PWD/artifacts/queryproof-ordering-probe.jar pyspark-shell"
+          python -u tools/queryproof_synthesis/repeat_minimized.py > artifacts/minimal-repeat.log 2>&1 || { tail -n 100 artifacts/minimal-repeat.log; exit 1; }
+          grep '^QUERYPROOF_REPEAT' artifacts/minimal-repeat.log
+      - name: Save all repeated outputs and declared ordering properties
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-minimal-witness-repeats-${{ matrix.spark }}
+          path: |
+            artifacts/queryproof_minimized_repeat_*.json
+            artifacts/minimal-repeat.log
+          retention-days: 14
