@@ -1,0 +1,59 @@
+name: QueryProof narrowed AQE guard — executable Scala and Python regressions
+on:
+  push:
+    branches: [research/queryproof-aqe-narrow-guard-20261016]
+    paths:
+      - tools/queryproof_guard/**
+      - .github/workflows/queryproof-narrow-aqe-regression.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1','4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_guard
+            tools/queryproof_synthesis
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install untouched published Spark before experimental Scala patch
+        run: python -m pip install --no-cache-dir 'pyspark==${{ matrix.spark }}'
+      - name: Verify the independent SQL row oracle
+        run: python -m unittest discover -s tools/queryproof_synthesis -p 'test_generate.py' -v
+      - name: Compile narrow source patch into disposable Catalyst JAR
+        run: bash tools/queryproof_guard/build_patch.sh
+      - name: Execute Java/Scala regression without PySpark SQL API
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/queryproof_guard/run_scala_regression.sh > artifacts/scala-regression.log 2>&1 || { tail -n 130 artifacts/scala-regression.log; exit 1; }
+          grep 'QUERYPROOF_SCALA_REGRESSION' artifacts/scala-regression.log
+      - name: Test frozen 61-case generated SQL set with narrow guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u tools/queryproof_guard/test_patch.py > artifacts/python-frozen-oracle.log 2>&1 || { tail -n 150 artifacts/python-frozen-oracle.log; exit 1; }
+          grep 'QUERYPROOF_PATCH_GUARD_SUMMARY' artifacts/python-frozen-oracle.log
+      - name: Preserve complete Scala and Python test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-narrow-aqe-spark-${{ matrix.spark }}
+          path: |
+            artifacts/scala-regression.log
+            artifacts/python-frozen-oracle.log
+            artifacts/queryproof_experimental_guard_*.json
+          retention-days: 14
