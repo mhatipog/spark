@@ -21,6 +21,20 @@ object AqEOneRowOrderingRegression {
       |""".stripMargin
 
   private val expected = Seq((1L, 0, 0L), (2L, 0, 0L))
+  private val jiraQuery =
+    """WITH top AS (
+      | SELECT id, CAST(id % 1 AS INT) AS k
+      | FROM range(0, 3, 1, 2)
+      | ORDER BY id ASC LIMIT 1 OFFSET 1
+      |), b AS (
+      | SELECT id AS bid, CAST(id % 1 AS INT) AS k
+      | FROM range(0, 2, 1, 2)
+      |)
+      |SELECT top.id, top.k, b.bid FROM top LEFT JOIN b USING (k)
+      |ORDER BY top.id ASC, b.bid ASC
+      |""".stripMargin
+
+  private val jiraExpected = Seq((1L, 0, 0L), (1L, 0, 1L))
   private val inlineCTE = "org.apache.spark.sql.catalyst.optimizer.InlineCTE"
 
   def main(args: Array[String]): Unit = {
@@ -46,6 +60,25 @@ object AqEOneRowOrderingRegression {
             s"$mode trial $trial: ORDER BY lost on ${spark.version}: $actual, expected=$expected")
         }
         println(s"QUERYPROOF_SCALA_REGRESSION ${spark.version} $mode PASS $repetitions")
+      }
+      // Exercise the exact SQL in the original Jira report, separately from
+      // the generated two-row regression family above.
+      for (mode <- Seq("bug-trigger", "normal", "aqe-off")) {
+        val repetitions = if (mode == "bug-trigger") 8 else 3
+        (0 until repetitions).foreach { trial =>
+          val session = spark.newSession()
+          session.conf.set("spark.sql.adaptive.enabled", (mode != "aqe-off").toString)
+          session.conf.set("spark.sql.shuffle.partitions", "5")
+          if (mode != "normal") {
+            session.conf.set("spark.sql.optimizer.excludedRules", inlineCTE)
+          }
+          val actual = session.sql(jiraQuery).collect().toSeq.map { row =>
+            (row.getLong(0), row.getInt(1), row.getLong(2))
+          }
+          require(actual == jiraExpected,
+            s"Jira SPARK-59126 $mode trial $trial on ${spark.version}: $actual, expected=$jiraExpected")
+        }
+        println(s"QUERYPROOF_SCALA_JIRA_REPRO ${spark.version} $mode PASS $repetitions")
       }
       val single = spark.sql("SELECT id FROM range(1) ORDER BY id")
       require(single.collect().map(_.getLong(0)).toSeq == Seq(0L))
