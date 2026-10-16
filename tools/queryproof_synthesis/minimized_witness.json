@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "provenance": "auto-minimized generated witness from GitHub Actions run 38870418185, Spark 4.2.0, 3/3 repetitions; Spark 4.0.1 2/3",
+  "not_globally_minimal": true,
+  "known_bug_family": "SPARK-59126",
+  "case": {
+    "shape": "cte",
+    "join": "LEFT",
+    "left_start": 0,
+    "right_start": 0,
+    "left_n": 3,
+    "right_n": 1,
+    "left_partitions": 1,
+    "right_partitions": 1,
+    "modulus": 1,
+    "offset": 1,
+    "limit": 2
+  },
+  "modes": [
+    "candidate",
+    "normal",
+    "aqe_off",
+    "broadcast_off"
+  ],
+  "repetitions_per_mode_per_version": 24,
+  "semantic_contract": "Result must be sorted lexicographically by top.id ASC and rhs.bid ASC, with the same row bag as pure Python reference"
+}
