@@ -1,7 +1,7 @@
-name: QueryProof test conservative AQE physical ordering source fix
+name: QueryProof placebo recompile original AQE optimizer without behavioral changes
 on:
   push:
-    branches: [research/queryproof-aqe-stage-sort-guard-20261016]
+    branches: [research/queryproof-aqe-placebo-20261016]
     paths:
       - tools/queryproof_guard/**
       - .github/workflows/queryproof-test-aqe-guard.yml
@@ -35,11 +35,15 @@ jobs:
         run: python -m unittest discover -s tools/queryproof_synthesis -p 'test_generate.py' -v
       - name: Compile surgical guard into disposable Spark Catalyst wheel JAR
         run: bash tools/queryproof_guard/build_patch.sh
-      - name: Run all 61 generated inputs twice without disabling the rule
+      - name: Recompile unmodified source and measure known bug rates as placebo
         shell: bash
         run: |
           set -euo pipefail
-          python -u tools/queryproof_guard/test_patch.py > artifacts/queryproof-guard-tests.log 2>&1 || { tail -n 120 artifacts/queryproof-guard-tests.log; exit 1; }
+          set +e
+          python -u tools/queryproof_guard/test_patch.py > artifacts/queryproof-guard-tests.log 2>&1
+          code=$?
+          echo "PLACEBO_ORACLE_EXIT_CODE=$code"
+          if [ "$code" != "0" ] && [ "$code" != "2" ]; then tail -n 120 artifacts/queryproof-guard-tests.log; exit "$code"; fi
           grep '^QUERYPROOF_PATCH_GUARD_SUMMARY' artifacts/queryproof-guard-tests.log
       - name: Preserve results including negative controls
         if: always()

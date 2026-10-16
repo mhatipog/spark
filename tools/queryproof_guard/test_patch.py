@@ -16,7 +16,7 @@ def main():
         .config("spark.ui.enabled","false").getOrCreate())
     spark.sparkContext.setLogLevel("ERROR")
     result={"spark_version":spark.version,"patched":True,"cases":{},
-      "source_guard":"Skip Sort elimination on maxRows<=1 if child contains LogicalQueryStage",
+      "source_guard":"NONE: byte-identical Apache Spark original OptimizeOneRowPlan recompiled into wheel",
       "negative_controls":{}}
     try:
         for case in MANIFEST["cases"]:
