@@ -277,7 +277,17 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
         curPlan = batch.rules.foldLeft(curPlan) {
           case (plan, rule) =>
             val startTime = System.nanoTime()
-            val result = rule(plan)
+            val result = if (
+              java.lang.Boolean.getBoolean("queryproof.force.enabled") &&
+              plan.isInstanceOf[org.apache.spark.sql.catalyst.plans.logical.LogicalPlan] &&
+              rule.ruleName == java.lang.System.getProperty("queryproof.force.skipRule", "")) {
+              val key = "queryproof.force.skipCount"
+              val count = java.lang.Integer.parseInt(java.lang.System.getProperty(key, "0"))
+              java.lang.System.setProperty(key, (count + 1).toString)
+              plan
+            } else {
+              rule(plan)
+            }
             val runTime = System.nanoTime() - startTime
             val effective = !result.fastEquals(plan)
 

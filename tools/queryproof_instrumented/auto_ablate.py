@@ -60,6 +60,51 @@ def main():
                         print('QUERYPROOF_ABLATION',name,idx,status,rule,flush=True)
                         if status=='RESTORED_WITH_CHANGED_PLAN':
                             item['status']='SUSPECT_LOCALIZED_BY_INTERVENTION'
+                        if status=='NO_OBSERVABLE_PLAN_CHANGE':
+                            # Testing-only fallback for mandatory rules that Spark ignores in
+                            # spark.sql.optimizer.excludedRules. Never run outside a disposable JVM.
+                            second=spark.newSession()
+                            forced_dest=str(Path(dest)/'forced')
+                            try:
+                                setup(second,forced_dest)
+                                system=spark._jvm.java.lang.System
+                                system.setProperty('queryproof.force.skipRule',rule)
+                                system.setProperty('queryproof.force.skipCount','0')
+                                system.setProperty('queryproof.force.enabled','true')
+                                try:
+                                    forced=run(second,c['sql'])
+                                    skips=int(system.getProperty('queryproof.force.skipCount','0'))
+                                finally:
+                                    system.clearProperty('queryproof.force.enabled')
+                                    system.clearProperty('queryproof.force.skipRule')
+                                    system.clearProperty('queryproof.force.skipCount')
+                                fplan=(normalized(forced['optimized']) !=
+                                       normalized(baseline['actual']['optimized']))
+                                fcorrect=forced['rows']==expected
+                                if skips==0:
+                                    fstatus='SKIP_NOT_APPLIED'
+                                elif not fplan:
+                                    fstatus='NO_OBSERVABLE_PLAN_CHANGE'
+                                elif fcorrect:
+                                    fstatus='RESTORED_WITH_FORCED_ABLATION'
+                                    item['status']='SUSPECT_LOCALIZED_BY_FORCED_INTERVENTION'
+                                else:
+                                    fstatus='WRONG_RESULT_PERSISTS'
+                                item['candidates'][-1]['forced_ablation']={
+                                    'status':fstatus,'skip_invocations':skips,
+                                    'plan_changed':fplan,'restored_expected_answer':fcorrect,
+                                    'actual_rows':forced['rows']}
+                                print('QUERYPROOF_FORCED',name,idx,fstatus,rule,flush=True)
+                            except Exception as ex:
+                                # Invalid/unexecutable intermediate plans are not localization.
+                                item['candidates'][-1]['forced_ablation']={
+                                    'status':'INCONCLUSIVE_ERROR','error':repr(ex)}
+                                print('QUERYPROOF_FORCED',name,idx,'INCONCLUSIVE_ERROR',repr(ex),flush=True)
+                            finally:
+                                system=spark._jvm.java.lang.System
+                                system.clearProperty('queryproof.force.enabled')
+                                system.clearProperty('queryproof.force.skipRule')
+                                system.clearProperty('queryproof.force.skipCount')
                     except Exception as ex:
                         item['candidates'].append({'rule':rule,'status':'INCONCLUSIVE_ERROR',
                                                    'error':repr(ex)})
