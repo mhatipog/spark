@@ -1,0 +1,50 @@
+name: QueryProof external holdout — blinded optimizer-rule differential baseline
+on:
+  push:
+    branches: [research/queryproof-blind-benchmark-20261016]
+    paths:
+      - tools/queryproof_prospective/blind_ablation.py
+      - tools/queryproof_prospective/score_blind_ablation.py
+      - .github/workflows/queryproof-prospective-ablation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  blinded:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_prospective
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir pyspark==4.2.0
+      - name: Compile opt-in structured Catalyst tracer
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Observe frozen SQL benchmark without intervention
+        run: python -u tools/queryproof_prospective/run.py > artifacts/prospective-spark.log 2>&1
+      - name: Score independent reference outcomes
+        run: python tools/queryproof_prospective/score.py artifacts/prospective_observations_4.2.0.json
+      - name: Rank unchanged AST risk heuristic
+        run: python tools/queryproof_instrumented/rank_ast.py artifacts/prospective-spark.log --out artifacts/prospective_ast_ranking.json
+      - name: Perturb every observed optimizer rule without accessing expected answers
+        run: |
+          PYTHONPATH=tools/queryproof_prospective python -u tools/queryproof_prospective/blind_ablation.py > artifacts/prospective-blind-ablation.log 2>&1 || { tail -n 120 artifacts/prospective-blind-ablation.log; exit 1; }
+          grep '^QUERYPROOF_BLIND_ABLATION' artifacts/prospective-blind-ablation.log || true
+      - name: Compare discovery to held-out ground truth after completion
+        run: PYTHONPATH=tools/queryproof_prospective python tools/queryproof_prospective/score_blind_ablation.py
+      - name: Preserve auditable controls and observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-prospective-blind-ablation-4.2
+          path: artifacts/
+          retention-days: 14
