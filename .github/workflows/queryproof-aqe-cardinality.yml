@@ -1,0 +1,47 @@
+name: QueryProof AQE incorrect maxRows diagnosis
+on:
+  push:
+    branches: [research/queryproof-aqe-first-loss-20261016]
+    paths:
+      - tools/queryproof_aqe_cause/OptimizeOneRowPlan.scala
+      - tools/queryproof_aqe_cause/build_cardinality.sh
+      - tools/queryproof_aqe_cause/run_cardinality.py
+      - tools/queryproof_aqe_cause/analyze_cardinality.py
+      - .github/workflows/queryproof-aqe-cardinality.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cardinality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_aqe_cause
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir 'pyspark==4.2.0'
+      - name: Compile and instrument disposable Spark Catalyst JAR
+        run: bash tools/queryproof_aqe_cause/build_cardinality.sh
+      - name: Observe actual AQE maxRows assumptions and SQL outcomes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u tools/queryproof_aqe_cause/run_cardinality.py > artifacts/cardinality-raw.log 2>&1 || { tail -n 100 artifacts/cardinality-raw.log; exit 1; }
+          if ! grep -q 'QUERYPROOF_CARDINALITY' artifacts/cardinality-raw.log; then echo 'Cardinality instrument not loaded'; exit 1; fi
+          grep '^QUERYPROOF_CARDINALITY_CASE' artifacts/cardinality-raw.log
+      - name: Parse maxRows, children and runtime row-count metadata
+        run: python tools/queryproof_aqe_cause/analyze_cardinality.py artifacts/cardinality-raw.log
+      - name: Upload all raw traces and independent Spark output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-aqe-cardinality-research
+          path: artifacts/
+          retention-days: 14
