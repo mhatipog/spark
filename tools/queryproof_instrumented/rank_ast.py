@@ -36,16 +36,65 @@ def project_above_boundary(tree):
         return any(visit(c,above or name=='Project') for c in children)
     return visit(tree,False)
 
+
+def _walk_dicts(node):
+    if isinstance(node, dict):
+        yield node
+        for value in node.values():
+            yield from _walk_dicts(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _walk_dicts(value)
+
+def _sorted_topk_subqueries(nodes):
+    """Count subqueries where the selected top-k depends on an explicit Sort.
+
+    AST plan fields embedded inside expressions must be traversed: Catalyst's
+    main LogicalPlan.children does not contain these subquery plans.
+    This is a risk feature, not a semantic proof.
+    """
+    count = 0
+    targets = {'ScalarSubquery', 'ListQuery', 'Exists', 'LateralSubquery'}
+    for node in _walk_dicts(nodes):
+        if not node.get('class', '').rsplit('.', 1)[-1] in targets:
+            continue
+        plan = node.get('plan')
+        if not isinstance(plan, list) or not plan:
+            continue
+        def walk(pos, has_limit):
+            if pos >= len(plan):
+                raise ValueError('truncated embedded plan')
+            item = plan[pos]
+            children = item.get('num-children')
+            if type(children) is not int or children < 0:
+                raise ValueError('bad embedded plan child count')
+            name = item.get('class', '').rsplit('.', 1)[-1]
+            found = has_limit and name == 'Sort'
+            end = pos + 1
+            for _ in range(children):
+                sub, end = walk(end, has_limit or name in ('LocalLimit','GlobalLimit','Offset'))
+                found |= sub
+            return found, end
+        found, end = walk(0, False)
+        if end != len(plan):
+            raise ValueError('trailing embedded plan nodes')
+        if found:
+            count += 1
+    return count
+
 def changes(ev):
     a=Counter(n['class'].split('.')[-1] for n in ev['old'])
     b=Counter(n['class'].split('.')[-1] for n in ev['new'])
     scores={}
     if a['GlobalLimit']>b['GlobalLimit']:scores['global_limit_count_decreased']=10
     if a['LocalLimit']>b['LocalLimit']:scores['local_limit_count_decreased']=5
-    if a['Sort']>b['Sort']:scores['sort_count_decreased']=8
+    # Generic Sort removal is common and not itself a correctness violation.
+    if a['Sort']>b['Sort']:scores['sort_count_decreased_weak']=2
+    if _sorted_topk_subqueries(ev['old']) > _sorted_topk_subqueries(ev['new']):
+        scores['subquery_topk_sort_guarantee_lost']=12
     if b['Join']>a['Join'] and b['GlobalLimit']>a['GlobalLimit']:
         scores['subquery_rewrite_introduces_join_and_limit']=7
-    if project_above_boundary(parse_tree(ev['old'])) and not project_above_boundary(parse_tree(ev['new'])):
+    if a['Project'] == b['Project'] and a['Project'] > 0 and project_above_boundary(parse_tree(ev['old'])) and not project_above_boundary(parse_tree(ev['new'])):
         scores['project_moved_below_selection_boundary']=6
     return scores
 
