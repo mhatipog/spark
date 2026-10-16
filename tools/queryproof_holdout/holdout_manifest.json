@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "spark_version": "4.2.0",
+  "preregistered_protocol": "No modifications to tools/queryproof_instrumented/rank_ast.py before initial holdout scoring",
+  "selection_date": "2026-10-16",
+  "cases": [
+    {
+      "id": "H01",
+      "issue": "SPARK-58888",
+      "type": "bug",
+      "family": "empty_distinct",
+      "setup": "empty",
+      "config": {
+        "spark.sql.optimizer.optimizeExpandRatio": "2"
+      },
+      "sql": "SELECT COUNT(DISTINCT region), COUNT(DISTINCT channel) FROM (SELECT 'US' AS region, 'web' AS channel, id FROM events)",
+      "expected": [
+        [
+          0,
+          0
+        ]
+      ],
+      "control_config": {
+        "spark.sql.optimizer.optimizeExpandRatio": "-1"
+      },
+      "control_expected": [
+        [
+          0,
+          0
+        ]
+      ],
+      "issue_url": "https://issues.apache.org/jira/browse/SPARK-58888",
+      "ground_truth_rule": "org.apache.spark.sql.catalyst.optimizer.OptimizeExpand"
+    },
+    {
+      "id": "H02",
+      "issue": "SPARK-58387",
+      "type": "bug",
+      "family": "duplicate_sensitive",
+      "setup": "duplicates",
+      "config": {
+        "spark.sql.optimizer.optimizeExpandRatio": "2"
+      },
+      "sql": "SELECT k, COUNT(DISTINCT a), COUNT(DISTINCT b), COUNT(1) FROM oe GROUP BY k ORDER BY k",
+      "expected": [
+        [
+          1,
+          2,
+          2,
+          4
+        ],
+        [
+          2,
+          1,
+          1,
+          1
+        ]
+      ],
+      "control_config": {
+        "spark.sql.optimizer.optimizeExpandRatio": "-1"
+      },
+      "control_expected": [
+        [
+          1,
+          2,
+          2,
+          4
+        ],
+        [
+          2,
+          1,
+          1,
+          1
+        ]
+      ],
+      "issue_url": "https://issues.apache.org/jira/browse/SPARK-58387",
+      "ground_truth_rule": "org.apache.spark.sql.catalyst.optimizer.OptimizeExpand"
+    },
+    {
+      "id": "H03",
+      "issue": "SPARK-58486",
+      "type": "bug",
+      "family": "runtime_filter_collation",
+      "setup": "collation",
+      "config": {
+        "spark.sql.autoBroadcastJoinThreshold": "-1",
+        "spark.sql.optimizer.runtime.bloomFilter.applicationSideScanSizeThreshold": "1",
+        "spark.sql.optimizer.runtime.bloomFilter.enabled": "true"
+      },
+      "sql": "SELECT count(*) FROM fact f JOIN dim d ON substr(f.k, 1, 3) = d.key WHERE d.cat = 'x'",
+      "expected": [
+        [
+          5000
+        ]
+      ],
+      "control_config": {
+        "spark.sql.optimizer.runtime.bloomFilter.enabled": "false"
+      },
+      "control_expected": [
+        [
+          5000
+        ]
+      ],
+      "issue_url": "https://issues.apache.org/jira/browse/SPARK-58486",
+      "ground_truth_rule": "org.apache.spark.sql.catalyst.optimizer.InjectRuntimeFilter"
+    },
+    {
+      "id": "H04",
+      "issue": "SPARK-58713",
+      "type": "out_of_scope_expression_bug",
+      "family": "overlay_arithmetic",
+      "setup": "none",
+      "config": {},
+      "sql": "SELECT overlay('Spark SQL' PLACING '_' FROM 2147483647 FOR 5)",
+      "expected": [
+        [
+          "Spark SQL_"
+        ]
+      ],
+      "control_sql": "SELECT concat('Spark SQL','_')",
+      "control_expected": [
+        [
+          "Spark SQL_"
+        ]
+      ],
+      "issue_url": "https://issues.apache.org/jira/browse/SPARK-58713",
+      "ground_truth_rule": null
+    },
+    {
+      "id": "H05",
+      "issue": "SPARK-52531",
+      "type": "fixed_negative_control",
+      "family": "correlated_aggregate",
+      "setup": "none",
+      "config": {},
+      "sql": "SELECT MAX(a.col1) FROM VALUES (7) AS a(col1) GROUP BY a.col1 HAVING COUNT(*) = (SELECT COUNT(*) FROM VALUES (7),(7),(8),(8) AS c(col1) WHERE c.col1 >= a.col1 GROUP BY c.col1 LIMIT 1) ORDER BY a.col1 DESC",
+      "expected": [],
+      "issue_url": "https://issues.apache.org/jira/browse/SPARK-52531",
+      "ground_truth_rule": null
+    },
+    {
+      "id": "H06",
+      "issue": "SPARK-56031",
+      "type": "fixed_negative_control",
+      "family": "case_natural_join",
+      "setup": "none",
+      "config": {
+        "spark.sql.caseSensitive": "false"
+      },
+      "sql": "SELECT * FROM VALUES (1,'a'),(2,'b') AS l(ID,lv) NATURAL JOIN VALUES (1,'x'),(3,'y') AS r(id,rv) ORDER BY ID",
+      "expected": [
+        [
+          1,
+          "a",
+          "x"
+        ]
+      ],
+      "issue_url": "https://issues.apache.org/jira/browse/SPARK-56031",
+      "ground_truth_rule": null
+    },
+    {
+      "id": "H07",
+      "issue": "SPARK-58888",
+      "type": "negative_control",
+      "family": "empty_distinct",
+      "setup": "empty",
+      "config": {
+        "spark.sql.optimizer.optimizeExpandRatio": "-1"
+      },
+      "sql": "SELECT COUNT(DISTINCT region), COUNT(DISTINCT channel) FROM (SELECT 'US' AS region, 'web' AS channel, id FROM events)",
+      "expected": [
+        [
+          0,
+          0
+        ]
+      ],
+      "issue_url": "https://issues.apache.org/jira/browse/SPARK-58888",
+      "ground_truth_rule": null
+    },
+    {
+      "id": "H08",
+      "issue": "SPARK-58387",
+      "type": "negative_control",
+      "family": "duplicate_sensitive",
+      "setup": "duplicates",
+      "config": {
+        "spark.sql.optimizer.optimizeExpandRatio": "-1"
+      },
+      "sql": "SELECT k, COUNT(DISTINCT a), COUNT(DISTINCT b), COUNT(1) FROM oe GROUP BY k ORDER BY k",
+      "expected": [
+        [
+          1,
+          2,
+          2,
+          4
+        ],
+        [
+          2,
+          1,
+          1,
+          1
+        ]
+      ],
+      "issue_url": "https://issues.apache.org/jira/browse/SPARK-58387",
+      "ground_truth_rule": null
+    }
+  ]
+}
