@@ -1,0 +1,61 @@
+name: QueryProof cross-check upstream SPARK-57956 fix against SPARK-59126
+on:
+  push:
+    branches: [research/queryproof-upstream-cardinality-control-20261016]
+    paths:
+      - tools/queryproof_upstream_crosscheck/**
+      - .github/workflows/queryproof-upstream-cardinality-crosscheck.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    strategy:
+      fail-fast: false
+      matrix:
+        arm: [baseline, sort_guard, upstream_cardinality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_guard
+            tools/queryproof_synthesis
+            tools/queryproof_upstream_crosscheck
+            sql/core/src/main/scala/org/apache/spark/sql/execution/adaptive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the same unmodified released Spark 4.2.0 in every job
+        run: python -m pip install --no-cache-dir 'pyspark==4.2.0'
+      - name: Verify independently computed Python oracles
+        run: python -m unittest discover -s tools/queryproof_synthesis -p 'test_generate.py' -v
+      - name: Apply assigned intervention to disposable test-wheel JAR
+        env:
+          ARM: "${{ matrix.arm }}"
+        run: bash tools/queryproof_upstream_crosscheck/apply_intervention.sh "$ARM"
+      - name: Collect identical SQL observations from all three conditions
+        env:
+          ARM: "${{ matrix.arm }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u tools/queryproof_upstream_crosscheck/crosscheck.py "$ARM" > "artifacts/crosscheck-$ARM.log" 2>&1 || {
+            tail -n 100 "artifacts/crosscheck-$ARM.log"
+            exit 1
+          }
+          grep 'QUERYPROOF_CROSSCHECK_' "artifacts/crosscheck-$ARM.log"
+      - name: Upload complete blinded observations even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-upstream-crosscheck-${{ matrix.arm }}
+          path: |
+            artifacts/crosscheck_*.json
+            artifacts/crosscheck-*.log
+          retention-days: 14
