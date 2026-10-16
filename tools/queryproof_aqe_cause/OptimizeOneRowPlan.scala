@@ -47,39 +47,44 @@ object OptimizeOneRowPlan extends Rule[LogicalPlan] {
     java.util.Base64.getEncoder.encodeToString(
       value.getBytes(java.nio.charset.StandardCharsets.UTF_8))
 
-  private def queryProofObserve(plan: LogicalPlan): Unit = {
+  /**
+   * Observes a Sort elimination AFTER the normal Catalyst maxRows guard succeeded.
+   * Do not evaluate lazy maxRows beforehand: doing so can perturb AQE planning.
+   */
+  private def queryProofRecordRemoval(child: LogicalPlan): Unit = {
     if (java.lang.Boolean.getBoolean("queryproof.cardinality.enabled") &&
         queryProofCounter.incrementAndGet() <= 300) {
-      plan.collect {
-        case sort @ Sort(_, global, child, _) if global =>
-          val join = child.collectFirst { case j: Join => j }
-          val info = Seq(
-            System.getProperty("queryproof.cardinality.case", "unknown"),
-            sort.nodeName,
-            child.nodeName,
-            child.maxRows.toString,
-            child.stats.rowCount.toString,
-            join.map(_.maxRows.toString).getOrElse("NO_JOIN"),
-            join.map(_.left.maxRows.toString).getOrElse("NO_LEFT"),
-            join.map(_.right.maxRows.toString).getOrElse("NO_RIGHT"),
-            join.map(_.left.stats.rowCount.toString).getOrElse("NO_LEFT_STATS"),
-            join.map(_.right.stats.rowCount.toString).getOrElse("NO_RIGHT_STATS"),
-            join.map(_.left.nodeName).getOrElse("NO_LEFT_NODE"),
-            join.map(_.right.nodeName).getOrElse("NO_RIGHT_NODE"),
-            sort.treeString)
-          System.err.println("QUERYPROOF_CARDINALITY\t" +
-            info.map(queryProofEnc).mkString("\t"))
+      val join = child.collectFirst { case j: Join => j }
+      if (join.isDefined) {
+        val j = join.get
+        val info = Seq(
+          System.getProperty("queryproof.cardinality.case", "unknown"),
+          "ELIMINATED_SORT_AFTER_GUARD",
+          child.nodeName,
+          child.maxRows.toString,
+          child.stats.rowCount.toString,
+          j.maxRows.toString,
+          j.left.maxRows.toString,
+          j.right.maxRows.toString,
+          j.left.stats.rowCount.toString,
+          j.right.stats.rowCount.toString,
+          j.left.nodeName,
+          j.right.nodeName,
+          child.treeString)
+        System.err.println("QUERYPROOF_CARDINALITY\t" +
+          info.map(queryProofEnc).mkString("\t"))
       }
     }
   }
 
   override def apply(plan: LogicalPlan): LogicalPlan = {
-    queryProofObserve(plan)
     val enableForStreaming = conf.getConf(SQLConf.STREAMING_OPTIMIZE_ONE_ROW_PLAN_ENABLED)
 
     plan.transformUpWithPruning(_.containsAnyPattern(SORT, AGGREGATE), ruleId) {
       case Sort(_, _, child, _) if child.maxRows.exists(_ <= 1L) &&
-        isChildEligible(child, enableForStreaming) => child
+        isChildEligible(child, enableForStreaming) =>
+        queryProofRecordRemoval(child)
+        child
       case Sort(_, false, child, _) if child.maxRowsPerPartition.exists(_ <= 1L) &&
         isChildEligible(child, enableForStreaming) => child
       case agg @ Aggregate(_, _, child, _) if agg.groupOnly && child.maxRows.exists(_ <= 1L) &&
