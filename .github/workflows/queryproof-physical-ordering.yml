@@ -40,6 +40,9 @@ jobs:
           export PYSPARK_SUBMIT_ARGS="--jars $PWD/artifacts/queryproof-ordering-probe.jar --driver-class-path $PWD/artifacts/queryproof-ordering-probe.jar pyspark-shell"
           python -u tools/queryproof_physical/run_probe.py > artifacts/ordering-inspection.log 2>&1 || { tail -n 120 artifacts/ordering-inspection.log; exit 1; }
           grep '^QUERYPROOF_ORDERING' artifacts/ordering-inspection.log || true
+      - name: Audit declarations against known SQL oracles and negative controls
+        run: |
+          python tools/queryproof_physical/score_probe.py artifacts/queryproof_physical_ordering_${{ matrix.spark }}.json
       - name: Upload unmodified Spark ordering evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -47,6 +50,7 @@ jobs:
           name: queryproof-physical-ordering-${{ matrix.spark }}
           path: |
             artifacts/queryproof_physical_ordering_*.json
+            artifacts/queryproof_physical_audit_*.json
             artifacts/ordering-inspection.log
             artifacts/queryproof-ordering-probe.jar
           retention-days: 14
