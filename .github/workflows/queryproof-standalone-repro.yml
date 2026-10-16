@@ -1,0 +1,33 @@
+name: QueryProof standalone minimized Spark reproducer
+on:
+  push:
+    branches: [research/queryproof-counterexample-synthesis-20261016]
+    paths:
+      - tools/queryproof_synthesis/standalone_repro.py
+      - .github/workflows/queryproof-standalone-repro.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1','4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_synthesis/standalone_repro.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir 'pyspark==${{ matrix.spark }}'
+      - name: Execute only official PySpark (no QueryProof instrumentation)
+        run: python -u tools/queryproof_synthesis/standalone_repro.py
