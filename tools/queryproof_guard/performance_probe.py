@@ -40,7 +40,21 @@ def run_one(spark,case,mode):
     ss.conf.set("spark.sql.shuffle.partitions","5")
     for name,value in MODES[mode].items():ss.conf.set(name,value)
     start=perf_counter()
-    q=ss.sql(sql(case))
+    # The correctness generator deliberately caps n at 40.
+    # The exploratory cost probe accepts larger synthetic ranges without
+    # changing the preregistered generator's validity rules.
+    if case.valid():
+        statement=sql(case)
+    else:
+        statement=(
+            f"WITH top AS (SELECT id, CAST(id % {case.modulus} AS INT) AS k "
+            f"FROM range({case.left_start},{case.left_start+case.left_n},1,{case.left_partitions}) "
+            f"ORDER BY id ASC LIMIT {case.limit} OFFSET {case.offset}), "
+            f"rhs AS (SELECT id AS bid, CAST(id % {case.modulus} AS INT) AS k "
+            f"FROM range({case.right_start},{case.right_start+case.right_n},1,{case.right_partitions})) "
+            f"SELECT top.id,top.k,rhs.bid FROM top {case.join} JOIN rhs USING(k) "
+            "ORDER BY top.id ASC,rhs.bid ASC")
+    q=ss.sql(statement)
     rows=[list(x) for x in q.collect()]
     elapsed=(perf_counter()-start)*1000
     result=diagnose(case,rows)
