@@ -53,6 +53,17 @@ jobs:
           set -euo pipefail
           PYTHONPATH=tools python -u tools/queryproof_instrumented/auto_ablate.py > artifacts/auto-ablation.log 2>&1 || { tail -n 80 artifacts/auto-ablation.log; exit 1; }
           grep '^QUERYPROOF_ABLATION' artifacts/auto-ablation.log || true
+      - name: Independent AQE held-out regression (do not retune detector)
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=tools python -u tools/queryproof_instrumented/holdout_aqe.py > artifacts/aqe-holdout.log 2>&1
+          grep '^QUERYPROOF_HOLDOUT' artifacts/aqe-holdout.log || true
+          if grep -q '^QUERYPROOF_AST' artifacts/aqe-holdout.log; then
+            python tools/queryproof_instrumented/rank_ast.py artifacts/aqe-holdout.log --out artifacts/aqe-holdout-triage.json
+          else
+            echo '{"n_events":0,"errors":[],"ranked_candidates":{},"out_of_scope":true}' > artifacts/aqe-holdout-triage.json
+          fi
       - name: Preserve raw structured events and Spark observations
         if: always()
         uses: actions/upload-artifact@v4
@@ -64,5 +75,8 @@ jobs:
             artifacts/triage.json
             artifacts/automatic_ablation.json
             artifacts/auto-ablation.log
+            artifacts/aqe-holdout.json
+            artifacts/aqe-holdout.log
+            artifacts/aqe-holdout-triage.json
             artifacts/queryproof-spark-overlay.jar
           retention-days: 7
