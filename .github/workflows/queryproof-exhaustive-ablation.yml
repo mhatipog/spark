@@ -1,0 +1,49 @@
+name: QueryProof independent holdout — exhaustive observed-rule intervention
+on:
+  push:
+    branches: [research/queryproof-catalyst-trace-20261015]
+    paths:
+      - tools/queryproof_holdout/exhaustive_ablation.py
+      - .github/workflows/queryproof-exhaustive-ablation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exhaustive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_holdout
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir pyspark==4.2.0
+      - name: Build true AST instrumented Spark
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Reproduce frozen holdout
+        run: |
+          python -u tools/queryproof_holdout/run_holdout.py > artifacts/queryproof-holdout-ast.log 2>&1
+          grep '^QUERYPROOF_HOLDOUT' artifacts/queryproof-holdout-ast.log
+      - name: Independently intervene on every observed optimizer rule
+        run: |
+          PYTHONPATH=tools/queryproof_holdout python -u tools/queryproof_holdout/exhaustive_ablation.py > artifacts/exhaustive-ablation.log 2>&1 || { tail -n 80 artifacts/exhaustive-ablation.log; exit 1; }
+          grep '^QUERYPROOF_EXHAUSTIVE' artifacts/exhaustive-ablation.log || true
+      - name: Upload all unmodified observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-exhaustive-holdout-v1
+          path: |
+            artifacts/queryproof_holdout_observations.json
+            artifacts/queryproof_exhaustive_ablation.json
+            artifacts/exhaustive-ablation.log
+            artifacts/queryproof-holdout-ast.log
+          retention-days: 14
