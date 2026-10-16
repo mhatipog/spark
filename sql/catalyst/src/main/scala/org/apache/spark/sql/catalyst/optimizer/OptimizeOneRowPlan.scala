@@ -46,7 +46,12 @@ object OptimizeOneRowPlan extends Rule[LogicalPlan] {
     val enableForStreaming = conf.getConf(SQLConf.STREAMING_OPTIMIZE_ONE_ROW_PLAN_ENABLED)
 
     plan.transformUpWithPruning(_.containsAnyPattern(SORT, AGGREGATE), ruleId) {
-      case Sort(_, _, child, _) if child.maxRows.exists(_ <= 1L) &&
+      // AQE replaces subtrees with LogicalQueryStage nodes whose maxRows may be
+      // derived from runtime statistics. Do not turn that estimate into a
+      // correctness-critical proof that a global Sort is unnecessary.
+      // Local sorts retain the original one-row optimization.
+      case Sort(_, global, child, _) if child.maxRows.exists(_ <= 1L) &&
+        !(global && child.exists(_.isInstanceOf[LogicalQueryStage])) &&
         isChildEligible(child, enableForStreaming) => child
       case Sort(_, false, child, _) if child.maxRowsPerPartition.exists(_ <= 1L) &&
         isChildEligible(child, enableForStreaming) => child
