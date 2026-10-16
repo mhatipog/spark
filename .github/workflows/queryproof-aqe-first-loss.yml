@@ -1,0 +1,42 @@
+name: QueryProof pinpoint AQE Sort loss with native rule logs
+on:
+  push:
+    branches: [research/queryproof-aqe-first-loss-20261016]
+    paths:
+      - tools/queryproof_aqe_cause/native_planlogs.py
+      - .github/workflows/queryproof-aqe-first-loss.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-logs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_aqe_cause/native_planlogs.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir pyspark==4.2.0
+      - name: Execute original SQL with Catalyst and AQE plan change logging enabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python -u tools/queryproof_aqe_cause/native_planlogs.py > artifacts/aqe-native-log.txt 2>&1
+          grep '^QUERYPROOF_LOSS' artifacts/aqe-native-log.txt
+          grep -E '=== Applying Rule (RemoveRedundantSorts|EnsureRequirements|InsertSortForLimitAndOffset)' artifacts/aqe-native-log.txt | head -n 60 || true
+      - name: Preserve raw Spark rule logs for falsifiable attribution
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-first-loss-native-logs
+          path: artifacts/
+          retention-days: 14
