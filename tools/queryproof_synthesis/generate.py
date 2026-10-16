@@ -26,7 +26,7 @@ class Case:
           and 1<=self.left_n<=40 and 1<=self.right_n<=40
           and 1<=self.left_partitions<=8 and 1<=self.right_partitions<=8
           and 1<=self.modulus<=10 and 0<=self.offset<self.left_n
-          and 1<=self.limit<=self.left_n-self.offset
+          and 1<=self.limit<=40
           and self.left_start>=0 and self.right_start>=0)
 
 def sql(c):
