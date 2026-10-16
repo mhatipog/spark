@@ -1,0 +1,49 @@
+name: QueryProof second-order Catalyst rule interaction experiment
+on:
+  push:
+    branches: [research/queryproof-catalyst-trace-20261015]
+    paths:
+      - tools/queryproof_holdout/rule_interactions.py
+      - .github/workflows/queryproof-rule-interactions.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  interactions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_holdout
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir pyspark==4.2.0
+      - name: Compile instrumented Catalyst AST tracer
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Collect original Spark observations
+        run: python -u tools/queryproof_holdout/run_holdout.py > artifacts/queryproof-holdout-ast.log 2>&1
+      - name: Identify single-rule perturbations without an answer oracle
+        run: PYTHONPATH=tools/queryproof_holdout python tools/queryproof_holdout/oracle_free_perturbation.py > artifacts/oracle-free.log 2>&1
+      - name: Test all second-rule exclusions for non-additive interactions
+        run: |
+          PYTHONPATH=tools/queryproof_holdout python -u tools/queryproof_holdout/rule_interactions.py > artifacts/rule-interactions.log 2>&1 || { tail -n 100 artifacts/rule-interactions.log; exit 1; }
+          grep '^QUERYPROOF_INTERACTION' artifacts/rule-interactions.log || true
+      - name: Save independent interaction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-catalyst-second-order-interactions-v1
+          path: |
+            artifacts/queryproof_holdout_observations.json
+            artifacts/queryproof_oracle_free_discovery.json
+            artifacts/queryproof_rule_interactions.json
+            artifacts/rule-interactions.log
+          retention-days: 14
