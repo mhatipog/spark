@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "study": "queryproof-prospective-blind-v2",
+  "selection_date": "2026-10-16",
+  "training_families_excluded": [
+    "SPARK-58387",
+    "SPARK-58486",
+    "SPARK-58888",
+    "SPARK-58713",
+    "SPARK-52531",
+    "SPARK-56031",
+    "SPARK-58385",
+    "SPARK-58411",
+    "SPARK-59438"
+  ],
+  "frozen_detector": "tools/queryproof_instrumented/rank_ast.py from research/queryproof-catalyst-trace-20261015",
+  "evaluation_versions": [
+    "4.0.1",
+    "4.2.0"
+  ],
+  "expected_behavior": "SQL results, not Spark Jira remediation status; errors/unsupported reported without exclusion",
+  "cases": [
+    {
+      "id": "B01",
+      "issue": "SPARK-58384",
+      "kind": "bug",
+      "category": "logical-optimizer/null-under-not",
+      "fixture": "nullable_joins",
+      "comparison": "bag",
+      "sql": "SELECT tl.a,tl.b,tr.x,tr.y FROM tl INNER JOIN tr ON NOT (tl.a = tr.x OR (tl.a IS NULL AND tr.x IS NULL)) ORDER BY tl.b,tr.y",
+      "expected": [
+        [
+          0,
+          10,
+          1,
+          22
+        ]
+      ],
+      "control_sql": "SELECT tl.a,tl.b,tr.x,tr.y FROM tl INNER JOIN tr ON tl.a IS NOT NULL AND tr.x IS NOT NULL AND tl.a <> tr.x ORDER BY tl.b,tr.y",
+      "oracle_source": "https://issues.apache.org/jira/browse/SPARK-58384"
+    },
+    {
+      "id": "B02",
+      "issue": "SPARK-58442",
+      "kind": "bug",
+      "category": "mandatory-subquery/three-valued-logic",
+      "fixture": "in_null",
+      "comparison": "bag",
+      "sql": "SELECT c FROM tn WHERE (c IN (SELECT c FROM t)) IS NULL",
+      "expected": [
+        [
+          null
+        ]
+      ],
+      "control_sql": "SELECT c FROM tn WHERE c IS NULL",
+      "oracle_source": "https://issues.apache.org/jira/browse/SPARK-58442"
+    },
+    {
+      "id": "B03",
+      "issue": "SPARK-58429",
+      "kind": "bug",
+      "category": "mandatory-subquery/empty-global-aggregate",
+      "fixture": "none",
+      "comparison": "bag",
+      "sql": "SELECT count(*) AS n, 1 IN (SELECT id FROM range(1, 2)) AS pred FROM range(0)",
+      "expected": [
+        [
+          0,
+          true
+        ]
+      ],
+      "control_sql": "SELECT 0 AS n, 1 IN (SELECT id FROM range(1, 2)) AS pred",
+      "oracle_source": "https://issues.apache.org/jira/browse/SPARK-58429"
+    },
+    {
+      "id": "B04",
+      "issue": "SPARK-59126",
+      "kind": "bug",
+      "category": "AQE/physical-ordering",
+      "fixture": "none",
+      "comparison": "sequence",
+      "settings": {
+        "spark.sql.adaptive.enabled": "true",
+        "spark.sql.shuffle.partitions": "5"
+      },
+      "control_settings": {
+        "spark.sql.adaptive.enabled": "false"
+      },
+      "sql": "WITH top AS (SELECT id, CAST(id % 1 AS INT) AS k FROM range(0,3,1,2) ORDER BY id ASC LIMIT 1 OFFSET 1), b AS (SELECT id AS bid, CAST(id % 1 AS INT) AS k FROM range(0,2,1,2)) SELECT top.id,top.k,b.bid FROM top LEFT JOIN b USING(k) ORDER BY top.id ASC,b.bid ASC",
+      "expected": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          1
+        ]
+      ],
+      "oracle_source": "https://issues.apache.org/jira/browse/SPARK-59126"
+    },
+    {
+      "id": "B05",
+      "issue": "SPARK-55038",
+      "kind": "bug",
+      "category": "AQE/sort-aggregate-array-distinct",
+      "fixture": "none",
+      "comparison": "bag",
+      "observed_columns": 2,
+      "settings": {
+        "spark.sql.adaptive.enabled": "true",
+        "spark.sql.objectHashAggregate.sortBased.fallbackThreshold": "1"
+      },
+      "control_settings": {
+        "spark.sql.adaptive.enabled": "false"
+      },
+      "sql": "WITH t AS (SELECT explode(array(15,16,17)) AS v) SELECT (SELECT COUNT(*) FROM t WHERE array_contains(arr1,v)) AS array_agg_cnt, (SELECT COUNT(*) FROM t WHERE array_contains(arr2,v)) AS collect_set_cnt, arr1, arr2 FROM (SELECT array_agg(DISTINCT v) AS arr1,collect_set(v) AS arr2 FROM t)",
+      "expected": [
+        [
+          3,
+          3
+        ]
+      ],
+      "oracle_source": "https://issues.apache.org/jira/browse/SPARK-55038"
+    },
+    {
+      "id": "N01",
+      "issue": "SPARK-58384",
+      "kind": "negative_control",
+      "category": "safe-top-level-null-join",
+      "fixture": "nullable_joins",
+      "comparison": "bag",
+      "sql": "SELECT tl.a,tl.b,tr.x,tr.y FROM tl INNER JOIN tr ON (tl.a = tr.x OR (tl.a IS NULL AND tr.x IS NULL)) ORDER BY tl.b,tr.y",
+      "expected": [
+        [
+          0,
+          10,
+          0,
+          21
+        ],
+        [
+          null,
+          11,
+          null,
+          20
+        ]
+      ],
+      "oracle_source": "https://issues.apache.org/jira/browse/SPARK-58384"
+    },
+    {
+      "id": "N02",
+      "issue": "SPARK-58442",
+      "kind": "negative_control",
+      "category": "safe-IN-filter",
+      "fixture": "in_null",
+      "comparison": "bag",
+      "sql": "SELECT c FROM tn WHERE c IN (SELECT c FROM t) ORDER BY c",
+      "expected": [
+        [
+          1
+        ],
+        [
+          2
+        ]
+      ],
+      "oracle_source": "https://issues.apache.org/jira/browse/SPARK-58442"
+    },
+    {
+      "id": "N03",
+      "issue": "SPARK-58429",
+      "kind": "negative_control",
+      "category": "nonempty-global-aggregate",
+      "fixture": "none",
+      "comparison": "bag",
+      "sql": "SELECT count(*) AS n, 1 IN (SELECT id FROM range(1,2)) AS pred FROM range(1)",
+      "expected": [
+        [
+          1,
+          true
+        ]
+      ],
+      "oracle_source": "https://issues.apache.org/jira/browse/SPARK-58429"
+    },
+    {
+      "id": "N04",
+      "issue": "SPARK-59126",
+      "kind": "negative_control",
+      "category": "AQE-off-final-order",
+      "fixture": "none",
+      "comparison": "sequence",
+      "settings": {
+        "spark.sql.adaptive.enabled": "false"
+      },
+      "sql": "WITH top AS (SELECT id, CAST(id % 1 AS INT) AS k FROM range(0,3,1,2) ORDER BY id ASC LIMIT 1 OFFSET 1), b AS (SELECT id AS bid, CAST(id % 1 AS INT) AS k FROM range(0,2,1,2)) SELECT top.id,top.k,b.bid FROM top LEFT JOIN b USING(k) ORDER BY top.id ASC,b.bid ASC",
+      "expected": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          1
+        ]
+      ],
+      "oracle_source": "https://issues.apache.org/jira/browse/SPARK-59126"
+    }
+  ]
+}
