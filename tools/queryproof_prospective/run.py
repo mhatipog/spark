@@ -65,7 +65,7 @@ def main():
         .config("spark.ui.enabled","false")
         .config("spark.sql.adaptive.enabled","false")
         .config("spark.sql.shuffle.partitions","5")
-        .config("spark.sql.autoBroadcastJoinThreshold","-1").getOrCreate())
+        .getOrCreate())
     spark.sparkContext.setLogLevel("ERROR")
     result={"schema_version":1,"spark_version":spark.version,
        "manifest_sha256":hashlib.sha256(MANIFEST_PATH.read_bytes()).hexdigest(),
