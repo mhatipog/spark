@@ -1,0 +1,49 @@
+name: QueryProof test exact AQE rule workaround on frozen 61-case SQL corpus
+on:
+  push:
+    branches: [research/queryproof-aqe-first-loss-20261016]
+    paths:
+      - tools/queryproof_aqe_cause/verify_one_row_mitigation.py
+      - .github/workflows/queryproof-verify-aqe-one-row.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1','4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_aqe_cause
+            tools/queryproof_synthesis
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install unmodified official PySpark
+        run: python -m pip install --no-cache-dir 'pyspark==${{ matrix.spark }}'
+      - name: Run pure Python oracle checks
+        run: python -m unittest discover -s tools/queryproof_synthesis -p 'test_generate.py' -v
+      - name: Compare original and rule-excluded AQE for every generated input
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set -euo pipefail
+          python -u tools/queryproof_aqe_cause/verify_one_row_mitigation.py > artifacts/one-row-verify.log 2>&1 || { tail -n 100 artifacts/one-row-verify.log; exit 1; }
+          grep '^QUERYPROOF_ONE_ROW_SUMMARY' artifacts/one-row-verify.log
+      - name: Archive every result, including negative controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-one-row-workaround-${{ matrix.spark }}
+          path: artifacts/
+          retention-days: 14
