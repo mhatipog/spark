@@ -1,0 +1,48 @@
+name: QueryProof oracle-free optimizer perturbation experiment
+on:
+  push:
+    branches: [research/queryproof-catalyst-trace-20261015]
+    paths:
+      - tools/queryproof_holdout/oracle_free_perturbation.py
+      - .github/workflows/queryproof-oracle-free.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_holdout
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir pyspark==4.2.0
+      - name: Compile gated structured-AST instrumentation
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Freeze actual Spark results and the rule-observation trace
+        run: python -u tools/queryproof_holdout/run_holdout.py > artifacts/queryproof-holdout-ast.log 2>&1
+      - name: Generate optimizer-induced divergences without expected answers
+        run: |
+          PYTHONPATH=tools/queryproof_holdout python -u tools/queryproof_holdout/oracle_free_perturbation.py > artifacts/oracle-free.log 2>&1 || { tail -n 100 artifacts/oracle-free.log; exit 1; }
+          grep '^QUERYPROOF_ORACLE_FREE' artifacts/oracle-free.log
+      - name: Preserve raw observations and separated score
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-oracle-free-disagreement-v1
+          path: |
+            artifacts/queryproof_holdout_observations.json
+            artifacts/queryproof_oracle_free_discovery.json
+            artifacts/queryproof_oracle_free_score.json
+            artifacts/queryproof-holdout-ast.log
+            artifacts/oracle-free.log
+          retention-days: 14
