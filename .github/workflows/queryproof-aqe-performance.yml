@@ -1,0 +1,45 @@
+name: QueryProof narrow AQE guard preliminary cost and plan tradeoff
+on:
+  push:
+    branches: [research/queryproof-aqe-narrow-guard-20261016]
+    paths:
+      - tools/queryproof_guard/performance_probe.py
+      - .github/workflows/queryproof-aqe-performance.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_guard
+            tools/queryproof_synthesis
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir pyspark==4.2.0
+      - name: Compile narrowed source patch into disposable Spark JAR
+        run: bash tools/queryproof_guard/build_patch.sh
+      - name: Run paired comparison on same patched Spark JVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u tools/queryproof_guard/performance_probe.py > artifacts/performance-raw.log 2>&1 || { tail -n 120 artifacts/performance-raw.log; exit 1; }
+          grep '^QUERYPROOF_GUARD_PERFORMANCE' artifacts/performance-raw.log
+      - name: Archive raw latencies, row counts and caveats
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-narrow-aqe-guard-exploratory-cost
+          path: |
+            artifacts/queryproof_guard_exploratory_cost.json
+            artifacts/performance-raw.log
+          retention-days: 14
