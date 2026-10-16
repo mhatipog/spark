@@ -1,0 +1,57 @@
+name: QueryProof prospective frozen holdout across Spark releases
+on:
+  push:
+    branches: [research/queryproof-blind-benchmark-20261016]
+    paths:
+      - tools/queryproof_prospective/**
+      - .github/workflows/queryproof-prospective.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prospective:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1','4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_prospective
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install published Spark release
+        run: python -m pip install --no-cache-dir 'pyspark==${{ matrix.spark }}'
+      - name: Instrument Catalyst AST on version matching source
+        if: matrix.spark == '4.2.0'
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Run frozen benchmark and record every execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python -u tools/queryproof_prospective/run.py > artifacts/prospective-spark.log 2>&1 || { tail -n 120 artifacts/prospective-spark.log; exit 1; }
+          grep '^QUERYPROOF_PROSPECTIVE' artifacts/prospective-spark.log || true
+      - name: Independently score expected SQL answers after execution
+        run: |
+          python tools/queryproof_prospective/score.py artifacts/prospective_observations_${{ matrix.spark }}.json
+      - name: Score unchanged AST detector on real Spark 4.2 events
+        if: matrix.spark == '4.2.0'
+        run: |
+          python tools/queryproof_instrumented/rank_ast.py artifacts/prospective-spark.log --out artifacts/prospective_ast_ranking.json
+      - name: Preserve entire audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-prospective-${{ matrix.spark }}
+          path: artifacts/
+          retention-days: 14

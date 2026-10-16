@@ -1,0 +1,3 @@
+# Prospective benchmark v2
+
+The cases were frozen in a separate earlier commit (eb578c65d26714c914ebde200e4097b0c33613a5) before the first execution. We test 5 unrelated, documented 2026 correctness problems and 4 negative controls on Spark 4.0.1 and 4.2.0. The existing QueryProof AST ranker is unchanged; it does not support physical AQE changes. Baselines: independent expected SQL semantics, AQE toggles and equivalent reference SQL. A difference is not a proof of blame. No retrospective benchmark tuning is permitted. An unsupported version or an error is reported, not excluded from the denominator. `ORDER BY` checks sequences; other SQL checks bags. Array aggregation checks the first two counts to avoid confusing unordered array representation with equivalence.
