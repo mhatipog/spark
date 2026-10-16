@@ -1,0 +1,45 @@
+name: QueryProof official Spark wheel independent AQE reproducibility
+on:
+  push:
+    branches: [research/queryproof-blind-benchmark-20261016]
+    paths:
+      - tools/queryproof_prospective/official_wheel_repro.py
+      - .github/workflows/queryproof-official-spark-repro.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  repeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1', '4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_prospective/official_wheel_repro.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --no-cache-dir 'pyspark==${{ matrix.spark }}'
+      - name: Repeat independent AQE x optimizer intervention matrix
+        shell: bash
+        run: |
+          python -u tools/queryproof_prospective/official_wheel_repro.py > official-spark-repro.log 2>&1 || { tail -n 120 official-spark-repro.log; exit 1; }
+          grep '^QUERYPROOF_OFFICIAL_REPRO' official-spark-repro.log
+      - name: Preserve raw order, optimizer and physical-plan evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-official-spark-order-${{ matrix.spark }}
+          path: |
+            artifacts/
+            official-spark-repro.log
+          retention-days: 14
