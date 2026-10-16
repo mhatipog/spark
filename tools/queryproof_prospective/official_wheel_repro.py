@@ -23,6 +23,8 @@ SETTINGS=[
  ("aqe_off_without_inline_cte",{"spark.sql.adaptive.enabled":"false","spark.sql.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.InlineCTE"}),
  ("aqe_on_without_inline_cte_no_broadcast",{"spark.sql.adaptive.enabled":"true","spark.sql.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.InlineCTE","spark.sql.adaptive.autoBroadcastJoinThreshold":"-1"}),
  ("aqe_on_normal_no_broadcast",{"spark.sql.adaptive.enabled":"true","spark.sql.adaptive.autoBroadcastJoinThreshold":"-1"}),
+ ("aqe_on_without_inline_cte_all_broadcast_disabled",{"spark.sql.adaptive.enabled":"true","spark.sql.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.InlineCTE","spark.sql.autoBroadcastJoinThreshold":"-1","spark.sql.adaptive.autoBroadcastJoinThreshold":"-1"}),
+ ("aqe_on_normal_all_broadcast_disabled",{"spark.sql.adaptive.enabled":"true","spark.sql.autoBroadcastJoinThreshold":"-1","spark.sql.adaptive.autoBroadcastJoinThreshold":"-1"}),
 ]
 def main():
     spark=(SparkSession.builder.master("local[2]").appName("QueryProof-OfficialWheel-Interaction-Repro")
