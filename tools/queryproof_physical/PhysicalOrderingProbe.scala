@@ -10,6 +10,7 @@ import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.catalyst.expressions.SortOrder
 import org.apache.spark.sql.catalyst.plans.logical.{GlobalLimit, LocalLimit, LogicalPlan, Offset, Sort, WithCTE}
+import org.apache.spark.sql.catalyst.plans.physical.RangePartitioning
 
 /**
  * A conservative observation about ordering properties declared by Spark.
@@ -62,14 +63,24 @@ object PhysicalOrderingProbe {
       requested match {
         case None =>
           field("verdict", "OUT_OF_SCOPE_NO_ROOT_GLOBAL_SORT")
-        case Some(order) if !isFinal =>
-          field("verdict", "UNKNOWN_AQE_NOT_FINAL")
         case Some(order) =>
           val compatible = SortOrder.orderingSatisfies(finalPlan.outputOrdering, order)
           val global = partitions == 1
+          // Global SortExec also implements ORDER BY with multiple *range*-ordered
+          // partitions. Reject hash/round-robin/coalesced-hash partitioning here.
+          val rangeCompatible = finalPlan.outputPartitioning match {
+            case r: RangePartitioning =>
+              SortOrder.orderingSatisfies(r.ordering, order)
+            case _ => false
+          }
+          val guarantee = compatible && (global || rangeCompatible)
           flag("spark_ordering_satisfies", compatible)
           flag("single_output_partition", global)
-          field("verdict", if (compatible && global) {
+          flag("range_partitioning_matches_order", rangeCompatible)
+          flag("declared_global_order_candidate", guarantee)
+          field("verdict", if (!isFinal) {
+            "UNKNOWN_AQE_NOT_FINAL"
+          } else if (guarantee) {
             "DECLARED_GLOBAL_ORDER_SATISFIED"
           } else {
             "GLOBAL_ORDER_NOT_ESTABLISHED"
