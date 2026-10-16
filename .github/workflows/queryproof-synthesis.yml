@@ -1,0 +1,55 @@
+name: QueryProof generated Spark ordering counterexamples
+on:
+  push:
+    branches: [research/queryproof-counterexample-synthesis-20261016]
+    paths:
+      - tools/queryproof_synthesis/**
+      - .github/workflows/queryproof-synthesis.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1','4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_synthesis
+            tools/queryproof_physical
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official unmodified Spark runtime
+        run: python -m pip install --no-cache-dir 'pyspark==${{ matrix.spark }}'
+      - name: Pure-Python validation of SQL grammar and reference oracle
+        run: python -m unittest discover -s tools/queryproof_synthesis -p 'test_generate.py' -v
+      - name: Compile independently linked Spark ordering metadata inspector
+        run: bash tools/queryproof_physical/build_probe.sh
+      - name: Generate SQL, run real Spark and shrink any new failing input
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYSPARK_SUBMIT_ARGS="--jars $PWD/artifacts/queryproof-ordering-probe.jar --driver-class-path $PWD/artifacts/queryproof-ordering-probe.jar pyspark-shell"
+          python -u tools/queryproof_synthesis/generate.py > artifacts/generation.log 2>&1 || { tail -n 160 artifacts/generation.log; exit 1; }
+          grep '^QUERYPROOF_GENERATED_SUMMARY' artifacts/generation.log || true
+          grep ' True ' artifacts/generation.log | head -n 20 || true
+      - name: Preserve generated SQL, counterexample and all negative observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-generated-witnesses-${{ matrix.spark }}
+          path: |
+            artifacts/generated_counterexamples_*.json
+            artifacts/generation.log
+            artifacts/queryproof-ordering-probe.jar
+          retention-days: 14
