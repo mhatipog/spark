@@ -64,6 +64,12 @@ jobs:
           else
             echo '{"n_events":0,"errors":[],"ranked_candidates":{},"out_of_scope":true}' > artifacts/aqe-holdout-triage.json
           fi
+      - name: Independently test EliminateLimits intervention with interleaved controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=tools python -u tools/queryproof_instrumented/holdout_ablation_aqe.py > artifacts/aqe-intervention.log 2>&1
+          grep '^QUERYPROOF_AQE_INTERVENTION_SUMMARY' artifacts/aqe-intervention.log || true
       - name: Preserve raw structured events and Spark observations
         if: always()
         uses: actions/upload-artifact@v4
@@ -78,5 +84,7 @@ jobs:
             artifacts/aqe-holdout.json
             artifacts/aqe-holdout.log
             artifacts/aqe-holdout-triage.json
+            artifacts/aqe-intervention.json
+            artifacts/aqe-intervention.log
             artifacts/queryproof-spark-overlay.jar
           retention-days: 7
