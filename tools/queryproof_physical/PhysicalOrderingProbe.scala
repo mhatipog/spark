@@ -9,7 +9,7 @@ import org.apache.spark.sql.execution.QueryExecution
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.catalyst.expressions.SortOrder
-import org.apache.spark.sql.catalyst.plans.logical.Sort
+import org.apache.spark.sql.catalyst.plans.logical.{GlobalLimit, LocalLimit, LogicalPlan, Offset, Sort, WithCTE}
 
 /**
  * A conservative observation about ordering properties declared by Spark.
@@ -26,10 +26,20 @@ object PhysicalOrderingProbe {
 
     try {
       val analyzed = qe.analyzed
-      val requested = analyzed match {
-        case s: Sort if s.global => Some(s.order)
-        case _ => None
+      // Only unwrap operators that preserve the *global* result ordering:
+      // CTE container, LIMIT, and OFFSET. Never traverse Project/Join/Exchange.
+      def topGlobalSort(p: LogicalPlan, depth: Int = 0): Option[Sort] = {
+        if (depth > 16) None else p match {
+          case w: WithCTE => topGlobalSort(w.plan, depth + 1)
+          case l: GlobalLimit => topGlobalSort(l.child, depth + 1)
+          case l: LocalLimit => topGlobalSort(l.child, depth + 1)
+          case o: Offset => topGlobalSort(o.child, depth + 1)
+          case s: Sort if s.global => Some(s)
+          case _ => None
+        }
       }
+      val requested = topGlobalSort(analyzed).map(_.order)
+      field("requested_sort_source", topGlobalSort(analyzed).map(_.nodeName).getOrElse("unsupported"))
       field("analyzed_top_class", analyzed.getClass.getName)
       val outer: SparkPlan = qe.executedPlan
       val adaptive = outer match {
