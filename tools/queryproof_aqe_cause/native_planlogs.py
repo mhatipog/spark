@@ -20,6 +20,8 @@ ORDER BY top.id ASC,rhs.bid ASC
 OPTIONS={
 "candidate":{"spark.sql.adaptive.enabled":"true","spark.sql.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.InlineCTE"},
 "remove_sort_rule_off":{"spark.sql.adaptive.enabled":"true","spark.sql.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.InlineCTE","spark.sql.execution.removeRedundantSorts":"false"},
+"aqe_optimize_one_row_off":{"spark.sql.adaptive.enabled":"true","spark.sql.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.InlineCTE","spark.sql.adaptive.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.OptimizeOneRowPlan"},
+"aqe_optimize_one_row_off_plus_remove_sorts":{"spark.sql.adaptive.enabled":"true","spark.sql.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.InlineCTE","spark.sql.adaptive.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.OptimizeOneRowPlan","spark.sql.execution.removeRedundantSorts":"false"},
 "normal":{"spark.sql.adaptive.enabled":"true"},
 "aqe_off":{"spark.sql.adaptive.enabled":"false","spark.sql.optimizer.excludedRules":"org.apache.spark.sql.catalyst.optimizer.InlineCTE"}
 }
