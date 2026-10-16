@@ -42,9 +42,10 @@ def main():
               run={"rule_a":a,"rule_b":b}
               ss=s.newSession()
               for k,v in c.get("config",{}).items():ss.conf.set(k,v)
-              ss.conf.set("spark.sql.optimizer.excludedRules",a+","+b)
               try:
                 prepare(ss,c["setup"],f"{td}/{cid}/{i}/{j}")
+                # Interventions must not contaminate fixture construction.
+                ss.conf.set("spark.sql.optimizer.excludedRules",a+","+b)
                 both=run_sql(ss,c["sql"])
                 br=both["rows"]
                 b_single=prev.get(b,{}).get("rows")

@@ -42,10 +42,11 @@ def detect():
           for idx,rule in enumerate(rules_by_case.get(cid,{})):
             ss=spark.newSession()
             for k,v in case.get("config",{}).items():ss.conf.set(k,v)
-            ss.conf.set("spark.sql.optimizer.excludedRules",rule)
             attempt={"rule":rule,"status":"NOT_RUN"}
             try:
               prepare(ss,case["setup"],f"{td}/{cid}/{idx}")
+              # Apply the intervention only after the same fixture is defined.
+              ss.conf.set("spark.sql.optimizer.excludedRules",rule)
               after=run_sql(ss,case["sql"])
               changed=(norm_plan(before_plan)!=norm_plan(after["optimized_plan"]))
               difference=canonical(before)!=canonical(after["rows"])

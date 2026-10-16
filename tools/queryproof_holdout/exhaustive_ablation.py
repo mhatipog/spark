@@ -48,12 +48,13 @@ def main():
           for idx,(rule,count) in enumerate(by_case.get(cid,{}).items()):
             ss=s.newSession()
             for k,v in case.get("config",{}).items():ss.conf.set(k,v)
-            ss.conf.set("spark.sql.optimizer.excludedRules",rule)
             dest=f"{td}/{cid}/{idx}"
             t=time.monotonic()
             result={"rule":rule,"observed_event_count":count}
             try:
+              # Define identical source data before changing optimizer behavior.
               prepare(ss,case["setup"],dest)
+              ss.conf.set("spark.sql.optimizer.excludedRules",rule)
               actual=run_sql(ss,case["sql"])
               changed=norm_plan(actual["optimized_plan"])!=norm_plan(base["candidate"]["optimized_plan"])
               correct=actual["rows"]==case["expected"]
