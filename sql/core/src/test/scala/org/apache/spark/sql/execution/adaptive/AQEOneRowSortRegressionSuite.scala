@@ -53,4 +53,32 @@ class AQEOneRowSortRegressionSuite extends QueryTest with SharedSparkSession {
       }
     }
   }
+
+  test("SPARK-59126: original Jira query preserves right-side ordering") {
+    val query =
+      """
+        |WITH top AS (
+        |  SELECT id, CAST(id % 1 AS INT) AS k
+        |  FROM range(0, 3, 1, 2)
+        |  ORDER BY id ASC LIMIT 1 OFFSET 1
+        |), b AS (
+        |  SELECT id AS bid, CAST(id % 1 AS INT) AS k
+        |  FROM range(0, 2, 1, 2)
+        |)
+        |SELECT top.id, top.k, b.bid
+        |FROM top LEFT JOIN b USING (k)
+        |ORDER BY top.id ASC, b.bid ASC
+        |""".stripMargin
+    val expected = Seq(Row(1L, 0, 0L), Row(1L, 0, 1L))
+
+    withSQLConf(
+        SQLConf.ADAPTIVE_EXECUTION_ENABLED.key -> "true",
+        "spark.sql.optimizer.excludedRules" ->
+          "org.apache.spark.sql.catalyst.optimizer.InlineCTE",
+        SQLConf.SHUFFLE_PARTITIONS.key -> "5") {
+      (1 to 8).foreach { _ =>
+        assert(sql(query).collect().toSeq == expected)
+      }
+    }
+  }
 }
