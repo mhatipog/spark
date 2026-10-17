@@ -77,7 +77,7 @@ def extract(qe):
             return {'verdict': 'UNKNOWN', 'reason': 'NO_ROOT_GLOBAL_SORT',
                     'unwrapped': route, 'root': _cls(root),
                     'stage_boundaries': _find_stage_boundaries(analyzed)}
-        if not bool(root.global_() if hasattr(root, 'global_') else getattr(root, 'global')()):
+        if not bool(getattr(root, 'global')()):
             return {'verdict': 'UNKNOWN', 'reason': 'PARTITION_LOCAL_SORT_ONLY'}
         exposed = _output(analyzed)
         attr_ids = {}
