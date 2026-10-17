@@ -20,8 +20,7 @@
       "full_outer_join",
       "window_row_number",
       "distinct",
-      "nested_subquery",
-      "range_limit"
+      "nested_subquery"
     ],
     "out_of_scope": [
       "nonexposed_sort_key",
@@ -47,5 +46,6 @@
     "SORT BY must yield UNKNOWN",
     "ORDER BY hidden/expression key must yield UNKNOWN"
   ],
-  "novelty": "Mechanism is not original; contributes an automated Spark planner-aware obligation extractor as a building block; no publishable claim from this experiment alone"
+  "novelty": "Mechanism is not original; contributes an automated Spark planner-aware obligation extractor as a building block; no publishable claim from this experiment alone",
+  "protocol_amendment": "Before implementation: removed range_limit accidentally carried from an earlier draft; original frozen manifest has 15 in-scope cases and 2 out-of-scope controls (not 16/2). No execution or scoring had occurred."
 }
