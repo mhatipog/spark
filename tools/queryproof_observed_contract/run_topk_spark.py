@@ -33,12 +33,16 @@ def run(spark,adaptive):
     checks=[]
     for slice_sql,offset,q,k in [('LIMIT 3',0,3,3),('OFFSET 3',3,6,3)]:
         expected=[x[3] for x in certificate(p,q)[offset:offset+k]]
-        for kind,projection in [
-            ('scalar_count','(SELECT count(*) FROM k WHERE k.a = s.id) AS c'),
-            ('exists','EXISTS(SELECT 1 FROM k WHERE k.a = s.id) AS e')]:
+        for kind,projection,repeats in [
+            ('plain', None, 2),
+            ('deterministic_project', 'length(name) AS n', 2),
+            ('uncorrelated_scalar', '(SELECT max(b) FROM k) AS c', 2),
+            ('uncorrelated_exists', 'EXISTS(SELECT 1 FROM k) AS e', 2),
+            ('scalar_count','(SELECT count(*) FROM k WHERE k.a = s.id) AS c', 4),
+            ('exists','EXISTS(SELECT 1 FROM k WHERE k.a = s.id) AS e', 4)]:
             query=('WITH s AS (SELECT id,name FROM p ORDER BY age DESC '+slice_sql+') '
-                   'SELECT name, '+projection+' FROM s')
-            for repeat in range(4):
+                   'SELECT name'+(', '+projection if projection else '')+' FROM s')
+            for repeat in range(repeats):
                 try:
                     rows=[list(row) for row in ss.sql(query).collect()]
                     got=[str(row[0]) for row in rows]
@@ -60,7 +64,10 @@ def main():
     spark.sparkContext.addPyFile(str(Path(__file__).resolve().with_name('topk_certificate.py')))
     try:
         checks=run(spark,False)+run(spark,True)
-        summary={'spark_version':spark.version,'runs':len(checks),
+        per_kind = {kind: {'runs':sum(x['kind']==kind for x in checks),
+                           'violations':sum(x['kind']==kind and x['verdict']=='MEMBERSHIP_VIOLATION' for x in checks)}
+                    for kind in sorted(set(x['kind'] for x in checks))}
+        summary={'spark_version':spark.version,'runs':len(checks), 'per_kind':per_kind,
                  'membership_violations':sum(x['verdict']=='MEMBERSHIP_VIOLATION' for x in checks),
                  'unknown':sum(x['verdict']=='UNKNOWN' for x in checks),
                  'errors':[x for x in checks if x['verdict']=='ERROR'],
