@@ -33,11 +33,16 @@ jobs:
         run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==${{ matrix.spark }}
       - name: Auto-extract analyzed ORDER BY obligations on frozen SQL cases
         run: python -u tools/queryproof_auto_obligations/run_auto.py
+      - name: Investigate nested CTE boundary structure (Spark 4.2 only)
+        if: matrix.spark == '4.2.0'
+        run: python -u tools/queryproof_auto_obligations/trace_stage_shapes.py
       - name: Archive positive negatives and UNKNOWN observations
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: queryproof-auto-order-${{ matrix.spark }}
-          path: artifacts/queryproof_auto_obligations_*.json
+          path: |
+            artifacts/queryproof_auto_obligations_*.json
+            artifacts/queryproof_stage_shapes.json
           if-no-files-found: warn
           retention-days: 14
