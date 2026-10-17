@@ -23,6 +23,11 @@ on:
   push:
     branches:
     - '**'
+    # Research-only override on this branch; never alter upstream Spark CI.
+    # Avoid scheduling the huge full Spark build for standalone QueryProof files.
+    paths-ignore:
+    - 'tools/queryproof_observed_contract/**'
+    - '.github/workflows/queryproof-observed-contract.yml'
 
 jobs:
   call-build-and-test:
