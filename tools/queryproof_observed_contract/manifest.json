@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "frozen_date": "2026-10-17",
+  "purpose": "Prospective independent SQL-family controls for a streaming observable-order checker, not newly discovered bugs",
+  "notes": "No tuning after viewing results. Empty keys require UNKNOWN. Each case has only exposed integer ORDER BY keys; no independent bag correctness claim.",
+  "cases": [
+    {
+      "id": "range_multikey",
+      "sql": "SELECT id, id % 7 AS grp FROM range(0, 41, 1, 4) ORDER BY grp ASC, id DESC",
+      "keys": [
+        {
+          "index": 1,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        },
+        {
+          "index": 0,
+          "direction": "DESC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "descending_values",
+      "sql": "SELECT k, v FROM VALUES (2,20),(1,10),(3,30) AS t(k,v) ORDER BY k DESC",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "DESC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "nulls_first",
+      "sql": "SELECT k, v FROM VALUES (CAST(NULL AS INT), 0),(2,3),(1,4) AS t(k,v) ORDER BY k ASC NULLS FIRST, v DESC",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        },
+        {
+          "index": 1,
+          "direction": "DESC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "nulls_last",
+      "sql": "SELECT k, v FROM VALUES (CAST(NULL AS INT), 0),(2,3),(1,4) AS t(k,v) ORDER BY k DESC NULLS LAST, v ASC",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "DESC",
+          "nulls": "LAST"
+        },
+        {
+          "index": 1,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        }
+      ]
+    },
+    {
+      "id": "duplicate_keys",
+      "sql": "SELECT k, v FROM VALUES (1,3),(1,2),(2,5),(1,4) AS t(k,v) ORDER BY k ASC",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        }
+      ]
+    },
+    {
+      "id": "limit_offset",
+      "sql": "SELECT k, v FROM VALUES (1,9),(3,7),(2,8),(4,6) AS t(k,v) ORDER BY k DESC LIMIT 3 OFFSET 1",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "DESC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "union_all",
+      "sql": "SELECT k, v FROM (SELECT 3 AS k, 9 AS v UNION ALL SELECT 1,8 UNION ALL SELECT 2,7) AS t ORDER BY k ASC,v DESC",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        },
+        {
+          "index": 1,
+          "direction": "DESC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "group_by",
+      "sql": "SELECT k, count(*) AS n FROM VALUES (2),(1),(2),(3),(1),(2) AS t(k) GROUP BY k ORDER BY n DESC,k ASC",
+      "keys": [
+        {
+          "index": 1,
+          "direction": "DESC",
+          "nulls": "LAST"
+        },
+        {
+          "index": 0,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        }
+      ]
+    },
+    {
+      "id": "inner_join",
+      "sql": "SELECT l.id, r.v FROM VALUES (3,1),(1,1),(2,2) AS l(id,k) INNER JOIN VALUES (1,5),(1,2),(2,3) AS r(k,v) ON l.k = r.k ORDER BY l.id ASC,r.v DESC",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        },
+        {
+          "index": 1,
+          "direction": "DESC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "left_join",
+      "sql": "SELECT l.id, r.v FROM VALUES (3,1),(1,2),(2,3) AS l(id,k) LEFT JOIN VALUES (1,5),(1,2),(2,3) AS r(k,v) ON l.k = r.k ORDER BY l.id ASC,r.v ASC NULLS LAST",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        },
+        {
+          "index": 1,
+          "direction": "ASC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "right_join",
+      "sql": "SELECT l.id, r.v FROM VALUES (3,1),(1,2) AS l(id,k) RIGHT JOIN VALUES (1,5),(1,2),(2,3),(4,7) AS r(k,v) ON l.k = r.k ORDER BY l.id ASC NULLS LAST,r.v DESC",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "ASC",
+          "nulls": "LAST"
+        },
+        {
+          "index": 1,
+          "direction": "DESC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "full_outer_join",
+      "sql": "SELECT l.id, r.v FROM VALUES (3,1),(1,2) AS l(id,k) FULL OUTER JOIN VALUES (1,5),(4,7),(2,3) AS r(k,v) ON l.k = r.k ORDER BY l.id ASC NULLS LAST,r.v ASC NULLS LAST",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "ASC",
+          "nulls": "LAST"
+        },
+        {
+          "index": 1,
+          "direction": "ASC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "window_row_number",
+      "sql": "SELECT k, row_number() OVER (PARTITION BY k ORDER BY v) AS rn FROM VALUES (2,5),(1,8),(2,1),(1,3),(1,9) AS t(k,v) ORDER BY k DESC,rn ASC",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "DESC",
+          "nulls": "LAST"
+        },
+        {
+          "index": 1,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        }
+      ]
+    },
+    {
+      "id": "distinct",
+      "sql": "SELECT DISTINCT k FROM VALUES (2),(1),(2),(4),(1) AS t(k) ORDER BY k DESC",
+      "keys": [
+        {
+          "index": 0,
+          "direction": "DESC",
+          "nulls": "LAST"
+        }
+      ]
+    },
+    {
+      "id": "nested_subquery",
+      "sql": "SELECT k,v FROM (SELECT k,v FROM VALUES (4,1),(1,8),(3,2),(2,9) AS t(k,v) WHERE k > 1) AS u ORDER BY v DESC,k ASC",
+      "keys": [
+        {
+          "index": 1,
+          "direction": "DESC",
+          "nulls": "LAST"
+        },
+        {
+          "index": 0,
+          "direction": "ASC",
+          "nulls": "FIRST"
+        }
+      ]
+    },
+    {
+      "id": "nonexposed_sort_key",
+      "sql": "SELECT id FROM range(0, 20, 1, 4) ORDER BY id % 3, id",
+      "keys": []
+    },
+    {
+      "id": "sort_by_only",
+      "sql": "SELECT id FROM range(0, 20, 1, 4) SORT BY id DESC",
+      "keys": []
+    }
+  ],
+  "calibration": {
+    "id": "spark_59126_known",
+    "known_issue_url": "https://issues.apache.org/jira/browse/SPARK-59126",
+    "in_sample": true,
+    "sql": "WITH top AS (SELECT id, CAST(id % 1 AS INT) AS k FROM range(0,3,1,2) ORDER BY id ASC LIMIT 1 OFFSET 1), b AS (SELECT id AS bid, CAST(id % 1 AS INT) AS k FROM range(0,2,1,2)) SELECT top.id,top.k,b.bid FROM top LEFT JOIN b USING(k) ORDER BY top.id ASC,b.bid ASC",
+    "keys": [
+      {
+        "index": 0,
+        "direction": "ASC",
+        "nulls": "FIRST"
+      },
+      {
+        "index": 2,
+        "direction": "ASC",
+        "nulls": "FIRST"
+      }
+    ],
+    "config": {
+      "spark.sql.optimizer.excludedRules": "org.apache.spark.sql.catalyst.optimizer.InlineCTE"
+    }
+  }
+}
