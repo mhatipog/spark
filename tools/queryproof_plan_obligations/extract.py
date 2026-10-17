@@ -73,15 +73,16 @@ def extract(df) -> dict:
                     if kind_type not in NUMERIC_TYPES:
                         return _unknown("UNSUPPORTED_SORT_KEY_TYPE", path,
                                         slice_nodes=slices, type_name=kind_type)
-                    direction = _simple(so.direction())
-                    null_ordering = _simple(so.nullOrdering())
-                    if direction not in ("Ascending", "Descending") or null_ordering not in (
-                            "NullsFirst", "NullsLast"):
-                        return _unknown("UNKNOWN_ORDER_COMPARATOR", path, slice_nodes=slices)
+                    direction = str(so.direction().sql())
+                    null_ordering = str(so.nullOrdering().sql())
+                    if direction not in ("ASC", "DESC") or null_ordering not in (
+                            "NULLS FIRST", "NULLS LAST"):
+                        return _unknown("UNKNOWN_ORDER_COMPARATOR", path, slice_nodes=slices,
+                                        direction=direction, null_ordering=null_ordering)
                     keys.append({
                         "index": mapping[attr_id],
-                        "direction": "ASC" if direction == "Ascending" else "DESC",
-                        "nulls": "FIRST" if null_ordering == "NullsFirst" else "LAST",
+                        "direction": direction,
+                        "nulls": null_ordering.split()[-1],
                     })
                 if not keys:
                     return _unknown("EMPTY_SORT_KEYS", path, slice_nodes=slices)
