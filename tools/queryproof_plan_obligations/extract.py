@@ -7,7 +7,7 @@ It deliberately makes no assertion about optimized/physical-plan correctness.
 """
 from __future__ import annotations
 
-ORDERED_WRAPPERS = {"GlobalLimit", "LocalLimit", "Offset", "SubqueryAlias", "WithCTE"}
+ORDERED_WRAPPERS = {"GlobalLimit", "LocalLimit", "Offset", "WithCTE"}
 NUMERIC_TYPES = {"integer", "long", "short", "byte"}
 
 
