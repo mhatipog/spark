@@ -66,7 +66,7 @@ def main():
                     'sort_expression':query('LIMIT 3','',sort='age+1 DESC'),
                     'nonunique_order_key':query('LIMIT 3','',source='p_duplicate'),
                     'too_many_rows':query('LIMIT 3','',source='p_large'),
-                    'multiple_ctes':"WITH s AS (SELECT id,name FROM p ORDER BY age DESC LIMIT 3),t AS (SELECT id FROM k) SELECT name FROM s",
+                    'multiple_ctes':"WITH s AS (SELECT id,name FROM p ORDER BY age DESC LIMIT 3),t AS (SELECT a FROM k) SELECT name FROM s",
                 }
                 for name,sql in negatives.items():
                     try:
