@@ -1,0 +1,41 @@
+name: QueryProof observable ORDER BY prospective holdout
+on:
+  push:
+    branches:
+      - research/queryproof-observed-order-contract-20261017
+    paths:
+      - tools/queryproof_observed_contract/**
+      - .github/workflows/queryproof-observed-contract.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: Contract holdout on PySpark ${{ matrix.spark }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1', '4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_observed_contract
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pure-stdlib contract mutation and null-policy tests
+        run: python -m unittest discover -s tools/queryproof_observed_contract -p 'test_contract.py' -v
+      - name: Install untouched published Spark
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==${{ matrix.spark }}
+      - name: Execute frozen family with AQE on/off and known-bug calibration
+        run: python -u tools/queryproof_observed_contract/run.py
+      - name: Save all observations, including possible failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-observed-contract-${{ matrix.spark }}
+          path: artifacts/queryproof_observed_contract_*.json
+          if-no-files-found: warn
+          retention-days: 14
