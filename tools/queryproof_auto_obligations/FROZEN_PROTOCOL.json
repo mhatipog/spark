@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "starting_baseline": "research/queryproof-observed-order-contract-20261017",
+  "frozen_before_implementation": true,
+  "purpose": "Automatically extract observable global ORDER BY obligations from Spark's analyzed LogicalPlan without manual SQL key specifications; report only in-scope witnesses and UNKNOWN otherwise",
+  "expected": {
+    "in_scope": [
+      "range_multikey",
+      "descending_values",
+      "nulls_first",
+      "nulls_last",
+      "duplicate_keys",
+      "limit_offset",
+      "union_all",
+      "group_by",
+      "inner_join",
+      "left_join",
+      "right_join",
+      "full_outer_join",
+      "window_row_number",
+      "distinct",
+      "nested_subquery",
+      "range_limit"
+    ],
+    "out_of_scope": [
+      "nonexposed_sort_key",
+      "sort_by_only"
+    ]
+  },
+  "coverage_rules": [
+    "Only analyze root-level global Sort under WithCTE and GlobalLimit/LocalLimit/Offset wrappers",
+    "Only SortOrder whose direct child is an AttributeReference with exprId matching an exposed output attribute",
+    "Only integral output key types (byte short int long) and explicit standard null policies",
+    "If top-level Project masks Sort or ORDER key is an expression, return UNKNOWN; do not parse SQL to guess",
+    "Do not confuse inner (CTE/subquery) ordering with final output ordering",
+    "Disallow arbitrary wrapper unwrapping and non-global SORT BY",
+    "Do not interpret sortedness as correct row membership"
+  ],
+  "calibration": {
+    "id": "spark_59126_known",
+    "expected_aqe_on": "CONTRACT_VIOLATED",
+    "expected_aqe_off": "NO_VIOLATION_OBSERVED"
+  },
+  "negative_controls": [
+    "No ORDER BY must yield UNKNOWN",
+    "SORT BY must yield UNKNOWN",
+    "ORDER BY hidden/expression key must yield UNKNOWN"
+  ],
+  "novelty": "Mechanism is not original; contributes an automated Spark planner-aware obligation extractor as a building block; no publishable claim from this experiment alone"
+}
