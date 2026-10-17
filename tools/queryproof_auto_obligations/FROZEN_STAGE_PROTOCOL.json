@@ -1,0 +1,57 @@
+{
+  "frozen_before_stage_implementation": "2026-10-17",
+  "observed_design_input": "Read-only analyzed Spark 4.2 CTE plans saved by QueryProof trace run 39062763977; this is an in-sample engineering experiment, not unseen discovery",
+  "question": "Can Catalyst automatically supply source view, unique emitted identity, sort key, limit/offset, and CTE provenance needed for independent source-stage top-k witness without human-provided names or SQL parsing?",
+  "eligible_shapes": [
+    "Exactly one WithCTE with one CTERelationDef, output Project with direct original identity AttributeReference and CTERelationRef",
+    "CTE definition SubqueryAlias -> GlobalLimit -> LocalLimit -> Project -> global Sort -> Project -> SubqueryAlias -> View -> [optional Repartition] -> LogicalRDD",
+    "Or CTE definition SubqueryAlias -> Offset -> Project -> global Sort -> Project -> SubqueryAlias -> View -> [optional Repartition] -> LogicalRDD",
+    "Stage project lists are bare AttributeReferences only and preserve their exprIDs",
+    "The selected original identity is a single direct output AttributeReference mapped via exprID; exactly one candidate",
+    "Sort has one exposed, source-mapped integral AttributeReference key and explicitly DESC NULLS LAST",
+    "Source CTE includes one unique integral ID and one unique emitted string identity",
+    "Source snapshot has at most 64 rows, unique sort key values, unique identity values; explicit UNKNOWN otherwise"
+  ],
+  "unsupported_shapes": [
+    "Filter or Join or aggregation in source-stage ancestry",
+    "Multiple CTE definitions or selection boundaries",
+    "Expression/alias-derived sort key, tied sort values, duplicate identity, ambiguous output",
+    "Different null order or nonintegral source sort key",
+    "Source >64 rows, mutable source unverified",
+    "Output identity is derived or subquery computed, root not a bare direct identity",
+    "Any mismatch in plan node classes or ids"
+  ],
+  "experiment": {
+    "families": [
+      "plain",
+      "deterministic_project",
+      "uncorrelated_scalar",
+      "uncorrelated_exists",
+      "correlated_scalar_count",
+      "correlated_exists"
+    ],
+    "slices": [
+      "LIMIT 3",
+      "OFFSET 3"
+    ],
+    "adaptive": [
+      false,
+      true
+    ],
+    "repetitions": 2,
+    "versions": [
+      "4.0.1",
+      "4.2.0"
+    ],
+    "negative_controls": [
+      "filter_in_source",
+      "derived_identity",
+      "sort_expression",
+      "nonunique_order_key",
+      "too_many_rows",
+      "multiple_ctes"
+    ],
+    "expected": "Positive support in a constrained known family and UNKNOWN on negative controls. Correlated bug detection is calibration only. No claim of general coverage or novel Spark defect."
+  },
+  "measurement": "Report source-stage scan cost, number of source tuples, detailed UNKNOWN reasons and automatically derived provenance. Compare with manually specified previous check. Do not optimize on held-out controls."
+}
