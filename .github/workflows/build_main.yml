@@ -36,7 +36,7 @@ jobs:
     name: Run
     # Skip pushes to `master` on forks: the "Sync fork" button mirrors
     # apache/spark and would otherwise re-run the full build on every sync.
-    if: >-
-      github.repository == 'apache/spark'
-      || github.ref != 'refs/heads/master'
+    # Fork experiment branch: the dedicated QueryProof workflow owns validation.
+    # Avoid expensive inherited full-Spark builds; upstream Spark is unaffected.
+    if: github.repository == 'apache/spark'
     uses: ./.github/workflows/build_and_test.yml
