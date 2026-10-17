@@ -19,7 +19,7 @@ PREVIOUS = json.loads((HERE.parent / "queryproof_observed_contract" / "manifest.
 CHALLENGE = [
     {"id": "project_alias_passthrough",
      "sql": "SELECT k FROM (SELECT id AS k FROM range(0,12,1,4) ORDER BY id ASC) AS s",
-     "expect_exposed": True},  # order might be present through child projection
+     "expect_exposed": False},  # inner sort has no outer SQL order guarantee
     {"id": "order_by_string",
      "sql": "SELECT s FROM VALUES ('z'),('a'),('m') AS t(s) ORDER BY s",
      "expect_exposed": False},
@@ -32,6 +32,15 @@ CHALLENGE = [
     {"id": "non_global_sort",
      "sql": "SELECT id FROM range(0,12,1,4) SORT BY id",
      "expect_exposed": False},
+    {"id": "inner_sort_not_outer_contract",
+     "sql": "SELECT id FROM (SELECT id FROM range(0,12,1,4) ORDER BY id DESC) x",
+     "expect_exposed": False},
+    {"id": "outer_sort_over_inner_sort",
+     "sql": "SELECT id FROM (SELECT id FROM range(0,12,1,4) ORDER BY id DESC) x ORDER BY id ASC",
+     "expect_exposed": True},
+    {"id": "root_sort_on_alias",
+     "sql": "SELECT id AS k FROM range(0,12,1,4) ORDER BY k DESC",
+     "expect_exposed": True},
     {"id": "raw_interval_order",
      "sql": "SELECT id FROM range(0,15,1,4) ORDER BY id DESC LIMIT 4 OFFSET 2",
      "expect_exposed": True},
@@ -102,6 +111,14 @@ def main():
         supported = [r for r in eligible if r['extracted']['status'] == 'EXTRACTED']
         out_scope = [r for r in previous if not r['manual_keys_present'] and "error" not in r]
         false_scopes = [r['id'] for r in out_scope if r['extracted']['status'] != 'UNKNOWN']
+        challenge_rows = [r for r in all_results if r.get('id') in {x['id'] for x in CHALLENGE}]
+        challenge_expected = {x['id']:x['expect_exposed'] for x in CHALLENGE}
+        challenge_false_scope = [r['id'] for r in challenge_rows
+            if r.get('extracted',{}).get('status') == 'EXTRACTED'
+            and not challenge_expected[r['id']]]
+        challenge_unknown = [r['id'] for r in challenge_rows
+            if r.get('extracted',{}).get('status') != 'EXTRACTED'
+            and challenge_expected[r['id']]]
         calibration = [r for r in all_results if r.get('calibration') and 'error' not in r]
         summary = {
             'spark_version': spark.version,
@@ -110,6 +127,8 @@ def main():
             'frozen_controls_unknown': len(eligible)-len(supported),
             'wrong_extracted_key_sequences': mismatches,
             'incorrectly_extracted_out_of_scope_keys': false_scopes,
+            'challenge_false_scope': challenge_false_scope,
+            'challenge_expected_supported_but_unknown': challenge_unknown,
             'calibration_violations': sum(r['witness']['verdict'] == 'CONTRACT_VIOLATED' for r in calibration),
             'calibration_evaluations': len(calibration),
             'errors': errors,
@@ -119,7 +138,7 @@ def main():
         (Path('artifacts') / ('queryproof_plan_contracts_'+spark.version+'.json')).write_text(
             json.dumps({'summary': summary, 'cases': all_results}, indent=2),encoding='utf8')
         print('QUERYPROOF_PLAN_SUMMARY',json.dumps(summary),flush=True)
-        return 1 if errors or mismatches or false_scopes else 0
+        return 1 if errors or mismatches or false_scopes or challenge_false_scope else 0
     finally:
         spark.stop()
 
