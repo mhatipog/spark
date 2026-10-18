@@ -1,0 +1,38 @@
+name: QueryProof DuckDB NULL JOIN 3VL discrimination
+on:
+  push:
+    branches: [research/queryproof-null-join-cross-engine-20261018]
+    paths:
+      - tools/queryproof_independent/duckdb_null_join_matrix.py
+      - tools/queryproof_independent/FROZEN_DUCKDB_JOIN_PROTOCOL.json
+      - .github/workflows/queryproof-duckdb-3vl.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  null-semantics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        duckdb: ['1.3.2','1.4.1','1.4.5','1.5.6']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_independent
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install published independent engine version
+        run: python -m pip install --disable-pip-version-check --no-cache-dir 'duckdb==${{ matrix.duckdb }}'
+      - name: Compare Python SQL 3VL, SQLite, DuckDB optimized and optimizer-disabled
+        run: python -u tools/queryproof_independent/duckdb_null_join_matrix.py
+      - name: Archive all discrepancies for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duckdb-3vl-${{ matrix.duckdb }}
+          path: artifacts/queryproof_duckdb_3vl_*.json
+          if-no-files-found: warn
+          retention-days: 21
