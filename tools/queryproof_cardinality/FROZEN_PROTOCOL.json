@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-18",
+  "target": "Automatic analyzed-plan cardinality×value-observation interpretation of simple global Aggregate of deterministic Range; independently calculate count and scalar IN of uncorrelated direct Range without executing equivalent optimized Spark SQL",
+  "context": "SPARK-58429 (B03) and N03 differ only by global aggregate input cardinality 0 versus 1 and have same FULL_3VL InSubquery observation demand; RewritePredicateSubquery identified by instrumented trace; forced skip restores both as prior evidence.",
+  "scope": [
+    "Analyzed root Aggregate, no GROUP BY, child direct Range(start,end,step)",
+    "Two output Alias expressions: Count(1 non-null Literal) and scalar InSubquery with one Literal probe and ListQuery Project(AttributeReference) over direct Range",
+    "No correlation and no user-provided source table / expected output to checker",
+    "Bounded Range ≤256 rows; steps positive/negative valid; null probes handled by SQL strong Kleene membership semantics",
+    "Unsupported plan shape or out-of-bound values -> UNKNOWN"
+  ],
+  "evaluation_cases": [
+    "B03 original zero-row bug",
+    "N03 same subquery nonempty aggregate correct",
+    "zero-row variants nonmember, empty inner, null probe",
+    "nonempty counts with zero,one,two and nonmember",
+    "negative controls where source is Filter or aggregate grouped or subquery has expression"
+  ],
+  "experimental_versions": [
+    "4.0.1",
+    "4.2.0"
+  ],
+  "premise": "Do not claim new issue; in-sample known B03 and controls. Two-dimensional effect is a known algebraic phenomenon, not a novel theorem.",
+  "goal": "Independently witness wrong row value on B03 while correctly accepting N03 without artificially excluding mandatory optimizer rule; this distinguishes semantic safety for those two applications of same rule.",
+  "future": "Freeze unrelated global-aggregate rewrite bug families before measuring generality or paper significance."
+}
