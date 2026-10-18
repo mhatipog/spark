@@ -44,7 +44,7 @@ def main(trace):
           for e in supported.get('B01',[])),
       'N01_has_verified_contextually_safe_rewrite':any(
           e['status']=='EQUIVALENT_IN_FRAGMENT' and e['independent_verifier']['verified']
-          and e['root_full_value_differences']>0
+          and e['independent_verifier']['root_full_value_differences']>0
           for e in supported.get('N01',[])),
       'N01_has_no_observable_counterexample':not any(
           e['status']=='COUNTEREXAMPLE' for e in supported.get('N01',[])),
