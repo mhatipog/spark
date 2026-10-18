@@ -21,15 +21,27 @@ def seq(s,max_size=24):
 
 
 def range_values(node,limit=256):
-    # Spark may add a purely naming SubqueryAlias to a TVF Range source.
-    # Accept it only if output attribute identities remain exactly unchanged.
-    if kind(node)=='SubqueryAlias':
+    # Spark may add non-semantic Project and SubqueryAlias wrappers around
+    # the table-valued Range. Accept ONLY identity-preserving wrappers.
+    for _ in range(4):
+        k=kind(node)
+        if k not in ('SubqueryAlias','Project'):
+            break
         child=node.child()
         before=seq(node.output())
         after=seq(child.output())
-        demand(len(before)==len(after) and
-               all(int(a.exprId().id())==int(b.exprId().id())
-                   for a,b in zip(before,after)), 'ALIAS_CHANGES_SOURCE_IDENTITY')
+        demand(len(before)==len(after),'SOURCE_WRAPPER_WIDTH_CHANGED')
+        if k=='Project':
+            projected=seq(node.projectList())
+            demand(len(projected)==len(after) and
+                   all(kind(x)=='AttributeReference' for x in projected),
+                   'DERIVED_RANGE_PROJECTION')
+            demand(all(int(x.exprId().id())==int(y.exprId().id())
+                       for x,y in zip(projected,after)),
+                   'RANGE_PROJECT_REBINDS_ATTRIBUTES')
+        demand(all(int(a.exprId().id())==int(b.exprId().id())
+                   for a,b in zip(before,after)),
+               'RANGE_WRAPPER_CHANGES_IDENTITY')
         node=child
     demand(kind(node)=='Range','INPUT_NOT_DIRECT_RANGE:'+kind(node))
     first,last,step=int(node.start()),int(node.end()),int(node.step())
