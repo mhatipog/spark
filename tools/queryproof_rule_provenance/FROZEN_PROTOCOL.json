@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-18",
+  "title": "Rule-level first observable NULL-semantics boundary change in instrumented Spark",
+  "baseline": "RuleExecutor.scala existing QueryProofAstTrace.capture serializes pre/post Catalyst JSON per effective rule",
+  "primary_hypothesis": "Historical B01/B02/B03 errors can be associated with a specific RuleExecutor transition that changes a syntactic null-observable expression representation; matched analyzed context demand (FALSE_ONLY, NULL_ONLY, FULL_3VL) must be preserved to prove unsoundness.",
+  "no_claim": "A structural event alone cannot prove unsoundness; forced ablation that restores correctness is causal evidence, not an unconditional proof. Positive detection counts only independent 3VL or row bag oracle, not rule ranking.",
+  "frozen_cases": [
+    "B01",
+    "B02",
+    "B03",
+    "N01",
+    "N02",
+    "N03"
+  ],
+  "frozen_version": "4.2.0",
+  "snapshot_scope": "Only instrumented disposable official PySpark 4.2.0 JAR; no upstream source modifications",
+  "predeclared_readouts": [
+    "effective rule event counts per query",
+    "rule sequence first loss of Or inside Not and first InSubquery removal",
+    "all before/after AST target counts and contextual ancestor paths",
+    "candidate rule ranked without access to oracle expected answers",
+    "capture full AST event JSON outside GitHub Actions logs",
+    "errors and unsupported event sizes without silent discards"
+  ],
+  "stage2": "After candidate selection, run one-rule-at-a-time interventions by excluding or forced skipping only selected candidates, verify against held-out expected results in separate scorer, no unreported tuning.",
+  "limits": [
+    "Original 3 historical failures are in-sample; no new discovery claim",
+    "Plan JSON may hide subquery expression contexts and rules in analyzer not optimizer; report gaps",
+    "Do not assume any first structural mutation is semantic root cause",
+    "Small sample; runtime overhead and user data privacy (synthetic only)"
+  ],
+  "success": "Automatically enumerate provenance candidate(s) for each of 3 known issues and correctly distinguish negative controls without manually hardcoding rule names. If not, record explicit no localization."
+}
