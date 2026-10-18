@@ -44,6 +44,10 @@ jobs:
         run: python -u tools/queryproof_context_validator/run_certificates.py artifacts/queryproof_raw_ast.log
       - name: Prove unbounded nullable-integer contextual rule semantics and export SMT-LIB
         run: python -u tools/queryproof_context_validator/run_smt.py
+      - name: Prove symbolic empty-aggregate precondition across all nonnegative cardinalities
+        run: python -u tools/queryproof_context_validator/cardinality_smt.py
+      - name: Test exact cardinality guard and negative examples
+        run: python -m unittest discover -s tools/queryproof_context_validator -p 'test_cardinality_smt.py' -v
       - name: Archive compact certificates, not raw trace
         if: always()
         uses: actions/upload-artifact@v4
@@ -53,5 +57,7 @@ jobs:
             artifacts/queryproof_contextual_rule_certificates.json
             artifacts/queryproof_context_smt.json
             artifacts/queryproof_context_smt2/*.smt2
+            artifacts/queryproof_cardinality_smt.json
+            artifacts/queryproof_cardinality_smt2/*.smt2
           if-no-files-found: warn
           retention-days: 21
