@@ -1,0 +1,39 @@
+name: QueryProof global Aggregate cardinality and IN certificate
+on:
+  push:
+    branches: [research/queryproof-cardinality-obligation-20261018]
+    paths:
+      - tools/queryproof_cardinality/**
+      - .github/workflows/queryproof-cardinality.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  global-aggregate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1','4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_cardinality
+            tools/queryproof_prospective
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official unmodified PySpark release
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==${{ matrix.spark }}
+      - name: Independently derive Count and scalar IN from global Aggregate Catalyst Range semantics
+        run: python -u tools/queryproof_cardinality/run_cardinality.py
+      - name: Preserve source-derived expected values and unsupported cases
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-cardinality-${{ matrix.spark }}
+          path: artifacts/queryproof_cardinality_*.json
+          retention-days: 14
+          if-no-files-found: warn
