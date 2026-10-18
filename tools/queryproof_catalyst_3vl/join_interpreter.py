@@ -125,7 +125,7 @@ def extract(df):
                 'PROJECT_NOT_DIRECT_ATTRIBUTES')
         child=node.child()
         require(kind(child)=='Join','ROOT_NOT_INNER_JOIN')
-        require(kind(child.joinType())=='Inner','JOIN_NOT_INNER')
+        require(str(child.joinType().sql())=='INNER','JOIN_NOT_INNER:'+str(child.joinType().sql()))
         opt=child.condition()
         require(bool(opt.isDefined()),'JOIN_MISSING_CONDITION')
         predicate=compile_expression(opt.get())
