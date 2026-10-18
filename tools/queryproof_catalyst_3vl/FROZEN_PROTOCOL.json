@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-18",
+  "experiment": "independent finite-row 3VL interpretation of Catalyst analyzed plan, rather than optimizer-vs-optimizer SQL oracle",
+  "previous_baseline": "Current automatic order+TopK QueryProof 0/3 B01,B02,B03 reproduced independent family bugs. A single rule ablation gave 1/3. Preserve these baselines.",
+  "stage1_contract": "A strictly supported analyzed INNER JOIN of two direct immutable in-memory or Parquet named views and identity Project of join attributes, join condition a supported deterministic 3VL Boolean expression (Not,And,Or,EqualTo,EqualNullSafe,IsNull,IsNotNull). Evaluate over independently read small left/right raw relations (max 16 rows each) in Python without executing an equivalent Spark join. If other operators, transformations, aliases, unsupported types or ambiguous mapping, UNKNOWN.",
+  "stage2_contract": "Single nullable IN subquery in Filter/Project, with one exposed source column and one direct source subquery, no correlated expressions, 3VL semantics. Treat unsupported as UNKNOWN.",
+  "original_benchmark": "tools/queryproof_prospective/manifest.json existing selection_date 2026-10-16; historical bugs B01,B02,B03 previously studied and therefore these are IN-SAMPLE calibration, NOT a new blind benchmark",
+  "predeclared_controls": [
+    "B01 wrong join (known issue)",
+    "N01 safe nullable join",
+    "B02 wrong nullable IN (known issue)",
+    "N02 safe IN filter",
+    "N03 valid aggregate",
+    "No SQL predicate, or unsupported join or unsupported expression returns UNKNOWN",
+    "Synthetic NOT and IS NULL contexts over distinct and null values",
+    "Do not claim correct for any unsupported SQL type or nondeterministic predicate"
+  ],
+  "release_matrix": [
+    "4.0.1",
+    "4.2.0"
+  ],
+  "reported_metrics": [
+    "fully automated coverage on selected cases",
+    "genuine row-bag mismatches against independently evaluated analyzed semantics",
+    "false accusations on controls",
+    "explicit UNKNOWN reasons",
+    "source and comparison cost relative to Spark execution"
+  ],
+  "novelty": "Implementation and proof-of-concept only. Formal 3VL semantics and finite SQL interpreters have extensive prior art; require new independent holdout and competitive baseline before claiming scientific contribution."
+}
