@@ -102,8 +102,11 @@ def analyze_trace(path, known_rule_names):
     from rank_ast import decode
     from run_orbit_trace import classify_events
 
-    events, failures = [], []
+    events, failures, instrumentation_failures = [], [], []
     for lineno, line in enumerate(Path(path).read_text(errors="replace").splitlines(), 1):
+        if line.startswith("QUERYPROOF_AST_ERROR\t"):
+            instrumentation_failures.append({"line": lineno})
+            continue
         if not line.startswith("QUERYPROOF_AST\t"):
             continue
         try:
@@ -125,6 +128,8 @@ def analyze_trace(path, known_rule_names):
     return {
         "trace_events": len(events),
         "decode_failures": failures,
+        "instrumentation_failures": instrumentation_failures,
+        "possible_trace_truncation": len(events) >= 2500,
         "all_events": scored["summary"],
         "unseen_rule_events": holdout["summary"],
         "per_unseen_rule": {k: dict(v) for k, v in sorted(by_rule.items())},
@@ -183,10 +188,16 @@ def parent(manifest_path, protocol_path, output_path):
                       "cases": len(cases), "mismatches": len(mismatches),
                       "total_trace_events": scored["trace_events"],
                       "unseen_statuses": scored["unseen_rule_events"]["statuses"],
-                      "decode_failures": len(scored["decode_failures"])}),
+                      "decode_failures": len(scored["decode_failures"]),
+                      "instrumentation_failures":
+                          len(scored["instrumentation_failures"]),
+                      "possible_trace_truncation":
+                          scored["possible_trace_truncation"]}),
           flush=True)
     complete = (child.returncode == 0 and not missing and
-                scored["trace_events"] > 0 and not scored["decode_failures"])
+                scored["trace_events"] > 0 and not scored["decode_failures"]
+                and not scored["instrumentation_failures"]
+                and not scored["possible_trace_truncation"])
     return 0 if complete else 1
 
 
