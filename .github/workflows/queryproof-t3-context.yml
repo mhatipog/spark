@@ -1,0 +1,27 @@
+name: QueryProof three-valued observer contracts
+on:
+  push:
+    branches:
+      - research/queryproof-duckdb-rule-isolation-20261018
+    paths:
+      - tools/queryproof_independent/t3_context.py
+      - tools/queryproof_independent/test_t3_context.py
+      - .github/workflows/queryproof-t3-context.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  three-valued-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_independent
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify SQL three-valued contextual equivalence and negative witnesses
+        run: python -m unittest discover -s tools/queryproof_independent -p 'test_t3_context.py' -v
+      - name: Print finite-model contract witness
+        run: python tools/queryproof_independent/t3_context.py
