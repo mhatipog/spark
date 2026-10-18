@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-18",
+  "trial_type": "retrospective independent-family holdout; preexisting benchmark manifest committed 2026-10-16 before automatic obligation extractor implemented 2026-10-17; issues have been reviewed by researchers already; NOT fresh blind discovery",
+  "fixed_input": "tools/queryproof_prospective/manifest.json from repository existing branch, sha cd8637359a1b4b66522ba209235556d4dc5c6456",
+  "primary_detector": "tools/queryproof_auto_obligations/plan_extractor.py and auto_topk.py unchanged from 2026-10-17 (do not tune to heldout)",
+  "primary_criterion": "Order only counts incorrect result if automatic extractor returned EXPOSED_ORDER_CONTRACT and observed adjacent order violation. TopK only counts if source-stage verification independently yields MEMBERSHIP_VIOLATION. UNKNOWN is not a false positive or a detection.",
+  "in_sample_excluded": [
+    "B04/SPARK-59126 (ordering calibration; may still execute as labeled known bug control)",
+    "SPARK-60319 PR #59445 correlated TopK family (not part of this holdout)"
+  ],
+  "independent_bugs": [
+    "B01/SPARK-58384 nullable negated join predicate",
+    "B02/SPARK-58442 nullable IN subquery",
+    "B03/SPARK-58429 empty input aggregate subquery",
+    "B05/SPARK-55038 array aggregate potential bug not reproducible in prior trials"
+  ],
+  "controls": [
+    "N01",
+    "N02",
+    "N03",
+    "N04"
+  ],
+  "previously_reproduced_as_of_2026_10_16": [
+    "B01",
+    "B02",
+    "B03"
+  ],
+  "expected_honest_result": "Current obligation scope likely detects 0 of 3 reproduced different-family bugs because they change row bag/predicate result not output sort; if so report 0/3 and require new semantic invariant before claiming generality.",
+  "experimental_plan": [
+    "Run untouched official PySpark 4.0.1 and 4.2.0 against existing frozen historical manifest",
+    "Compare produced rows to the manifest expected only AFTER execution in a separate scorer",
+    "Run frozen plan-extractor on every bug/control without reading expected answers; report explicit UNKNOWN and order observation",
+    "Run non-tuned configuration differential baseline with AQE toggle and broadcast join disable, across all cases, requiring actual result mismatch and recording physical plan shape",
+    "Preserve run errors, unsupported, alternate-plan not changed; do not present baseline as actual SQLancer DQP",
+    "Measure detection among reproduced bugs, false alarm count among controls, abstention rate, differential mismatches, and all unsupported cases"
+  ]
+}
