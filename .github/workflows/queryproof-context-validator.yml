@@ -32,5 +32,15 @@ jobs:
         run: |
           mkdir -p artifacts
           python -u tools/queryproof_rule_provenance/run_trace.py 2> artifacts/queryproof_raw_ast.log
-      - name: Show only structural changed Join conditions
-        run: python -u tools/queryproof_context_validator/inspect_format.py artifacts/queryproof_raw_ast.log
+      - name: Verify pure Python counterexample and fail-closed mutation controls
+        run: python -m unittest discover -s tools/queryproof_context_validator -p 'test_context_proof.py' -v
+      - name: Independently certify real Catalyst rule deltas using SQLite
+        run: python -u tools/queryproof_context_validator/run_certificates.py artifacts/queryproof_raw_ast.log
+      - name: Archive compact certificates, not raw trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-context-certificates-4.2
+          path: artifacts/queryproof_contextual_rule_certificates.json
+          if-no-files-found: warn
+          retention-days: 21
