@@ -1,0 +1,45 @@
+name: QueryProof semantic rule provenance trace
+on:
+  push:
+    branches: [research/queryproof-rule-provenance-20261018]
+    paths:
+      - tools/queryproof_rule_provenance/**
+      - .github/workflows/queryproof-rule-provenance.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rule-provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_rule_provenance
+            tools/queryproof_instrumented
+            tools/queryproof_prospective
+            tools/queryproof_observer_lattice
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install unmodified published Spark 4.2.0 wheel in disposable runner
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Compile and overlay pre-existing AST trace instrumentation in disposable Spark JAR
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Execute synthetic historical SQL, keep raw AST trace out of console logs
+        run: |
+          python -u tools/queryproof_rule_provenance/run_trace.py 2> artifacts/queryproof_raw_ast.log
+      - name: Score first AST transitions against independently extracted analyzed-plan requirements
+        run: |
+          python -u tools/queryproof_rule_provenance/triage.py artifacts/queryproof_raw_ast.log artifacts/queryproof_rule_trace_observations.json
+      - name: Archive parser artifacts, including event count and errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-rule-provenance-4.2.0
+          path: |
+            artifacts/queryproof_rule_triage.json
+            artifacts/queryproof_rule_trace_observations.json
+          if-no-files-found: warn
+          retention-days: 14
