@@ -169,8 +169,10 @@ def parent(manifest_path, protocol_path, output_path):
         "cases": cases,
         "trace": scored,
         "cautions": [
-            "UNKNOWN is out-of-fragment or outside predicate-only plan changes, not a failure of optimizer semantics.",
-            "COUNTEREXAMPLE is a local expression valuation, not automatically a reachable database bug.",
+            "UNKNOWN means a transition is outside this narrow predicate-only proof "
+            "fragment; it does not establish optimizer failure.",
+            "COUNTEREXAMPLE is a local expression valuation; it does not "
+            "automatically establish a reachable database bug.",
             "SQLite row oracle covers only the fixed finite fixture.",
             "Raw Catalyst JSON stays private and was discarded after scoring."
         ]}
