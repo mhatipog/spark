@@ -21,7 +21,17 @@ def seq(s,max_size=24):
 
 
 def range_values(node,limit=256):
-    demand(kind(node)=='Range','INPUT_NOT_DIRECT_RANGE')
+    # Spark may add a purely naming SubqueryAlias to a TVF Range source.
+    # Accept it only if output attribute identities remain exactly unchanged.
+    if kind(node)=='SubqueryAlias':
+        child=node.child()
+        before=seq(node.output())
+        after=seq(child.output())
+        demand(len(before)==len(after) and
+               all(int(a.exprId().id())==int(b.exprId().id())
+                   for a,b in zip(before,after)), 'ALIAS_CHANGES_SOURCE_IDENTITY')
+        node=child
+    demand(kind(node)=='Range','INPUT_NOT_DIRECT_RANGE:'+kind(node))
     first,last,step=int(node.start()),int(node.end()),int(node.step())
     demand(step!=0,'ZERO_RANGE_STEP')
     if (last-first)*step<=0:n=0
