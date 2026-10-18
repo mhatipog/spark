@@ -46,8 +46,11 @@ def classify_events(events):
         by_case[case].append(entry)
     return {"summary":{"events":sum(counts.values()),"statuses":dict(counts),
                        "unknown_reasons":dict(unknowns),
-                       "scope":"equality/nullness-only local Filter or INNER Join condition rewrites",
-                       "warning":"Local counterexamples are not verified reachable source-row witnesses; historical calibration is not a holdout"},
+                       "scope":"equality/nullness-only local Filter/INNER Join "
+                               "condition rewrites",
+                       "warning":"Local counterexamples are not verified reachable "
+                                 "source-row witnesses; historical calibration "
+                                 "is not a holdout"},
             "cases":dict(by_case)}
 
 def run(trace_path,output_path):
