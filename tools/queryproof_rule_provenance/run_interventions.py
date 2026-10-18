@@ -56,16 +56,26 @@ def main():
            .config('spark.ui.enabled','false')
            .config('spark.sql.adaptive.enabled','false').getOrCreate())
     spark.sparkContext.setLogLevel('ERROR')
+    # Automatic candidate selection reads *only* the prior AST triage.
+    # Correctness reference data remain inaccessible until separate scoring.
+    triage=json.loads(Path(sys.argv[1]).read_text()) if len(sys.argv)>1 else None
     results={}
     try:
         with tempfile.TemporaryDirectory(prefix='qp-rule-ablate-') as td:
             for case in MANIFEST['cases']:
                 cid=case['id']
                 if cid not in PROTOCOL['cases']:continue
-                rule=PROTOCOL['candidates'][cid]
+                if triage is not None:
+                    ranked=triage['cases'][cid]['ranked_candidates']
+                    rule=ranked[0]['rule'] if ranked else None
+                else:
+                    rule=PROTOCOL['candidates'][cid]
                 arms={}
                 for arm in ('baseline','sqlconf','forced'):
-                    result=run_arm(spark,case,arm,rule,td+'/'+cid+'/'+arm)
+                    if arm!='baseline' and not rule:
+                        result={'status':'SKIPPED_NO_CANDIDATE'}
+                    else:
+                        result=run_arm(spark,case,arm,rule,td+'/'+cid+'/'+arm)
                     arms[arm]=result
                     print('QUERYPROOF_CAUSAL_ARM',spark.version,cid,arm,
                           result['status'],result.get('skip_invocations',''),
@@ -79,14 +89,14 @@ def main():
                         obj['normalized_plan']!=baseline['normalized_plan'])
                     obj['rows_changed_vs_baseline']=(baseline['status']=='OBSERVED' and
                         obj['status']=='OBSERVED' and obj['rows']!=baseline['rows'])
-                results[cid]={'candidate_rule':rule,'arms':arms}
+                results[cid]={'candidate_rule':rule,'selection':('AUTO_AST_TRIAGE' if triage is not None else 'MANUAL_PRECOMMITTED'),'arms':arms}
     finally:
         spark.stop()
     Path('artifacts').mkdir(exist_ok=True)
     dest=Path('artifacts/queryproof_causal_interventions.json')
     dest.write_text(json.dumps({'version':spark.version,'protocol_sha256':hashlib.sha256(
         (HERE/'FROZEN_INTERVENTION_PROTOCOL.json').read_bytes()).hexdigest(),
-        'observations':results,'warning':'No source SQL expected answers loaded during interventions.'},indent=2))
+        'observations':results,'candidate_selection':('AUTO_AST_TRIAGE' if triage is not None else 'MANUAL_PRECOMMITTED'), 'warning':'No source SQL expected answers loaded during interventions or rule candidate selection.'},indent=2))
     return 1 if len(results)!=len(PROTOCOL['cases']) or any(
         v['arms']['baseline']['status']!='OBSERVED' for v in results.values()) else 0
 
