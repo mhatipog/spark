@@ -94,5 +94,39 @@ class EqualityOrbitTests(unittest.TestCase):
         v["new"][0]["condition"][3]["dataType"]="boolean"
         self.assertEqual(certify_join_event(v)["status"],"UNKNOWN")
 
+
+    def test_seeded_orbit_cartesian_equivalence(self):
+        """300 generated expression-pair checks against full finite Cartesian grid."""
+        import json
+        import random
+        from itertools import product
+        from equality_orbits import attributes, evaluate, distinguish, PARTITIONS
+        rng=random.Random(20261018)
+        for n in (2,3,4):
+            keys=[json.dumps({"id":attr(i)["exprId"],"type":"integer"},
+                             sort_keys=True) for i in range(n)]
+            def make(depth):
+                if depth==0 or rng.random()<0.4:
+                    x=("attr",rng.choice(keys))
+                    y=("attr",rng.choice(keys))
+                    return (rng.choice(("EqualTo","EqualNullSafe")),x,y)
+                kind=rng.choice(("Not","And","Or","IsNull","IsNotNull"))
+                if kind in ("Not","IsNull","IsNotNull"):
+                    return (kind,make(depth-1))
+                return (kind,make(depth-1),make(depth-1))
+            for _ in range(100):
+                a,b=make(3),make(3)
+                orbit=classify_trees(a,b,"FULL_3VL",allow_remap=True)
+                ids=sorted(attributes(a)|attributes(b))
+                domain=(None,*range(n))
+                all_pairs=[]
+                for vals in product(domain,repeat=len(ids)):
+                    bindings=dict(zip(ids,vals))
+                    all_pairs.append((evaluate(a,bindings),evaluate(b,bindings)))
+                brute=[name for name in PARTITIONS
+                       if all(not distinguish(x,y,name) for x,y in all_pairs)]
+                self.assertEqual(orbit["safe_partitions"],brute)
+                self.assertEqual(orbit["orbits_checked"],bell_number(len(ids)+1))
+
 if __name__ == "__main__":
     unittest.main()
