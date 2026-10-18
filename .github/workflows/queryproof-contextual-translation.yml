@@ -1,0 +1,33 @@
+name: QueryProof contextual translation certificates
+on:
+  push:
+    branches: [research/queryproof-contextual-translation-validator-20261018]
+    paths:
+      - tools/queryproof_translation/**
+      - .github/workflows/queryproof-contextual-translation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contextual-certificates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_translation
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Construct bounded contextual SQL 3VL certificates
+        run: python -u tools/queryproof_translation/validate.py
+      - name: Independently check all witnesses and exhaustive equivalences
+        run: python -u tools/queryproof_translation/check_certificates.py artifacts/queryproof_contextual_certificates.json
+      - name: Preserve verified certificates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-contextual-certificates
+          path: artifacts/queryproof_contextual_certificates.json
+          retention-days: 30
+          if-no-files-found: warn
