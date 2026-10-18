@@ -40,11 +40,28 @@ def independently_verify(certificate):
     left,right=emit(old,columns),emit(new,columns)
     sql='SELECT '+left+', '+right+' FROM (SELECT ? AS a, ? AS b)'
     rows=[]
+    local_sql='SELECT '+emit(certificate['changed_before'],columns)+', '+emit(certificate['changed_after'],columns)+' FROM (SELECT ? AS a, ? AS b)'
+    locals_=[]
     with sqlite3.connect(':memory:') as con:
         for a,b in product(DOMAIN,repeat=2):
             x,y=con.execute(sql,(a,b)).fetchone()
+            p,q=con.execute(local_sql,(a,b)).fetchone()
             rows.append({'values':[a,b],
                          'before':decode_bool(x),'after':decode_bool(y)})
+            locals_.append((decode_bool(p),decode_bool(q)))
+    # Independent SQLite truth-table derivation of every admissible observer.
+    tests={'ANY':lambda p,q:True,
+           'TRUE_ONLY':lambda p,q:(p is True)==(q is True),
+           'FALSE_ONLY':lambda p,q:(p is False)==(q is False),
+           'NULL_ONLY':lambda p,q:(p is None)==(q is None),
+           'FULL_3VL':lambda p,q:p==q}
+    admissible=[name for name,test in tests.items()
+                if all(test(p,q) for p,q in locals_)]
+    if admissible!=certificate.get('admissible_observation_partitions'):
+        raise ValueError('GUARD_PARTITION_SET_NOT_INDEPENDENTLY_REPRODUCED')
+    guard='ALLOW' if certificate.get('required_partition') in admissible else 'BLOCK'
+    if guard!=certificate.get('synthesized_guard_decision'):
+        raise ValueError('GUARD_DECISION_NOT_INDEPENDENTLY_REPRODUCED')
     false_rows=[r for r in rows if (r['before'] is True)!=(r['after'] is True)]
     verdict='COUNTEREXAMPLE' if false_rows else 'EQUIVALENT_IN_FRAGMENT'
     claimed=certificate.get('status')
@@ -67,6 +84,9 @@ def independently_verify(certificate):
             'assignments_checked':len(rows),
             'observable_differences':len(false_rows),
             'root_full_value_differences':sum(x['before']!=x['after'] for x in rows),
-            'verdict':verdict,'scope':'nullable integral equality fragment only',
+            'verdict':verdict,
+            'independently_derived_safe_observers':admissible,
+            'guard_decision':guard,
+            'scope':'nullable integral equality fragment only',
             'query_template':'parameterized SQLite scalar projection (no Spark optimized SQL reuse)'}
 
