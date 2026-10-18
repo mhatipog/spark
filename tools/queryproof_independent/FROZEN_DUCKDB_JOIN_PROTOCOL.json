@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-18",
+  "input_origin": "B01 historical Spark SPARK-58384 frozen 2026-10-16; reproduced unexpectedly in DuckDB 1.4.1 on 2026-10-18; not a prospective unseen query",
+  "problem": "Does DuckDB implement three-valued SQL NOT of nullable equality in INNER JOIN ON correctly, and is any deviation caused by optimization?",
+  "primary_versions": [
+    "1.3.2",
+    "1.4.1",
+    "1.4.5",
+    "1.5.6"
+  ],
+  "controls": [
+    "SQLite 3VL JOIN and CROSS JOIN+WHERE",
+    "Python explicit three-valued truth table independently evaluated on all Cartesian input rows",
+    "DuckDB JOIN compared with CROSS JOIN+WHERE identical predicate",
+    "DuckDB JOIN with PRAGMA disable_optimizer",
+    "DuckDB JOIN using equivalent join match condition (a IS NOT NULL AND x IS NOT NULL AND a <> x)",
+    "DuckDB INNER JOIN ON a IS DISTINCT FROM x as deliberate semantically different null-mismatch behavior"
+  ],
+  "metrics": [
+    "rows from optimized join and disabled optimizer",
+    "six-pair predicate truth values",
+    "agreement with independently derived 3VL TRUE-pair bag",
+    "join vs CROSS JOIN+WHERE equivalence",
+    "optimized/disabled explain plan text"
+  ],
+  "interpretation": "Only call an optimizer bug if explicit 3VL expression and independent engine support expected semantics and same DuckDB engine differs between equivalent evaluation routes, ideally optimizer disabled cures. If fixed in latest, do not report new bug. If repeated in latest, check for prior issue before suggesting report.",
+  "posthoc": "Preserve all results including negative findings, no code edits to change tested predicate after observing outcomes."
+}
