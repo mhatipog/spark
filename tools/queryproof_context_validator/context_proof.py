@@ -185,6 +185,14 @@ def certificate_for_transition(event):
         differences=[x for x in valuations if distinguished(x['before'],x['after'],'TRUE_ONLY')]
         local_vals=witness_valuations(subold,subnew)
         local_diffs=[x for x in local_vals if distinguished(x['before'],x['after'],demand)]
+        # Exhaustively synthesize the weakest permissible observation contract
+        # for this particular real transformation, rather than guessing a
+        # rule-name guard. No SQL result reference is involved.
+        admissible=[part for part in TRUTH_PARTITIONS
+                    if not any(distinguished(x['before'],x['after'],part)
+                               for x in local_vals)]
+        guard_allows=demand in admissible
+        require(guard_allows==(not local_diffs),'INCONSISTENT_CONTEXT_GUARD')
         # A local distinguishing tuple must also induce a root-level observable
         # divergence to label the whole transformation COUNTEREXAMPLE.
         verdict='COUNTEREXAMPLE' if differences else 'EQUIVALENT_IN_FRAGMENT'
@@ -198,6 +206,9 @@ def certificate_for_transition(event):
                 'root_true_set_divergence':len(differences),
                 'minimal_counterexample':differences[0] if differences else None,
                 'local_observable_divergences':len(local_diffs),
+                'admissible_observation_partitions':admissible,
+                'synthesized_guard_decision':'ALLOW' if guard_allows else 'BLOCK',
+                'guard_basis':'exact finite counterexample search over all five Boolean observer partitions',
                 'assumptions':['unchanged INNER JOIN operands and plan outside condition',
                     'exactly two unchanged nullable integral attribute identities',
                     'supported deterministic equality/nullness Boolean grammar',
