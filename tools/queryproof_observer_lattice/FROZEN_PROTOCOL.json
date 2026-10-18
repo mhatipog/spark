@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-18",
+  "hypothesis": "Replace conservative binary TRUE_SET-vs-FULL_3VL distinction with the complete five-element lattice of observation equivalence partitions of D={TRUE,FALSE,NULL}; derive minimal child requirements mechanically by exact inverse-image signatures under SQL operator truth tables",
+  "setup": "Finite strong Kleene SQL Boolean connectives. For a parent operator f and demanded output equivalence partition P, two child values are equivalent iff for every valuation of independent sibling inputs, their resulting f-values belong to the same block of P. This yields the coarsest sound child partition by construction, NOT necessarily minimum for correlated actual siblings.",
+  "validation": [
+    "Enumerate all 5 set partitions of three Boolean values and no others",
+    "Cross-check all unary and binary operator demand propagations against exhaustive 3-valued truth tables",
+    "Verify NOT pulls TRUE_ONLY to FALSE_ONLY; IS NULL pulls TRUE_ONLY to NULL_ONLY; positive AND/OR preserve TRUE_ONLY",
+    "Verify nested observer propagation is sound for every pair of 27 possible unary Boolean functions, with nested sibling values arbitrary",
+    "Measure the rate of benign candidate replacements accepted under exact context partition but rejected by unnecessarily full three-valued equivalence",
+    "Treat unknown/multi-valued SQL operators as FULL_3VL (conservative), not automatically certifiable"
+  ],
+  "limitations": [
+    "No original claim for lattice theory or abstract interpretation; three-valued logic and congruences are established",
+    "No proof over arbitrary SQL expression ASTs yet",
+    "Child independence overapproximates true contexts and may be conservative",
+    "Cannot establish whether Spark's actual optimized plan applied a particular rewrite without tracked provenance",
+    "Actual code must be compared to independent verifier benchmarks before any publication claim"
+  ],
+  "next": "Use Catalyst expression AST paths to compute demanded partition and compare observed optimized rewrite/candidate transformations; preserve UNKNOWN otherwise"
+}
