@@ -1,0 +1,34 @@
+name: QueryProof DuckDB 3VL optimizer rule isolation
+on:
+  push:
+    branches: [research/queryproof-duckdb-rule-isolation-20261018]
+    paths:
+      - tools/queryproof_independent/duckdb_rule_ablation.py
+      - tools/queryproof_independent/FROZEN_DUCKDB_RULE_ISOLATION.json
+      - .github/workflows/queryproof-duckdb-rule-ablation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  duckdb-ablation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_independent
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install latest verified stable DuckDB 1.5.6
+        run: python -m pip install --disable-pip-version-check --no-cache-dir duckdb==1.5.6
+      - name: Test each supported optimizer independently against frozen SQL 3VL witness
+        run: python -u tools/queryproof_independent/duckdb_rule_ablation.py
+      - name: Keep all optimizer ablation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duckdb-rule-ablation-1.5.6
+          path: artifacts/queryproof_duckdb_rule_isolation_*.json
+          if-no-files-found: warn
+          retention-days: 30
