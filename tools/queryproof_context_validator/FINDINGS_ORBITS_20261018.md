@@ -27,7 +27,7 @@ Consequently, observing one before/after difference on any such representative i
 
 ### Exploratory results
 
-Five standard-library test methods passed locally, covering exact orbit counts, observation transfers, positive and negated null-safe equality rewrites at n=2/3/4/6, fail-closed unsupported AST mutations, and a three-variable algebraic control. Every supported test was replayed independently as parameterized SQLite expressions over all canonical representatives. No PySpark JVM/RuleExecutor rerun or CI run was performed for **this** new branch, and no claimed actual new Catalyst transition is reported here.
+Six standard-library test methods passed locally, covering exact orbit counts, observation transfers, positive and negated null-safe equality rewrites at n=2/3/4/6, fail-closed unsupported AST mutations, a three-variable algebraic control, and **300 seeded generated expression-pair crosschecks** (100 each for n=2/3/4) against full Cartesian input grids. Every supported test was replayed independently as parameterized SQLite expressions over all canonical representatives. No PySpark JVM/RuleExecutor rerun or CI run was performed for **this** new branch, and no claimed actual new Catalyst transition is reported here.
 
 The three-variable control is especially interesting:
 
