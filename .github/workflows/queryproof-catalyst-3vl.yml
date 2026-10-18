@@ -1,0 +1,39 @@
+name: QueryProof independent Catalyst 3VL join witness
+on:
+  push:
+    branches: [research/queryproof-catalyst-3vl-witness-20261018]
+    paths:
+      - tools/queryproof_catalyst_3vl/**
+      - .github/workflows/queryproof-catalyst-3vl.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1','4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_catalyst_3vl
+            tools/queryproof_prospective
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official unmodified Spark release
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==${{ matrix.spark }}
+      - name: Derive independent source-row join-bag witness from analyzed predicate tree
+        run: python -u tools/queryproof_catalyst_3vl/run_join.py
+      - name: Preserve full counterexamples and UNKNOWN results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-catalyst-3vl-${{ matrix.spark }}
+          path: artifacts/queryproof_3vl_*.json
+          if-no-files-found: warn
+          retention-days: 14
