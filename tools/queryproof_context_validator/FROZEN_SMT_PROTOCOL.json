@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-18",
+  "stage": "unbounded nullable-integer SMT contextual translation validation",
+  "frozen_after": "Finite 9-assignment actual Catalyst proof and independent SQLite validation succeeded in Actions run 39109378302",
+  "hypothesis": "For actual unchanged INNER JOIN condition rewrites expressed only via nullable integral AttributeReference, EqualTo, EqualNullSafe, And, Or, Not, IsNull, IsNotNull, an SMT encoding over arbitrary mathematical integers and independent null flags can decide contextual equivalence exactly, without a bounded input-domain assumption.",
+  "proofs": [
+    "For unsafe B01 optimizer transition, SMT must report SAT for root JOIN TRUE-set difference and produce a model with exactly one nullable operand",
+    "For safe N01 optimizer transition, SMT must report UNSAT for root JOIN TRUE-set difference even though full-value difference is SAT",
+    "For each transition and all five Boolean observation partitions, solver must agree with the finite prototype guard set and independent SQLite evidence",
+    "No expected SQL answers or hardcoded candidate rule names passed to SMT checker",
+    "Exhaustive known-pair finite check is not treated as general proof for arbitrary arithmetic or SQL types"
+  ],
+  "solver": "z3-solver==4.13.3.0 (pinned wheels for Python 3.11 Linux)",
+  "model": "Z3 Int variables for attribute values and independent Bool variables representing NULL, with 3-valued truth as -1/0/1. No arithmetic in supported predicate grammar, so using Int equality is faithful to Spark integral equality under correct type resolution.",
+  "unhandled": [
+    "attribute constraints or alias correlations in real join inputs",
+    "nondeterministic expressions, arithmetic overflow, casts, collation, non-integer SQL",
+    "relational plan transformations, different join input mapping",
+    "solver UNKNOWN or timeout returns UNKNOWN; never claims proof"
+  ],
+  "output": "SMT2 benchmark per actual rule, SAT witness or UNSAT in under 3s per obligation; runner validates with finite SQLite independently.",
+  "interpretation": "The unbounded UNSAT applies to each precisely encoded Boolean expression under independently variable nullable integer inputs. It does not prove full Spark plan equivalence or synthesis correctness for all rules."
+}
