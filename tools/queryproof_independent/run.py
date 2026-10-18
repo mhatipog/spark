@@ -14,9 +14,9 @@ from pathlib import Path
 from pyspark.sql import SparkSession
 
 ROOT=Path(__file__).resolve().parent
-sys.path.insert(0,str(ROOT.parent/'queryproof_prospective'))
-sys.path.insert(0,str(ROOT.parent/'queryproof_auto_obligations'))
-sys.path.insert(0,str(ROOT.parent/'queryproof_observed_contract'))
+sys.path[:0]=[str(ROOT.parent/'queryproof_prospective'),
+              str(ROOT.parent/'queryproof_auto_obligations'),
+              str(ROOT.parent/'queryproof_observed_contract')]
 from run import fixture,enc
 from plan_extractor import extract
 from contract import audit
