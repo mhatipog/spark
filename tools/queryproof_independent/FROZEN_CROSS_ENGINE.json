@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-18",
+  "purpose": "Cross-engine semantic sanity check on three formerly reproduced Spark wrong-result cases; not SQLancer, not an unseen blind test",
+  "engine": "duckdb==1.4.1",
+  "case_ids": [
+    "B01",
+    "B02",
+    "B03",
+    "N01",
+    "N02",
+    "N03"
+  ],
+  "fixtures": "manual mirroring of the already frozen Spark Parquet fixture rows, registered as in-memory DuckDB SQL tables",
+  "adapter": "Only replace Spark range(...) table-function column naming via alias AS __queryproof_range(id), preserving rows and expressions; no semantic query rewrites or corrections allowed",
+  "independent_sql_oracle": "After execution compare DuckDB result bag to the original frozen expected answers and to Spark official observed rows from separate benchmark; predeclared missing results are failures not silently skipped",
+  "report": "cross-engine agreement/disagreement per historical case, existing Spark incorrectness; no scientific novelty claim",
+  "negative_controls": "all N01 N02 N03 must match original expected answers; no DuckDB engine errors",
+  "limitations": [
+    "only three selected categories",
+    "cross-engine SQL semantics may differ in general; verify this small shared SQL subset",
+    "no original SQLancer DQP or CODDTest implementation executed"
+  ]
+}
