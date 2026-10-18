@@ -33,6 +33,8 @@ class ContextProofTests(unittest.TestCase):
         c=certificate_for_transition(event(True))
         self.assertEqual(c['status'],'COUNTEREXAMPLE')
         self.assertEqual(c['required_partition'],'FALSE_ONLY')
+        self.assertEqual(c['admissible_observation_partitions'],['ANY','TRUE_ONLY'])
+        self.assertEqual(c['synthesized_guard_decision'],'BLOCK')
         self.assertEqual(c['bindings_checked'],9)
         self.assertGreater(c['root_true_set_divergence'],0)
         w=c['minimal_counterexample']
@@ -44,6 +46,8 @@ class ContextProofTests(unittest.TestCase):
         c=certificate_for_transition(event(False))
         self.assertEqual(c['status'],'EQUIVALENT_IN_FRAGMENT')
         self.assertEqual(c['required_partition'],'TRUE_ONLY')
+        self.assertEqual(c['admissible_observation_partitions'],['ANY','TRUE_ONLY'])
+        self.assertEqual(c['synthesized_guard_decision'],'ALLOW')
         self.assertEqual(c['root_true_set_divergence'],0)
         self.assertGreater(c['root_value_divergence'],0)
 
