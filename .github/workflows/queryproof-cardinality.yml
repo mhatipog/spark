@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spark: ['4.2.0']
+        spark: ['4.0.1','4.2.0']
     steps:
       - uses: actions/checkout@v4
         with:
