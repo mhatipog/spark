@@ -32,6 +32,8 @@ jobs:
         run: |
           mkdir -p artifacts
           python -u tools/queryproof_rule_provenance/run_trace.py 2> artifacts/queryproof_raw_ast.log
+      - name: Revalidate mathematical weakest-observer transfer calculus
+        run: python -m unittest discover -s tools/queryproof_observer_lattice -p 'test_lattice.py' -v
       - name: Verify pure Python counterexample and fail-closed mutation controls
         run: python -m unittest discover -s tools/queryproof_context_validator -p 'test_context_proof.py' -v
       - name: Install pinned Z3 solver
