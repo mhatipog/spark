@@ -1,0 +1,25 @@
+name: QueryProof exact SQL 3VL observer lattice
+on:
+  push:
+    branches: [research/queryproof-observer-lattice-20261018]
+    paths:
+      - tools/queryproof_observer_lattice/**
+      - .github/workflows/queryproof-observer-lattice.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  finite-3vl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_observer_lattice
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Exhaustively verify operator pullbacks and nested-path minimality
+        run: python -m unittest discover -s tools/queryproof_observer_lattice -p 'test_lattice.py' -v
+      - name: Emit exact 5-partition rewrite-acceptance comparison
+        run: python tools/queryproof_observer_lattice/lattice.py
