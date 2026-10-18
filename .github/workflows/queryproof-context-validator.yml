@@ -1,0 +1,36 @@
+name: QueryProof real rule condition format
+on:
+  push:
+    branches: [research/queryproof-contextual-translation-validation-20261018]
+    paths:
+      - tools/queryproof_context_validator/**
+      - .github/workflows/queryproof-context-validator.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  context-witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_instrumented
+            tools/queryproof_prospective
+            tools/queryproof_observer_lattice
+            tools/queryproof_rule_provenance
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install released Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Overlay existing rule-level AST tracer (disposable wheel only)
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Capture synthetic trace without publishing SQL literals
+        run: |
+          mkdir -p artifacts
+          python -u tools/queryproof_rule_provenance/run_trace.py 2> artifacts/queryproof_raw_ast.log
+      - name: Show only structural changed Join conditions
+        run: python -u tools/queryproof_context_validator/inspect_format.py artifacts/queryproof_raw_ast.log
