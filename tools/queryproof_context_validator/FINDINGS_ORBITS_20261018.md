@@ -59,4 +59,12 @@ The five SQL Boolean observation partitions express what a consumer distinguishe
 4. Extend to contextual path constraints using congruence closure or Z3 for correlated sibling equalities. Measure extra legitimate transformations admitted beyond value-partition-only guards and false-accusation rate.
 5. Compare under equal budgets with appropriate SQL and translation-validation baselines before claiming scientific novelty or publishability.
 
-Artifacts: `FROZEN_ORBIT_PROTOCOL.json`, `equality_orbits.py`, `test_equality_orbits.py`. The base branch, Spark master, and upstream PR #59445 remain untouched.
+Integration: `run_orbit_trace.py` accepts the existing `QUERYPROOF_AST` raw trace from `tools/queryproof_rule_provenance/run_trace.py` and calls this verifier on each decoded real event. It reports all classifications and UNKNOWN reasons without publishing raw plans or SQL literals. Example invocation after the existing instrumented Spark trace has been captured:
+
+```bash
+python -u tools/queryproof_context_validator/run_orbit_trace.py artifacts/queryproof_raw_ast.log
+```
+
+The runner's aggregation was smoke-tested locally on two synthetic encoded-event shapes, **not** a new real Spark trace. The new branch's workflow has not been run, preserving the limited Actions budget.
+
+Artifacts: `FROZEN_ORBIT_PROTOCOL.json`, `equality_orbits.py`, `test_equality_orbits.py`, `run_orbit_trace.py`. The base branch, Spark master, and upstream PR #59445 remain untouched.
