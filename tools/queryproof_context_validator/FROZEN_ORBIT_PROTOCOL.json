@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-18",
+  "stage": "exploratory exact equality-orbit contextual certificates",
+  "base_branch": "research/queryproof-contextual-translation-validation-20261018",
+  "methodology": "For n distinct nullable integral AttributeReferences, quotient valuations by permutations of non-null values. Each canonical valuation corresponds to one partition of n attributes plus a distinguished NULL, exactly Bell(n+1) representatives. Evaluate the whole changed INNER JOIN condition and changed Boolean subexpression separately, and independently replay every representative in SQLite.",
+  "status": "Frozen after initial synthetic implementation and checks; not prospectively preregistered relative to these synthetic examples.",
+  "scope": [
+    "One actual Catalyst RuleExecutor before/after transition with unchanged INNER Join child plans and only condition changed",
+    "Operators: integral AttributeReference, EqualTo, EqualNullSafe, Not, And, Or, IsNull, IsNotNull",
+    "No literals, casts, collations, UDFs, side effects, arithmetic, non-integral types, or relational input changes",
+    "Maximum seven distinct attribute identities to bound runtime",
+    "A SAT valuation is a local semantic witness, not automatically a reachable Spark database witness"
+  ],
+  "confirmatory_tests": [
+    "Exact Bell(n+1) counts for n=1..7",
+    "Safe positive and unsafe NOT null-safe equality with n=2,3,4,6 attributes",
+    "Independent SQLite verification of all canonical representatives",
+    "Fail closed on unsupported expressions, changed join type, incompatible resolved attributes",
+    "Distinct three-attribute transitivity control: positive TRUE-set preserved even when changed local expression is not equivalent; negated version distinguishable"
+  ],
+  "prospective_next_step": "Freeze previously untouched Catalyst optimizer families and replay the unchanged checker on real AST transitions, with independent row-source reachability and per-family UNKNOWN denominator, without modifying based on outcomes.",
+  "claims_excluded": [
+    "Not an original discovery of the partition symmetry theorem",
+    "Not a proof of entire Spark optimizer correctness",
+    "Not a newly discovered Spark bug",
+    "Not a blind holdout benchmark",
+    "Not empirical performance superiority over SQLancer, DQP, or other verification systems"
+  ]
+}
