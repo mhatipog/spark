@@ -1,0 +1,43 @@
+name: QueryProof retrospective independent-family test
+on:
+  push:
+    branches: [research/queryproof-independent-family-benchmark-20261018]
+    paths:
+      - tools/queryproof_independent/**
+      - .github/workflows/queryproof-independent-family.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        spark: ['4.0.1','4.2.0']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_independent
+            tools/queryproof_prospective
+            tools/queryproof_auto_obligations
+            tools/queryproof_observed_contract
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official PySpark release
+        run: python -m pip install --no-cache-dir --disable-pip-version-check 'pyspark==${{ matrix.spark }}'
+      - name: Retrospective holdout, no expected answers loaded by detector
+        run: python -u tools/queryproof_independent/run.py
+      - name: Independently score frozen oracle outcomes and differential results
+        run: python -u tools/queryproof_independent/score.py artifacts/queryproof_independent_${{ matrix.spark }}.json
+      - name: Archive exact rows, plans, results and any errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-independent-${{ matrix.spark }}
+          path: artifacts/queryproof_independent*.json
+          if-no-files-found: warn
+          retention-days: 14
