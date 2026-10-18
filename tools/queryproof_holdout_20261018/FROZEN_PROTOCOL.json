@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-filter-join-holdout-20261018",
+  "freeze_date_utc": "2026-10-18",
+  "status": "Design frozen before the first new instrumented Catalyst execution; existing orbit tests are calibration, not holdout.",
+  "holdout_manifest": "CASES.json",
+  "baseline_branch": "research/queryproof-equality-orbit-context-20261018",
+  "code_branch": "research/queryproof-filter-holdout-20261018",
+  "rules_known_from_prior_round_excluded_from_primary": [
+    "OptimizeJoinCondition",
+    "RewritePredicateSubquery"
+  ],
+  "experimental_units": "Every changed RuleExecutor logical-plan transition emitted while executing the 18 fixed cases; do not select units based on certificate output.",
+  "primary_metric": "Among events whose rule name is not in previously investigated rule set, report EQUIVALENT_IN_FRAGMENT, COUNTEREXAMPLE, UNKNOWN, and the exact denominator, per-rule and per-case; also report those counts over all AST events.",
+  "eligibility": "Only one fixed logical-plan node changes, with identical non-condition metadata and child plan; node Filter(unary) or Join(Inner), both observed through SQL TRUE-row membership. All other transitions classified UNKNOWN. Attributes nullable integral, supported operators EqualTo/EqualNullSafe/And/Or/Not/IsNull/IsNotNull; <=7 identities.",
+  "verification": "Full TRUE-set equivalence and local replacement partition are exhaustively checked over Bell(n+1) equality/nullness valuation orbits and independently replayed in SQLite; the checker receives no rule names as heuristics.",
+  "row_oracle": "Compare collected Spark result multisets with independently computed SQLite result multisets on the fixed fixture. A detected mismatch is a finite-fixture discrepancy, and absence of discrepancy is not a universal proof.",
+  "prediction": "Expect a mixture of supported predicate-only steps and many UNKNOWN structural, literal-bearing, project, join-reordering, or other unsupported transformations; no case is guaranteed to exercise a specific rule.",
+  "stop_rules": [
+    "Do not add/drop/modify cases or grammar after inspecting outcomes for this benchmark.",
+    "Do not modify the verifier after inspecting holdout outcomes and score the changed version on the same cases as if untouched.",
+    "Treat a local COUNTEREXAMPLE as a distinguishable predicate valuation, not a demonstrated Spark bug without a reachable database witness.",
+    "Fail closed for trace parse failures, missing events, all unsupported expression/operator classes."
+  ],
+  "security": "Raw Catalyst toJSON traces can contain SQL literals; keep temporary stderr traces private, delete after sanitization, never attach raw logs. Never run public-fork code on private self-hosted runner absent explicit owner approval.",
+  "limitations": [
+    "SQLite uses integer/NULL 3VL for the narrow supported predicate fragment; runtime differences outside it remain UNKNOWN.",
+    "Fixed synthetic finite fixture is not an exhaustive relational oracle.",
+    "Rule identities are observations, not pre-selected optimized targets.",
+    "Pure expression equivalence doesn't establish arbitrary whole-query semantics when plan structure changes."
+  ],
+  "required_reporting": [
+    "Spark/PySpark version and trace mechanism",
+    "manifest SHA256",
+    "total and decoded trace events",
+    "event status counts (all and rules uninvestigated)",
+    "counts per rule/case and reasons for UNKNOWN",
+    "independent SQLite replay status",
+    "finite-fixture row multiset discrepancies",
+    "runner trust and resource limits"
+  ]
+}
