@@ -65,7 +65,8 @@ def derive():
              and checks['synthesized_exact']['smt_result']=='UNSAT'
              and checks['nonnegative_source']['smt_result']=='SAT'
              and checks['empty_source']['smt_result']=='SAT'
-             and all(x['n']==0 and x['v'] in (TRUE,FALSE)
+             and all(x['witness']['n']==0 and
+                     x['witness']['v'] in (TRUE,FALSE)
                      for key,x in checks.items() if x['smt_result']=='SAT'))
     return {'passed':correct,'checks':checks,'finite_replay':finite,
             'exact_abstract_guard':'source_row_count > 0 OR scalar_is_NULL',
