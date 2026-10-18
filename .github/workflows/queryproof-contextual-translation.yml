@@ -23,11 +23,15 @@ jobs:
         run: python -u tools/queryproof_translation/validate.py
       - name: Independently check all witnesses and exhaustive equivalences
         run: python -u tools/queryproof_translation/check_certificates.py artifacts/queryproof_contextual_certificates.json
+      - name: Synthesize the weakest observation guard for the known rewrite
+        run: python -u tools/queryproof_translation/synthesize_guard.py
       - name: Preserve verified certificates
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: queryproof-contextual-certificates
-          path: artifacts/queryproof_contextual_certificates.json
+          path: |
+            artifacts/queryproof_contextual_certificates.json
+            artifacts/queryproof_rewrite_guard.json
           retention-days: 30
           if-no-files-found: warn
