@@ -180,7 +180,8 @@ def classify_trees(before, after, observer="TRUE_ONLY", allow_remap=False):
         "observable_differences": len(changed),
         "minimal_witness": changed[0] if changed else None,
         "safe_partitions": safe,
-        "assumption": "No constants, arithmetic, coercions, collation, or effects; uncorrelated integral attributes",
+        "assumption": ("No constants, arithmetic, coercions, collation, "
+                       "or effects; uncorrelated integral attributes"),
     }
 
 
