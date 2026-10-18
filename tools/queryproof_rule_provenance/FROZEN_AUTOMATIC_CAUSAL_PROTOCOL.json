@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-18",
+  "goal": "Run precommitted rule trace -> automatic first candidate selection -> independent rule suppression -> post-hoc wrong-result scoring with no manual intervention",
+  "source": "Previous traces run 39105801639 and intervention run 39106010915 are already in-sample; same cases used only for automation engineering",
+  "cases": [
+    "B01",
+    "B02",
+    "B03",
+    "N01",
+    "N02",
+    "N03"
+  ],
+  "versions": [
+    "4.2.0"
+  ],
+  "selector": "Pick first triage event with risk_signatures sorted by existing ranking score/earliest event, no known-issue/rule-name allowlist and no expected results; output absent -> UNKNOWN",
+  "intervention": "Run all three baseline SQLConf exclusion and disposable forced skip on the selected rule for each case; count only valid plan changes and restoration of independently frozen expected results as causal evidence",
+  "negative_controls": "Three N-cases must show no false accusation (a mere rule transition is not a bug); if any changes to wrong output record failure",
+  "metrics": [
+    "trace event count",
+    "selected rule and observation partition",
+    "actual candidate rule forced skip count",
+    "intervention restoration on historical bugs",
+    "safe control regressions",
+    "UNKNOWN/error counts",
+    "proof that no manually specified rule names enter runtime selector"
+  ],
+  "limits": [
+    "All six historical SQL statements known in advance: in-sample; no novel bug claimed",
+    "Rule ablation alone does not prove exact rewrite subexpression is unsound",
+    "External SQLancer implementations not executed",
+    "No correctness guarantee for arbitrary Spark SQL or all Catalyst rules"
+  ],
+  "expected": "Should recover prior 3/3 historical bug restorations without manual candidate names, but first trace may label safe control rewrites too, so distinguish suspicion vs certified wrong output."
+}
