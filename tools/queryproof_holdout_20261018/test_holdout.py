@@ -70,6 +70,13 @@ class FrozenHoldoutTests(unittest.TestCase):
         self.assertEqual(result["per_operator"]["Filter"]["EQUIVALENT_IN_FRAGMENT"], 1)
         self.assertEqual(result["per_operator"]["UNKNOWN"]["UNKNOWN"], 1)
 
+    def test_instrumentation_error_is_reported_not_silenced(self):
+        with patch.object(Path, "read_text",
+                          return_value="QUERYPROOF_AST_ERROR\tjava.lang.Exception\n"):
+            result = analyze_trace(Path("/virtual-only/trace.txt"), set())
+        self.assertEqual(result["trace_events"], 0)
+        self.assertEqual(len(result["instrumentation_failures"]), 1)
+
     def test_corrupt_ast_is_reported_not_accepted(self):
         with patch.object(Path, "read_text",
                           return_value="QUERYPROOF_AST\tBROKEN\n"):
