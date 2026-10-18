@@ -31,9 +31,18 @@ def range_values(node,limit=256):
 
 
 def literal_number(e):
-    demand(kind(e)=='Literal','PROBE_NOT_LITERAL')
+    # Analyzer can insert an integral widening CAST for an INT literal
+    # compared to Spark Range's LONG id. Only lossless widening is accepted.
+    if kind(e)=='Cast':
+        child=e.child()
+        dest=str(e.dataType().typeName())
+        orig=str(child.dataType().typeName())
+        demand(dest=='long' and orig in ('byte','short','integer','null'),
+               'NON_WIDENING_OR_NONINTEGRAL_CAST:'+orig+'->'+dest)
+        return literal_number(child)
+    demand(kind(e)=='Literal','PROBE_NOT_LITERAL:'+kind(e))
     typ=str(e.dataType().typeName())
-    demand(typ in ('integer','long','null'),'UNSUPPORTED_LITERAL_TYPE')
+    demand(typ in ('byte','short','integer','long','null'),'UNSUPPORTED_LITERAL_TYPE')
     v=e.value()
     return None if v is None else int(v)
 
