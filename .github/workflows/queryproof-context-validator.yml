@@ -1,4 +1,4 @@
-name: QueryProof real rule condition format
+name: QueryProof contextual translation certificates
 on:
   push:
     branches: [research/queryproof-contextual-translation-validation-20261018]
@@ -33,6 +33,8 @@ jobs:
           mkdir -p artifacts
           python -u tools/queryproof_rule_provenance/run_trace.py 2> artifacts/queryproof_raw_ast.log
       - name: Verify pure Python counterexample and fail-closed mutation controls
+        run: python -m unittest discover -s tools/queryproof_context_validator -p 'test_context_proof.py' -v
+      - name: Generate and independently validate smallest sufficient contextual rewrite guard
         run: python -m unittest discover -s tools/queryproof_context_validator -p 'test_context_proof.py' -v
       - name: Independently certify real Catalyst rule deltas using SQLite
         run: python -u tools/queryproof_context_validator/run_certificates.py artifacts/queryproof_raw_ast.log
