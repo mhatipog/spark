@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-18",
+  "phase": "Real Spark analyzed expression observer extraction",
+  "protocol": "Frozen after deriving lattice and before coding plan extractor",
+  "cases": [
+    {
+      "id": "B01",
+      "issue": "SPARK-58384",
+      "target": "Or",
+      "required": "FALSE_ONLY",
+      "context": "JOIN ON NOT(OR...)"
+    },
+    {
+      "id": "N01",
+      "issue": "SPARK-58384",
+      "target": "Or",
+      "required": "TRUE_ONLY",
+      "context": "JOIN ON OR..."
+    },
+    {
+      "id": "B02",
+      "issue": "SPARK-58442",
+      "target": "InSubquery",
+      "required": "NULL_ONLY",
+      "context": "Filter IS NULL(IN...)"
+    },
+    {
+      "id": "N02",
+      "issue": "SPARK-58442",
+      "target": "InSubquery",
+      "required": "TRUE_ONLY",
+      "context": "Filter IN..."
+    },
+    {
+      "id": "B03",
+      "issue": "SPARK-58429",
+      "target": "InSubquery",
+      "required": "FULL_3VL",
+      "context": "Value position alongside global aggregate"
+    }
+  ],
+  "evaluation_versions": [
+    "4.0.1",
+    "4.2.0"
+  ],
+  "heldout_status": "All cases are historical issues already inspected; this is in-sample extraction validation, NOT independent generalization",
+  "rules": [
+    "Derive expression class and logical consumer from analyzed Catalyst JVM objects, not SQL substring matching",
+    "Root Filter and Join conditions require TRUE_ONLY; projected boolean values and aggregate result expressions require FULL_3VL",
+    "Traverse through only supported known 3VL Boolean operators with exact partition pullback; unsupported parent context requires FULL_3VL",
+    "Never claim a mismatched rewrite or wrong result based on observer extraction alone; record REQUIRED_PARTITION, not BUG",
+    "Score expected labels after extraction, do not supply expected labels to extractor",
+    "Explicit UNKNOWN on invalid programmatic introspection and log results"
+  ],
+  "metrics": [
+    "target nodes found / expected",
+    "exact demanded partition match",
+    "unsupported cases",
+    "evaluation errors",
+    "runtime overhead of AST inspection (not full query execution)"
+  ]
+}
