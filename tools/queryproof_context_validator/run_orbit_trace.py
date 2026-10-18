@@ -12,14 +12,14 @@ import sys
 HERE=Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "queryproof_instrumented"))
 from rank_ast import decode
-from equality_orbits import certify_join_event
+from equality_orbits import certify_predicate_event
 
 def classify_events(events):
     by_case=defaultdict(list)
     counts=Counter()
     unknowns=Counter()
     for event in events:
-        report=certify_join_event(event)
+        report=certify_predicate_event(event)
         status=report["status"]
         counts[status]+=1
         case=event.get("case", "unlabelled")
@@ -32,6 +32,7 @@ def classify_events(events):
             root=report["root"]
             witness=root["minimal_witness"]
             entry={"rule":event.get("rule"),"status":status,
+                   "operator":report["operator"],
                    "required_partition":report["required_partition"],
                    "context_path":report["context_path"],
                    "attributes":root["input_attributes"],
@@ -45,7 +46,7 @@ def classify_events(events):
         by_case[case].append(entry)
     return {"summary":{"events":sum(counts.values()),"statuses":dict(counts),
                        "unknown_reasons":dict(unknowns),
-                       "scope":"equality/nullness-only local INNER JOIN rewrites",
+                       "scope":"equality/nullness-only local Filter or INNER Join condition rewrites",
                        "warning":"Local counterexamples are not verified reachable source-row witnesses; historical calibration is not a holdout"},
             "cases":dict(by_case)}
 
