@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-18",
+  "objective": "Produce bounded, context-sensitive translation counterexample certificates for real known Catalyst null-equality rewrite and for positive filter contexts; verify with independently checked finite semantics, no expected SQL output oracle",
+  "predeclared_tests": [
+    "P=(a=b) OR (a IS NULL AND b IS NULL) versus Q=a IS NOT DISTINCT FROM b",
+    "WHERE P versus WHERE Q: equivalent TRUE-set",
+    "WHERE NOT P versus WHERE NOT Q: distinguishable",
+    "WHERE P IS NULL versus WHERE Q IS NULL: distinguishable",
+    "projection of P versus Q: distinguishable exact 3VL",
+    "positive conjunction/disjunction with independent nullable sibling: equivalent as TRUE-only selection",
+    "two consecutive NOT: equivalent TRUE-set",
+    "full truth-set under context NULL observation: different",
+    "exactly 9 pair valuations a,b in {0,1,NULL}, 3 sibling Boolean values TRUE/FALSE/NULL; witness minimization by nonNULL count then total magnitude"
+  ],
+  "limits": [
+    "Known Spark SPARK-58384 and DuckDB #23685 rewrite: only in-sample calibration",
+    "Finite abstraction complete ONLY for equality,nullness and three-valued operator contexts; not arbitrary Catalyst plans",
+    "No SMT solver used in first iteration; exhaustive finite model equivalent for declared tiny domain",
+    "Certificate verification implementation separately reconstructs SQL logic rather than trusting producer assertions",
+    "No claim of new Spark bug, publishable novelty, or full optimizer soundness"
+  ],
+  "next": "Connect to one actual RuleExecutor before/after AST transition and derive candidate expressions and context without hardcoded SQL; then freeze unseen transformations."
+}
