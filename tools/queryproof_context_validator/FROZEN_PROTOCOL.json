@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-18",
+  "status": "frozen before examining sampled raw rule JSON",
+  "purpose": "Validate a specific real RuleExecutor before/after rewrite against weakest observation required by its structural context, with an independently checkable finite SQL-NULL counterexample. Do not use expected query answers or rule-name whitelist to select events.",
+  "input": "Actual Catalyst TreeNode.toJSON before/after plans under disposable RuleExecutor instrumentation, synthetic B01 and N01 historical calibration and other synthetic variations.",
+  "primary_calibration": [
+    "B01 nullable NOT join known SPARK-58384",
+    "N01 direct positive nullable join correct"
+  ],
+  "independence": "In-sample calibration only; no unseen issue-family recall claim.",
+  "candidate_filter": "Pair old/new INNER Join condition expressions with matching attribute exprIds/paths; require supported narrow Boolean/nullable equality AST. No silent name-based mapping, skip if unmatchable.",
+  "proof_scope": "Finite equivalence model over two nullable integral-valued attributes; equality, EqualNullSafe, IS NULL, NOT, AND, OR, including supported literal booleans. Under a root JOIN/WHERE filter observe only TRUE rows; for scalar projection demand complete SQL 3VL. For two equality operands, representative domain {NULL,0,1} covers equal, unequal, and null cases. This finite completeness does NOT generalize to arbitrary SQL or relational plan changes.",
+  "evaluation": "For each actual before/after pair compile both expressions independently from actual trace. Enumerate all 9 input pairs, compute exact SQL 3VL values and observable result difference; output minimal witness ordered by number of nulls, then value magnitude. Compare to separate Scala/PySpark SQL row bag after the proof; never use baseline oracle in proof generation.",
+  "controls": [
+    "Safe N01 rewrite must be classified observable-equivalent under its required positive filter context",
+    "B01 NOT context should produce a concrete distinguishable pair",
+    "Pure three-valued mathematical controls: positive OR rewrite only true-set equivalent, NOT and IS NULL variants not equivalent",
+    "Unsupported serialized expression or unmatched Join returns UNKNOWN, not validation success",
+    "Do not claim equivalence if join shape/output type changes and no structural map is established"
+  ],
+  "metrics": [
+    "actual join pairs recovered",
+    "sound counterexamples",
+    "safe real rewrite classifications",
+    "UNKNOWN reasons",
+    "synthetic mutation tests",
+    "rule-level event type without hardcoded name"
+  ],
+  "no_claims": [
+    "not an SMT result yet, enumeration exact only within specified equality/nullness grammar",
+    "not independent discovered bug",
+    "not system-wide Spark soundness proof",
+    "no new upstream patch until validations succeed"
+  ],
+  "cost": "One lightweight single-PySpark 4.2 Actions job, inherited Spark build skipped"
+}
