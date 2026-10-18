@@ -108,11 +108,6 @@ def prove_pair(before,after,observer,timeout_ms=3000):
         if small.check()==z3.sat:model=small.model()
         else:model=solver.model()
         result['witness']=decode(model,ids,env)
-        result['witness_before']=str(z3.simplify(z3.substitute(o1,[
-            (env[name][0],z3.IntVal(0 if result['witness'][name] is None else result['witness'][name])),
-            (env[name][1],z3.BoolVal(result['witness'][name] is None))
-            for name in []
-        ]))) if False else None
         # SQL-valued output is independently replayed by SQLite downstream;
         # no truth value is accepted from a guessed Z3 model interpretation.
     elif res==z3.unknown:
