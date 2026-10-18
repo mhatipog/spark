@@ -280,8 +280,13 @@ def _bad_value(value):
     raise Unsupported("SQLITE_NON_BOOLEAN_VALUE:" + str(value))
 
 
-def certify_join_event(event):
-    """Extract one real trace's INNER Join condition and its consumer path."""
+def certify_predicate_event(event):
+    """Certify a one-node Filter or INNER Join predicate-only Catalyst transition.
+
+    Rule identity is deliberately excluded from the decision.  This is a
+    selection/inner-join observation of TRUE, not three-valued scalar equality.
+    Any other node, changed metadata, or unsupported expression fails closed.
+    """
     try:
         old, new = event["old"], event["new"]
         require(isinstance(old, list) and isinstance(new, list)
@@ -290,11 +295,16 @@ def certify_join_event(event):
         require(len(changed) == 1, "MULTIPLE_PLAN_NODES_CHANGED")
         i = changed[0]
         a, b = old[i], new[i]
-        require(kind(a) == kind(b) == "Join", "CHANGED_NODE_NOT_JOIN")
+        operator = kind(a)
+        require(operator == kind(b) and operator in ("Join", "Filter"),
+                "CHANGED_NODE_NOT_PREDICATE_CONSUMER")
         require({k: v for k, v in a.items() if k != "condition"} ==
                 {k: v for k, v in b.items() if k != "condition"},
-                "NON_CONDITION_JOIN_CHANGE")
-        require("Inner$" in json.dumps(a.get("joinType", {})), "NOT_INNER_JOIN")
+                "NON_CONDITION_PREDICATE_CHANGE")
+        if operator == "Join":
+            require("Inner$" in json.dumps(a.get("joinType", {})), "NOT_INNER_JOIN")
+        else:
+            require(a.get("num-children") == 1, "NOT_UNARY_FILTER")
         p, q = parse_expression(a.get("condition")), parse_expression(b.get("condition"))
         root = classify_trees(p, q, "TRUE_ONLY")
         site = changed_site(p, q)
@@ -308,12 +318,22 @@ def certify_join_event(event):
         check = sqlite_validate(p, q, root)
         check_local = sqlite_validate(local_p, local_q, local)
         return {"status": root["status"], "rule": event.get("rule"),
-                "context_path": path, "required_partition": needed,
+                "operator": operator, "context_path": path,
+                "required_partition": needed,
                 "root": root, "local": local,
                 "local_guard": "ALLOW" if local["status"] == "EQUIVALENT_IN_FRAGMENT" else "BLOCK",
                 "semantic_context_masking": (local["status"] == "COUNTEREXAMPLE" and
                                              root["status"] == "EQUIVALENT_IN_FRAGMENT"),
                 "independent_verification": [check, check_local],
                 "proof_scope": "exact equality/nullness orbit quotient only"}
-    except (Unsupported, KeyError, TypeError, IndexError) as exc:
+    except (Unsupported, KeyError, TypeError, IndexError, AttributeError) as exc:
         return {"status": "UNKNOWN", "reason": str(exc), "rule": event.get("rule")}
+
+
+def certify_join_event(event):
+    """Backward-compatible INNER Join-only entry point."""
+    result = certify_predicate_event(event)
+    if result.get("operator") == "Filter":
+        return {"status": "UNKNOWN", "reason": "CHANGED_NODE_NOT_JOIN",
+                "rule": event.get("rule")}
+    return result
