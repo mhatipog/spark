@@ -1,0 +1,42 @@
+name: QueryProof causal Catalyst rule interventions
+on:
+  push:
+    branches: [research/queryproof-rule-interventions-20261018]
+    paths:
+      - tools/queryproof_rule_provenance/**
+      - .github/workflows/queryproof-rule-interventions.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  causal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_rule_provenance
+            tools/queryproof_instrumented
+            tools/queryproof_prospective
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official Spark 4.2.0 wheel
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Build disposable tracing and forced-rule-skip overlay
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Run six frozen baseline and controlled rule-exclusion cases
+        run: python -u tools/queryproof_rule_provenance/run_interventions.py
+      - name: Independently score interventions against frozen reference after observation
+        run: python -u tools/queryproof_rule_provenance/score_interventions.py artifacts/queryproof_causal_interventions.json
+      - name: Preserve full observations and candidate validity
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-causal-4.2
+          path: |
+            artifacts/queryproof_causal_interventions.json
+            artifacts/queryproof_causal_score.json
+          if-no-files-found: warn
+          retention-days: 14
