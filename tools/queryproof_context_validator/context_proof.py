@@ -11,7 +11,14 @@ The checker does not read SQL text, historical issue labels, expected outputs,
 or rule names to decide the result. It evaluates actual rule before/after ASTs.
 """
 import json
+import sys
+from pathlib import Path
 from itertools import product
+
+# Use the pre-existing, exhaustively tested five-partition effect calculus
+# rather than maintaining another hand-written approximation of operators.
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'queryproof_observer_lattice'))
+from lattice import LABELS, requirement
 
 DOMAIN=(None,0,1)
 OPS={'Not':1,'And':2,'Or':2,'EqualTo':2,'EqualNullSafe':2,'IsNull':1,'IsNotNull':1}
@@ -112,29 +119,20 @@ def changed_site(before,after):
     return [(before[0],child-1),*path],old,new
 
 def demanded_partition(path):
-    # For INNER JOIN ON, only TRUE rows are observable; propagate exact
-    # weakest partition of a Boolean child's value under ancestor operations.
-    partition='TRUE_ONLY'
+    """Exact weakest local obligation via the independently tested 3VL lattice.
+
+    Sibling Boolean inputs are universally quantified when calculating child
+    equivalence. Unsupported contexts return UNKNOWN, never an unsafe guess.
+    """
+    operators={'Not':'NOT','And':'AND','Or':'OR',
+               'IsNull':'IS_NULL','IsNotNull':'IS_NOT_NULL'}
+    needed=LABELS['TRUE_ONLY']
     for op,child in path:
-        if op=='Not':
-            require(child==0,'BAD_NOT_CHILD')
-            # A fully-valued input observer flips TRUE and FALSE distinctions.
-            partition={'TRUE_ONLY':'FALSE_ONLY','FALSE_ONLY':'TRUE_ONLY',
-                       'NULL_ONLY':'NULL_ONLY','FULL_3VL':'FULL_3VL','ANY':'ANY'}[partition]
-        elif op in ('And','Or'):
-            # Exhaustive truth tables: positive AND/OR under TRUE_ONLY retains
-            # TRUE_ONLY, under FALSE_ONLY retains FALSE_ONLY, and NULL_ONLY
-            # requires FULL_3VL with unconstrained sibling.
-            if partition=='NULL_ONLY':partition='FULL_3VL'
-        elif op=='IsNull':
-            partition={'TRUE_ONLY':'NULL_ONLY','FALSE_ONLY':'NULL_ONLY',
-                       'NULL_ONLY':'ANY','FULL_3VL':'NULL_ONLY','ANY':'ANY'}[partition]
-        elif op=='IsNotNull':
-            partition={'TRUE_ONLY':'NULL_ONLY','FALSE_ONLY':'NULL_ONLY',
-                       'NULL_ONLY':'ANY','FULL_3VL':'NULL_ONLY','ANY':'ANY'}[partition]
-        else:
-            raise OutOfScope('OBSERVER_TRANSFER_UNSUPPORTED:'+op)
-    return partition
+        require(op in operators,'OBSERVER_TRANSFER_UNSUPPORTED:'+op)
+        needed=requirement(needed,operators[op],child)
+    labels=[key for key,value in LABELS.items() if value==needed]
+    require(len(labels)==1,'UNKNOWN_OBSERVATION_PARTITION')
+    return labels[0]
 
 def same_unmodified_plan(old,new,join_index):
     if len(old)!=len(new):return False
