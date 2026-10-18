@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-filter-join-holdout-20261018",
+  "freeze_date_utc": "2026-10-18",
+  "freeze_status": "prospectively specified prior to running these SQL cases under instrumented Spark",
+  "source_rows": {
+    "qp_l": [
+      [
+        null,
+        null,
+        null
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        2,
+        1,
+        null
+      ],
+      [
+        null,
+        2,
+        2
+      ],
+      [
+        3,
+        null,
+        3
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ],
+    "qp_r": [
+      [
+        null,
+        null,
+        null
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        2,
+        null,
+        2
+      ],
+      [
+        null,
+        2,
+        2
+      ],
+      [
+        3,
+        3,
+        null
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ]
+  },
+  "columns": [
+    "a",
+    "b",
+    "c"
+  ],
+  "column_type": "nullable integral (Spark IntegerType / SQLite INTEGER)",
+  "cases": [
+    {
+      "id": "F01",
+      "consumer": "Filter",
+      "hypothesis": "boolean-idempotence",
+      "sql": "SELECT l.a FROM qp_l l WHERE (l.a = l.b) OR (l.a = l.b)"
+    },
+    {
+      "id": "F02",
+      "consumer": "Filter",
+      "hypothesis": "boolean-idempotence",
+      "sql": "SELECT l.a FROM qp_l l WHERE (l.a = l.b) AND (l.a = l.b)"
+    },
+    {
+      "id": "F03",
+      "consumer": "Filter",
+      "hypothesis": "double-negation",
+      "sql": "SELECT l.a FROM qp_l l WHERE NOT (NOT (l.a = l.b))"
+    },
+    {
+      "id": "F04",
+      "consumer": "Filter",
+      "hypothesis": "boolean-absorption",
+      "sql": "SELECT l.a FROM qp_l l WHERE (l.a = l.b) OR ((l.a = l.b) AND (l.b = l.c))"
+    },
+    {
+      "id": "F05",
+      "consumer": "Filter",
+      "hypothesis": "boolean-absorption",
+      "sql": "SELECT l.a FROM qp_l l WHERE (l.a = l.b) AND ((l.a = l.b) OR (l.b = l.c))"
+    },
+    {
+      "id": "F06",
+      "consumer": "Filter",
+      "hypothesis": "nullness-tautology",
+      "sql": "SELECT l.a FROM qp_l l WHERE (l.a IS NULL) OR (l.a IS NOT NULL)"
+    },
+    {
+      "id": "F07",
+      "consumer": "Filter",
+      "hypothesis": "boolean-association",
+      "sql": "SELECT l.a FROM qp_l l WHERE ((l.a = l.b) AND (l.b = l.c)) AND (l.a IS NOT NULL)"
+    },
+    {
+      "id": "F08",
+      "consumer": "Filter",
+      "hypothesis": "three-valued-predicate",
+      "sql": "SELECT l.a FROM qp_l l WHERE ((l.a = l.b) AND (l.b = l.c)) OR ((l.a = l.b) AND (l.a = l.c))"
+    },
+    {
+      "id": "F09",
+      "consumer": "Filter",
+      "hypothesis": "negated-idempotence",
+      "sql": "SELECT l.a FROM qp_l l WHERE NOT ((l.a = l.b) OR (l.a = l.b))"
+    },
+    {
+      "id": "F10",
+      "consumer": "Filter",
+      "hypothesis": "nullness-idempotence",
+      "sql": "SELECT l.a FROM qp_l l WHERE (l.a IS NULL) OR (l.a IS NULL)"
+    },
+    {
+      "id": "F11",
+      "consumer": "Filter",
+      "hypothesis": "constraint-inference",
+      "sql": "SELECT l.a FROM qp_l l WHERE (l.a = l.b) AND (l.a IS NOT NULL)"
+    },
+    {
+      "id": "F12",
+      "consumer": "Filter",
+      "hypothesis": "null-safe-pattern",
+      "sql": "SELECT l.a FROM qp_l l WHERE (l.a = l.b) OR ((l.a IS NULL) AND (l.b IS NULL))"
+    },
+    {
+      "id": "J01",
+      "consumer": "Join",
+      "hypothesis": "join-boolean-idempotence",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON ((l.a = r.a) OR (l.a = r.a))"
+    },
+    {
+      "id": "J02",
+      "consumer": "Join",
+      "hypothesis": "join-boolean-absorption",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON ((l.a = r.a) AND ((l.a = r.a) OR (l.b = r.b)))"
+    },
+    {
+      "id": "J03",
+      "consumer": "Join",
+      "hypothesis": "join-double-negation",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON NOT (NOT (l.a = r.a))"
+    },
+    {
+      "id": "J04",
+      "consumer": "Join",
+      "hypothesis": "join-transitive-conditions",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON ((l.a = r.a) AND ((l.b = r.b) AND (l.c = r.c)))"
+    },
+    {
+      "id": "J05",
+      "consumer": "Join",
+      "hypothesis": "join-nullness",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON (l.a = r.a) AND (l.b IS NOT NULL)"
+    },
+    {
+      "id": "P01",
+      "consumer": "Project",
+      "hypothesis": "unsupported-project-control",
+      "sql": "SELECT CASE WHEN l.a = l.b THEN 1 ELSE 0 END FROM qp_l l"
+    }
+  ]
+}
