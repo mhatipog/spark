@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-18",
+  "status": "frozen before implementing cardinality SMT extension",
+  "purpose": "Exact symbolic safety condition for abstract relocation of uncorrelated scalar Boolean evaluation through a global aggregate",
+  "abstract_before": "Global COUNT(n) returns one output row and independently computed scalar Boolean value v in {TRUE,FALSE,NULL} for any n >= 0.",
+  "abstract_after": "Scalar Boolean v evaluated on each source input row, subsequently recovered with FIRST(v); returns NULL when n=0 and v when n>0.",
+  "logical_formula": "Correct iff (n>0) OR (v=NULL); counterexample n=0 and v=TRUE/FALSE.",
+  "proof_demands": [
+    "Without any guard, SMT must return SAT, with witness n=0,v=TRUE or FALSE",
+    "Under precondition n>0, SMT must return UNSAT",
+    "Under precondition v=NULL, SMT must return UNSAT",
+    "Under guard n>0 OR v=NULL, SMT must return UNSAT",
+    "Under weaker guard n>=0 alone, still SAT",
+    "Exact safety condition must agree with enumerated finite n=0,1,2 and all three Boolean v values."
+  ],
+  "novelty_caveat": "This is a standard abstract semantics illustration, not proof that real RewritePredicateSubquery implements this simplified algebra in every plan. Historical B03 interpretation and causal rule skip were validated separately. No new Spark defect claimed.",
+  "next": "Combine this cardinality obligation with actual Catalyst plan before/after snapshots; do not declare automatic rule validation until source binding and transformations are formally mapped."
+}
