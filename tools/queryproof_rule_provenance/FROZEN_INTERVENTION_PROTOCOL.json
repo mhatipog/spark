@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-18",
+  "source_run": "https://github.com/mhatipog/spark/actions/runs/39105801639",
+  "origin": "Candidates observed with precommitted structural triage before this intervention: B01,N01 OptimizeJoinCondition and B02,B03,N02,N03 RewritePredicateSubquery. All six changed under same rules; structural candidate names alone lack specificity.",
+  "version": "4.2.0",
+  "cases": [
+    "B01",
+    "B02",
+    "B03",
+    "N01",
+    "N02",
+    "N03"
+  ],
+  "candidates": {
+    "B01": "org.apache.spark.sql.catalyst.optimizer.OptimizeJoinCondition",
+    "N01": "org.apache.spark.sql.catalyst.optimizer.OptimizeJoinCondition",
+    "B02": "org.apache.spark.sql.catalyst.optimizer.RewritePredicateSubquery",
+    "B03": "org.apache.spark.sql.catalyst.optimizer.RewritePredicateSubquery",
+    "N02": "org.apache.spark.sql.catalyst.optimizer.RewritePredicateSubquery",
+    "N03": "org.apache.spark.sql.catalyst.optimizer.RewritePredicateSubquery"
+  },
+  "arms": [
+    "baseline",
+    "exclude_optimizer_rule_via_SQLConf",
+    "force_skip_rule_in_disposable_InstrumentedRuleExecutor"
+  ],
+  "expectation": "OptimizeJoinCondition exclusion may restore B01 and retain N01; RewritePredicateSubquery is mandatory and forced skipping may lead to unevaluable InSubquery; report this as UNKNOWN, not fix",
+  "post_execution_scoring": "Compute actual-vs-manifest expected only after the runtime captures output/plan, and separately run source-row Catalyst join or nullable IN witness on compatible baseline and ablated plans; source oracle independent of output reference",
+  "criteria": [
+    "Causal intervention candidate only when plan changes and oracle violation disappears with no exceptions",
+    "If plan unchanged, not an effective ablation",
+    "Unevaluable or unsupported remains inconclusive",
+    "If safe negative control becomes incorrect after ablation, reject proposed global removal",
+    "No universal rule blame; safe and unsafe invocations share rule names",
+    "Versions beyond this one and unseen SQL required before reporting a new finding"
+  ],
+  "ethical": "Research overlay edits disposable wheel JAR only; no upstream PR changes."
+}
