@@ -128,5 +128,55 @@ class EqualityOrbitTests(unittest.TestCase):
                 self.assertEqual(orbit["safe_partitions"],brute)
                 self.assertEqual(orbit["orbits_checked"],bell_number(len(ids)+1))
 
+    def test_filter_observer_certificates_and_fail_closed(self):
+        from equality_orbits import certify_predicate_event
+        before, after = known_pair()
+        unary = {"class": "org.apache.spark.sql.catalyst.plans.logical.Filter",
+                 "num-children": 1}
+        child = {"class": "dummy.Table", "num-children": 0}
+        def filter_event(p, q):
+            return {"old": [{**unary, "condition": p}, child],
+                    "new": [{**unary, "condition": q}, child],
+                    "rule": "unseen_rule_identity"}
+        for n in (2, 3, 4):
+            p, q = before, after
+            for i in range(2, n):
+                sibling = expr("IsNotNull", [attr(i)])
+                p, q = expr("And", p, sibling), expr("And", q, sibling)
+            yes = certify_predicate_event(filter_event(p, q))
+            self.assertEqual(yes["status"], "EQUIVALENT_IN_FRAGMENT")
+            self.assertEqual(yes["operator"], "Filter")
+            self.assertEqual(yes["root"]["orbits_checked"], bell_number(n + 1))
+            self.assertTrue(all(x["verified"] for x in yes["independent_verification"]))
+            no = certify_predicate_event(filter_event(expr("Not", p), expr("Not", q)))
+            self.assertEqual(no["status"], "COUNTEREXAMPLE")
+            self.assertEqual(no["operator"], "Filter")
+            self.assertEqual(no["required_partition"], "FALSE_ONLY")
+        case = filter_event(before, after)
+        case["new"][1] = {"class": "dummy.DifferentTable", "num-children": 0}
+        self.assertEqual(certify_predicate_event(case)["status"], "UNKNOWN")
+        case = filter_event(before, after)
+        case["new"][0]["extra"] = "metadata changed"
+        self.assertEqual(certify_predicate_event(case)["status"], "UNKNOWN")
+        case = filter_event(before, after)
+        case["old"][0]["class"] = "org.apache.spark.sql.catalyst.plans.logical.Project"
+        self.assertEqual(certify_predicate_event(case)["status"], "UNKNOWN")
+        self.assertEqual(certify_join_event(filter_event(before, after))["status"], "UNKNOWN")
+
+    def test_filter_context_transitive_masking(self):
+        from equality_orbits import certify_predicate_event
+        a, b, c = [[attr(i)] for i in range(3)]
+        before = expr("And", expr("EqualTo", a, b), expr("EqualTo", b, c))
+        after = expr("And", expr("EqualTo", a, b), expr("EqualTo", a, c))
+        shape = {"class": "org.apache.spark.sql.catalyst.plans.logical.Filter",
+                 "num-children": 1}
+        event = {"old": [{**shape, "condition": before}],
+                 "new": [{**shape, "condition": after}]}
+        result = certify_predicate_event(event)
+        self.assertEqual(result["operator"], "Filter")
+        self.assertEqual(result["status"], "EQUIVALENT_IN_FRAGMENT")
+        self.assertTrue(result["semantic_context_masking"])
+        self.assertEqual(result["local_guard"], "BLOCK")
+
 if __name__ == "__main__":
     unittest.main()
