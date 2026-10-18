@@ -1,0 +1,39 @@
+name: QueryProof independent engine SQL semantics reference
+on:
+  push:
+    branches: [research/queryproof-cross-engine-reference-20261018]
+    paths:
+      - tools/queryproof_independent/cross_engine.py
+      - tools/queryproof_independent/score_cross_engine.py
+      - tools/queryproof_independent/FROZEN_CROSS_ENGINE.json
+      - .github/workflows/queryproof-cross-engine-reference.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_independent
+            tools/queryproof_prospective
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install separately implemented independent SQL engine
+        run: python -m pip install --disable-pip-version-check --no-cache-dir duckdb==1.4.1
+      - name: Run unchanged semantic queries with documented Spark-range alias adaptation
+        run: python -u tools/queryproof_independent/cross_engine.py
+      - name: Independently compare observed results with frozen SQL answers
+        run: python -u tools/queryproof_independent/score_cross_engine.py artifacts/queryproof_duckdb_reference.json
+      - name: Archive every result, including failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-duckdb-reference
+          path: artifacts/queryproof_duckdb*.json
+          if-no-files-found: warn
+          retention-days: 14
