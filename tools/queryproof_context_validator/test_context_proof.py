@@ -1,6 +1,6 @@
 """Independent source/shape controls for contextual proof certificates."""
 import unittest
-from context_proof import certificate_for_transition,parse_expression,OutOfScope
+from context_proof import certificate_for_transition,parse_expression,OutOfScope,demanded_partition
 
 def attr(name,i):
     return {'class':'org.apache.spark.sql.catalyst.expressions.AttributeReference',
@@ -75,6 +75,13 @@ class ContextProofTests(unittest.TestCase):
         v=event(True)
         v['new'][0]['condition'][1]['class']='org.example.UnsafeExpression'
         self.assertEqual(certificate_for_transition(v)['status'],'UNKNOWN')
+
+    def test_context_demands_come_from_exact_five_partition_lattice(self):
+        self.assertEqual(demanded_partition([('Not',0)]),'FALSE_ONLY')
+        self.assertEqual(demanded_partition([('IsNull',0)]),'NULL_ONLY')
+        self.assertEqual(demanded_partition([('Not',0),('Or',0)]),'FALSE_ONLY')
+        self.assertEqual(demanded_partition([('IsNull',0),('And',1)]),'FULL_3VL')
+        self.assertEqual(demanded_partition([('And',1)]),'TRUE_ONLY')
 
     def test_unresolved_attributes_fail_closed(self):
         v=event(True)
