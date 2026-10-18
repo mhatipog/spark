@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-18",
+  "version": "1.5.6",
+  "frozen_predicate": "NOT (tl.a = tr.x OR (tl.a IS NULL AND tr.x IS NULL))",
+  "known_bug_family": "B01 from SPARK-58384, subsequently reproduced on DuckDB 1.3.2/1.4.1/1.4.5/1.5.6; in-sample causal investigation",
+  "predeclared_ablation": "Run disabled_optimizers one rule at a time for EVERY rule returned by DuckDB 1.5.6 duckdb_optimizers(). Do not select rules by looking at results first.",
+  "oracles": [
+    "Python SQL three-valued predicate evaluation",
+    "SQLite join and projected truth table",
+    "DuckDB optimizer completely disabled"
+  ],
+  "conditions": [
+    "optimized base JOIN",
+    "optimized base CROSS JOIN projecting boolean predicate",
+    "disable each individual optimizer and record JOIN row bag and full predicate table",
+    "record EXPLAIN of optimized and all-optimizer-disabled plan"
+  ],
+  "goal": "Identify minimal named optimizer pass whose exclusion removes actual SQL 3VL violation; this is causal evidence, not proof of implementation-level root cause.",
+  "interpretation": "If any single rule restores correct join and 3VL predicate, inspect that optimizer's C++ rewrite source, design tiny minimal SQL test, check DuckDB existing issues. Never report as a new bug without duplicate search."
+}
