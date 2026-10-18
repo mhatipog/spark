@@ -1,0 +1,49 @@
+name: QueryProof fully automatic trace to causal witness
+on:
+  push:
+    branches: [research/queryproof-automatic-causality-20261018]
+    paths:
+      - tools/queryproof_rule_provenance/**
+      - .github/workflows/queryproof-automatic-causal.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  traced-causality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_rule_provenance
+            tools/queryproof_prospective
+            tools/queryproof_observer_lattice
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official Spark release 4.2.0 on disposable runner
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Build existing instrumented rule-level trace and forced skip on disposable wheel
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Extract analyzed observation contracts and record rule AST deltas
+        run: python -u tools/queryproof_rule_provenance/run_trace.py 2> artifacts/queryproof_raw_ast.log
+      - name: Automatically select structural risk candidates without expected reference answers
+        run: python -u tools/queryproof_rule_provenance/triage.py artifacts/queryproof_raw_ast.log artifacts/queryproof_rule_trace_observations.json
+      - name: Automatically intervene on selected rules using three controlled execution arms
+        run: python -u tools/queryproof_rule_provenance/run_interventions.py artifacts/queryproof_rule_triage.json
+      - name: Only now score restored wrong results and safe-control regressions
+        run: python -u tools/queryproof_rule_provenance/score_interventions.py artifacts/queryproof_causal_interventions.json
+      - name: Upload synthetic compact evidence with no raw AST SQL literal dump
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-automatic-causality-4.2
+          path: |
+            artifacts/queryproof_rule_triage.json
+            artifacts/queryproof_rule_trace_observations.json
+            artifacts/queryproof_causal_interventions.json
+            artifacts/queryproof_causal_score.json
+          retention-days: 14
+          if-no-files-found: warn
