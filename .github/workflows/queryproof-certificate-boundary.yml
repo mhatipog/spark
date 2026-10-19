@@ -8,6 +8,8 @@ on:
       - tools/queryproof_context_validator/test_equality_orbits.py
       - tools/queryproof_context_validator/join_prefilter_certificate.py
       - tools/queryproof_context_validator/test_join_prefilter.py
+      - tools/queryproof_context_validator/project_pushdown_certificate.py
+      - tools/queryproof_context_validator/test_project_pushdown.py
       - tools/queryproof_holdout_20261018/run_holdout.py
       - tools/queryproof_structural_confirmation_20261019/**
       - .github/workflows/queryproof-certificate-boundary.yml
@@ -29,6 +31,8 @@ jobs:
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_equality_orbits.py' -v
       - name: Verify inner join prefilter implication and reject unsafe scopes
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_join_prefilter.py' -v
+      - name: Verify identity/alias projection filter commutation
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_project_pushdown.py' -v
   frozen-catalyst-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 28
@@ -76,6 +80,7 @@ jobs:
           for pattern, count in patterns.most_common(45):
               print("UNKNOWN_SHAPE", count, *pattern)
           print("EXPLORATORY_INNER_JOIN_GUARD", report["trace"]["exploratory_inner_join_guard"])
+          print("EXPLORATORY_PROJECT_PUSHDOWN", report["trace"]["exploratory_project_pushdown"])
           print("INFER_FILTER_METADATA_KEYS", report["trace"]["infer_filter_keysets"])
           print("ROW_ORACLE_MISMATCH_CASES", report["row_oracle_mismatch_cases"])
           if report["executed_cases"] != 18:
@@ -105,6 +110,7 @@ jobs:
           print("CONFIRMATION_JOIN_GUARD_CERTIFIED", guard["certified"])
           print("CONFIRMATION_JOIN_GUARD_CERTIFICATES", guard["certificates"])
           print("CONFIRMATION_JOIN_GUARD_UNKNOWN_REASONS", guard["unknown_reasons"])
+          print("CONFIRMATION_EXPLORATORY_PROJECT_PUSHDOWN", report["trace"]["exploratory_project_pushdown"])
           print("CONFIRMATION_SQLITE_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
           if report["executed_cases"] != 18 or report["worker_exit_code"] != 0:
               raise SystemExit("Confirmation cohort did not complete")

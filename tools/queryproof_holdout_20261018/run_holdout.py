@@ -103,6 +103,7 @@ def analyze_trace(path, known_rule_names):
     from run_orbit_trace import classify_events
     from equality_orbits import certify_predicate_event
     from join_prefilter_certificate import certify_inner_join_prefilter_event
+    from project_pushdown_certificate import certify_project_filter_event
 
     events, failures, instrumentation_failures = [], [], []
     for lineno, line in enumerate(Path(path).read_text(errors="replace").splitlines(), 1):
@@ -163,6 +164,35 @@ def analyze_trace(path, known_rule_names):
                 "sqlite_verified": result["sqlite_verified"]})
         else:
             guard_unknowns[result.get("reason", "UNKNOWN")] += 1
+    # New 2026-10-19 theorem: development-set replay only. Scores from the
+    # two already-examined cohorts must never be labelled pristine holdout.
+    exploratory_swaps = []
+    swap_unknowns = Counter()
+    project_entry_shapes = Counter()
+    for event in events:
+        if _rule_basename(event.get("rule")) == "PushDownPredicates":
+            for plan in (event.get("old", []), event.get("new", [])):
+                for node in plan:
+                    if node.get("class") == (
+                            "org.apache.spark.sql.catalyst.plans.logical.Project"):
+                        entries = node.get("projectList", [])
+                        if isinstance(entries, list):
+                            for item in entries:
+                                if isinstance(item, list) and item:
+                                    project_entry_shapes[
+                                        (len(item), _rule_basename(item[0].get("class")))] += 1
+        result = certify_project_filter_event(event)
+        if result["status"] == "EQUIVALENT_IN_FRAGMENT":
+            exploratory_swaps.append({
+                "case": event.get("case"),
+                "rule": _rule_basename(event.get("rule")),
+                "frame": result["frame"],
+                "rewritten_branches": result["rewritten_branches"],
+                "aliases_per_branch": result["aliases_per_branch"],
+                "orbits_checked_per_branch": result["orbits_checked_per_branch"],
+                "sqlite_verified": result["sqlite_verified"]})
+        else:
+            swap_unknowns[result.get("reason", "UNKNOWN")] += 1
     # Exactly the same checker is run for all events.  Prior rule names only
     # determine which already-investigated family is excluded when reporting.
     independent = [e for e in events
@@ -183,6 +213,14 @@ def analyze_trace(path, known_rule_names):
         "infer_filter_keysets": [
             {"keys": list(k), "count": v}
             for k, v in sorted(infer_filter_keysets.items())],
+        "exploratory_project_pushdown": {
+            "certified": len(exploratory_swaps),
+            "certificates": exploratory_swaps,
+            "unknown_reasons": dict(swap_unknowns),
+            "project_entry_shapes": [
+                {"nodes": key[0], "head": key[1], "count": count}
+                for key, count in sorted(project_entry_shapes.items())],
+            "holdout_status": "EXPLORATORY_ONLY_NOT_FROZEN_PRIMARY"},
         "exploratory_inner_join_guard": {
             "certified": len(prospective_guards),
             "certificates": prospective_guards,
