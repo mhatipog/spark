@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-structural-join-prefilter-confirmation-20261019",
+  "freeze_date_utc": "2026-10-19",
+  "freeze_status": "Frozen before first execution on instrumented Spark; candidate theorem developed against a distinct October 18 corpus",
+  "columns": [
+    "a",
+    "b",
+    "c"
+  ],
+  "column_type": "nullable integral (Spark IntegerType / SQLite INTEGER)",
+  "source_rows": {
+    "qp_l": [
+      [
+        null,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        null
+      ],
+      [
+        1,
+        null,
+        2
+      ],
+      [
+        -2,
+        3,
+        2
+      ],
+      [
+        4,
+        -1,
+        4
+      ],
+      [
+        null,
+        null,
+        null
+      ],
+      [
+        2,
+        2,
+        2
+      ],
+      [
+        0,
+        1,
+        null
+      ],
+      [
+        3,
+        3,
+        0
+      ],
+      [
+        -1,
+        4,
+        -2
+      ]
+    ],
+    "qp_r": [
+      [
+        null,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
+        null
+      ],
+      [
+        2,
+        2,
+        1
+      ],
+      [
+        -2,
+        3,
+        -2
+      ],
+      [
+        4,
+        null,
+        4
+      ],
+      [
+        null,
+        null,
+        null
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        -1,
+        3
+      ],
+      [
+        3,
+        1,
+        2
+      ],
+      [
+        1,
+        0,
+        null
+      ]
+    ]
+  },
+  "cases": [
+    {
+      "id": "S01",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner single equality",
+      "sql": "SELECT l.a, r.b FROM qp_l l INNER JOIN qp_r r ON l.a = r.b"
+    },
+    {
+      "id": "S02",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner cross-column equality",
+      "sql": "SELECT l.c, r.a FROM qp_l l INNER JOIN qp_r r ON l.c = r.a"
+    },
+    {
+      "id": "S03",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner alternative equality",
+      "sql": "SELECT l.b, r.c FROM qp_l l INNER JOIN qp_r r ON l.b = r.c"
+    },
+    {
+      "id": "S04",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner two-key equality",
+      "sql": "SELECT l.a, r.c FROM qp_l l INNER JOIN qp_r r ON (l.a = r.c) AND (l.b = r.b)"
+    },
+    {
+      "id": "S05",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner two-key other",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON (l.a = r.a) AND (l.c = r.c)"
+    },
+    {
+      "id": "S06",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner equality and left null guard",
+      "sql": "SELECT l.b, r.b FROM qp_l l INNER JOIN qp_r r ON (l.b = r.b) AND (l.a IS NOT NULL)"
+    },
+    {
+      "id": "S07",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner equality and right null guard",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON (l.a = r.a) AND (r.c IS NOT NULL)"
+    },
+    {
+      "id": "S08",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner double negation",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON NOT (NOT (l.a = r.a))"
+    },
+    {
+      "id": "S09",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner disjunction",
+      "sql": "SELECT l.c, r.c FROM qp_l l INNER JOIN qp_r r ON (l.c = r.c) OR (l.a = r.a)"
+    },
+    {
+      "id": "S10",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner nullness match",
+      "sql": "SELECT l.a, r.b FROM qp_l l INNER JOIN qp_r r ON (l.a IS NULL) AND (r.b IS NULL)"
+    },
+    {
+      "id": "S11",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner left guard and equality",
+      "sql": "SELECT l.a, r.b FROM qp_l l INNER JOIN qp_r r ON (l.a IS NOT NULL) AND (l.b = r.b)"
+    },
+    {
+      "id": "S12",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner disjunction and nullness",
+      "sql": "SELECT l.a, r.b FROM qp_l l INNER JOIN qp_r r ON ((l.a = r.a) OR (l.b = r.b)) AND (l.c IS NOT NULL)"
+    },
+    {
+      "id": "S13",
+      "consumer": "LeftOuterJoin",
+      "hypothesis": "left outer single equality",
+      "sql": "SELECT l.a, r.a FROM qp_l l LEFT OUTER JOIN qp_r r ON l.a = r.a"
+    },
+    {
+      "id": "S14",
+      "consumer": "LeftOuterJoin",
+      "hypothesis": "left outer equality with right guard",
+      "sql": "SELECT l.b, r.c FROM qp_l l LEFT OUTER JOIN qp_r r ON (l.b = r.c) AND (r.a IS NOT NULL)"
+    },
+    {
+      "id": "S15",
+      "consumer": "LeftOuterJoin",
+      "hypothesis": "left outer disjunction",
+      "sql": "SELECT l.c, r.b FROM qp_l l LEFT OUTER JOIN qp_r r ON (l.c = r.b) OR (l.a IS NULL)"
+    },
+    {
+      "id": "S16",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner disjunctive nullness",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON (l.a IS NULL) OR (r.a IS NULL)"
+    },
+    {
+      "id": "S17",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner conjunction of guards",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON (l.a IS NOT NULL) AND (r.a IS NOT NULL)"
+    },
+    {
+      "id": "S18",
+      "consumer": "InnerJoin",
+      "hypothesis": "inner three-key permutation",
+      "sql": "SELECT l.a, r.a FROM qp_l l INNER JOIN qp_r r ON (l.a = r.a) AND (l.b = r.c) AND (l.c = r.b)"
+    }
+  ]
+}
