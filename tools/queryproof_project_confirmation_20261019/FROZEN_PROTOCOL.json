@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-project-alias-pushdown-prospective-20261019",
+  "freeze_date_utc": "2026-10-19",
+  "status": "Prospective randomized family-stratified suite specified and saved before first Spark replay of these 18 new SQL strings/data.",
+  "frozen_verifier_commit": "4ce1921f8f8a643cb50c0eead67039e8914525d7",
+  "preregistered_primary": "Count of certificate successes for identity/passthrough/Alias-only Filter/Project commutation among every changed Spark 4.2 Catalyst RuleExecutor event in this cohort, with denominator total transitions and case/rule breakdown. No post-run verifier tuning.",
+  "preregistered_secondary": "Previously frozen predicate-only and redundant INNER JOIN side-guard certificates, with separate counts; Spark-vs-SQLite row-bag mismatches and malformed trace counters.",
+  "randomization": "Fixed 32-bit LCG seed 0x20261019, multiplier 1664525, increment 1013904223. Fixed strata: P01-P10 inner joins of two aliased derived tables; P11-P13 inner joins with one aliased derived table; P14-P15 direct derived-table filters; P16-P18 left outer join controls. Both table contents freshly generated with NULL/duplicate rows. Zero SQL selection based on verifier feedback.",
+  "eligibility": "Exact root Filter(Project(R))->Project(Filter(R)), or independently under unchanged exact root binary INNER JOIN; each Project expression must be direct integral AttributeReference or Alias(AttributeReference), Project metadata and input subtree remain unchanged, Filter fields/indices exact; aliased output IDs mapped to source IDs; exhaustive Bell(n+1) 3VL TRUE-set equivalence and independent SQLite verification; no arbitrary expressions, effects, or changed schemas.",
+  "known_technical_caveat": "An unchanged LEFT OUTER join is outside the INNER frame certificate, but a standalone root Filter/Project swap could occur inside any query and remain valid. Do not equate proof abstention with an optimizer bug.",
+  "rules_known_from_prior_round_excluded_from_primary": [
+    "OptimizeJoinCondition",
+    "RewritePredicateSubquery"
+  ],
+  "stop_rules": [
+    "Do not change manifest cases/source rows after first Spark execution.",
+    "Do not modify the project proof after reviewing this cohort and then market same results as untouched holdout.",
+    "Report every denominator and all UNKNOWN abstentions, including zero successes.",
+    "Keep this cohort separate from October 18 development and October 19 join confirmation."
+  ],
+  "limitations": [
+    "Family-stratified randomized templates test a selected niche; not external industrial SQL.",
+    "SQLite row oracle covers only the frozen concrete data fixture.",
+    "Certified proof is conditional on Catalyst valid resolved plans and exact serialized plan footprint; cannot certify arbitrary expression trees.",
+    "Raw serialized Catalyst ASTs are never published; only sanitized counts and shapes are retained."
+  ]
+}

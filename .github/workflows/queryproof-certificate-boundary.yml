@@ -12,6 +12,7 @@ on:
       - tools/queryproof_context_validator/test_project_pushdown.py
       - tools/queryproof_holdout_20261018/run_holdout.py
       - tools/queryproof_structural_confirmation_20261019/**
+      - tools/queryproof_project_confirmation_20261019/**
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
 permissions:
@@ -43,6 +44,7 @@ jobs:
             tools/queryproof_context_validator
             tools/queryproof_holdout_20261018
             tools/queryproof_structural_confirmation_20261019
+            tools/queryproof_project_confirmation_20261019
             tools/queryproof_instrumented
       - uses: actions/setup-java@v4
         with:
@@ -121,6 +123,37 @@ jobs:
           if any(x["case"] in {"S13", "S14", "S15"} for x in guard["certificates"]):
               raise SystemExit("Outer join incorrectly certified")
           '
+      - name: Replay preregistered 18-query randomized project-pushdown confirmation
+        run: python -u tools/queryproof_project_confirmation_20261019/run_prospective.py
+      - name: Check independently frozen project-pushdown scoreboard
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          path = Path("artifacts/queryproof_project_confirmation_20261019.json")
+          if not path.exists():
+              raise SystemExit("No prospective project scoreboard produced")
+          report = json.loads(path.read_text())
+          result = report["trace"]["exploratory_project_pushdown"]
+          print("PROJECT_CONFIRMATION_SPARK_VERSION", report["spark_version"])
+          print("PROJECT_CONFIRMATION_CASES", report["executed_cases"])
+          print("PROJECT_CONFIRMATION_EVENTS", report["trace"]["trace_events"])
+          print("PROJECT_CONFIRMATION_CERTIFIED", result["certified"])
+          print("PROJECT_CONFIRMATION_CERTIFICATES", result["certificates"])
+          print("PROJECT_CONFIRMATION_UNKNOWN_REASONS", result["unknown_reasons"])
+          print("PROJECT_CONFIRMATION_PROJECT_ITEM_SHAPES", result["project_entry_shapes"])
+          print("PROJECT_CONFIRMATION_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
+          if report["executed_cases"] != 18 or report["worker_exit_code"] != 0:
+              raise SystemExit("Prospective projection cohort incomplete")
+          if report["row_oracle_mismatch_cases"]:
+              raise SystemExit("Independent Spark/SQLite row-bag disagreement")
+          if report["trace"]["decode_failures"] or report["trace"]["instrumentation_failures"]:
+              raise SystemExit("Trace decoding/instrumentation failure")
+          if any(c["case"] in {"P16", "P17", "P18"} and
+                 c["frame"] == "unchanged_inner_join" for c in result["certificates"]):
+              raise SystemExit("Left-outer join was misidentified as exact inner join")
+          '
       - name: Archive sanitized scoreboard only
         if: always()
         uses: actions/upload-artifact@v4
@@ -129,5 +162,6 @@ jobs:
           path: |
             artifacts/queryproof_holdout_20261018.json
             artifacts/queryproof_structural_confirmation_20261019.json
+            artifacts/queryproof_project_confirmation_20261019.json
           if-no-files-found: warn
           retention-days: 14
