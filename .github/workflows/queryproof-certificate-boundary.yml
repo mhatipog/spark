@@ -74,6 +74,7 @@ jobs:
           for pattern, count in patterns.most_common(45):
               print("UNKNOWN_SHAPE", count, *pattern)
           print("EXPLORATORY_INNER_JOIN_GUARD", report["trace"]["exploratory_inner_join_guard"])
+          print("INFER_FILTER_METADATA_KEYS", report["trace"]["infer_filter_keysets"])
           print("ROW_ORACLE_MISMATCH_CASES", report["row_oracle_mismatch_cases"])
           if report["executed_cases"] != 18:
               raise SystemExit("Incomplete case execution")
