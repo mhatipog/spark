@@ -262,6 +262,33 @@ def safe_collapse_plan_shape(serialized):
     return compress(tree_from_preorder(serialized))
 
 
+
+def diagnose_column_pruning(private_trace_path):
+    """Structural triage only: no certificates or private values exported."""
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_instrumented"))
+    from rank_ast import decode
+
+    cases, named_count = [], 0
+    for line in private_trace_path.read_text(errors="replace").splitlines():
+        if not line.startswith("QUERYPROOF_AST\t"):
+            continue
+        event = decode(line)
+        if _rule_basename(event.get("rule")) != "ColumnPruning":
+            continue
+        named_count += 1
+        if len(cases) < 20:
+            cases.append({
+                "case": event.get("case"),
+                "old_shape": safe_collapse_plan_shape(event["old"]),
+                "new_shape": safe_collapse_plan_shape(event["new"]),
+            })
+    return {"status": "RETROSPECTIVE_STRUCTURE_ONLY_NO_PROOF",
+            "named_events": named_count,
+            "redacted_event_shapes": cases,
+            "truncated": named_count > len(cases)}
+
+
 def retrospective_project_collapse(private_trace_path):
     """New theorem on previously seen SQL: development evidence ONLY."""
     sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
@@ -324,6 +351,7 @@ def retrospective_aggregate_identity(private_trace_path):
         if proof["status"] == "EQUIVALENT_IN_FRAGMENT":
             results.append({"case": event.get("case"),
                             "aggregate_frames": proof["aggregate_frames"],
+                            "sort_frames": proof.get("sort_frames", 0),
                             "forwarded_columns": proof["forwarded_columns"]})
         else:
             reasons[proof.get("reason", "UNKNOWN")] += 1
@@ -357,6 +385,7 @@ def parent():
         contextual = retrospective_contextual_guard(raw_stderr)
         collapsed = retrospective_project_collapse(raw_stderr)
         aggregate_identity = retrospective_aggregate_identity(raw_stderr)
+        pruning_diagnostic = diagnose_column_pruning(raw_stderr)
         if protocol.get("prospective_aggregate_identity"):
             pin_path = MANIFEST.parent / "VERIFIER_PIN.json"
             if pin_path.exists():
@@ -414,6 +443,7 @@ def parent():
         "posthoc_contextual_guard": contextual,
         "posthoc_collapse_project": collapsed,
         "posthoc_aggregate_identity": aggregate_identity,
+        "column_pruning_diagnostic": pruning_diagnostic,
         "trace": scored,
         "limitations": [
             "Independent of QueryProof development cases, but sourced from Spark's port "
