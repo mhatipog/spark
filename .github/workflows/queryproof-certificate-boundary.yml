@@ -23,3 +23,58 @@ jobs:
           python-version: '3.11'
       - name: Verify exact orbit certificates and reject malformed traces
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_equality_orbits.py' -v
+  frozen-catalyst-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official released PySpark
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument disposable Catalyst wheel
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Replay unchanged frozen Filter and INNER JOIN corpus
+        run: python -u tools/queryproof_holdout_20261018/run_holdout.py
+      - name: Check sanitized certificate scoreboard
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          path = Path("artifacts/queryproof_holdout_20261018.json")
+          if not path.exists():
+              raise SystemExit("No sanitized scoreboard produced")
+          report = json.loads(path.read_text())
+          statuses = report["trace"]["all_events"]["statuses"]
+          print("SPARK_VERSION", report["spark_version"])
+          print("EXECUTED_CASES", report["executed_cases"])
+          print("TRACE_EVENTS", report["trace"]["trace_events"])
+          print("ALL_STATUSES", statuses)
+          print("UNKNOWN_REASONS", report["trace"]["all_events"]["unknown_reasons"])
+          print("ROW_ORACLE_MISMATCH_CASES", report["row_oracle_mismatch_cases"])
+          if report["executed_cases"] != 18:
+              raise SystemExit("Incomplete case execution")
+          if report["row_oracle_mismatch_cases"]:
+              raise SystemExit("Independent SQLite row oracle disagreement")
+          if report["trace"]["decode_failures"] or report["trace"]["instrumentation_failures"]:
+              raise SystemExit("Trace integrity failure")
+          '
+      - name: Archive sanitized scoreboard only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-hardened-catalyst-holdout-4.2
+          path: artifacts/queryproof_holdout_20261018.json
+          if-no-files-found: warn
+          retention-days: 14
