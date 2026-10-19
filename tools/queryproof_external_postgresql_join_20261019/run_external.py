@@ -232,6 +232,27 @@ def retrospective_contextual_guard(private_trace_path):
 
 
 
+def safe_collapse_plan_shape(serialized):
+    """Only operator names and expression *class* shapes; never SQL/data values."""
+    from join_prefilter_certificate import tree_from_preorder
+
+    def compress(tree):
+        node, children = tree
+        name = str(node.get("class", "")).split(".")[-1]
+        result = {"node": name}
+        if name == "Project":
+            expressions = []
+            for item in node.get("projectList", []):
+                expressions.append([
+                    str(expression.get("class", "")).split(".")[-1]
+                    for expression in item if isinstance(expression, dict)])
+            result["project_classes"] = expressions
+        result["children"] = [compress(child) for child in children]
+        return result
+
+    return compress(tree_from_preorder(serialized))
+
+
 def retrospective_project_collapse(private_trace_path):
     """New theorem on previously seen SQL: development evidence ONLY."""
     sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
@@ -239,7 +260,7 @@ def retrospective_project_collapse(private_trace_path):
     from rank_ast import decode
     from collapse_project_certificate import certify_collapse_project_event
 
-    accepted, reasons, observed = [], Counter(), Counter()
+    accepted, reasons, observed, abstained_shapes = [], Counter(), Counter(), []
     for line in private_trace_path.read_text(errors="replace").splitlines():
         if not line.startswith("QUERYPROOF_AST\t"):
             continue
@@ -259,12 +280,18 @@ def retrospective_project_collapse(private_trace_path):
                 "literal_outputs": verdict["literal_outputs"]})
         else:
             reasons[verdict.get("reason", "UNKNOWN")] += 1
+            abstained_shapes.append({
+                "case": event.get("case"),
+                "old_shape": safe_collapse_plan_shape(event["old"]),
+                "new_shape": safe_collapse_plan_shape(event["new"]),
+                "reason": verdict.get("reason", "UNKNOWN")})
     return {
         "status": "RETROSPECTIVE_DEVELOPMENT_ONLY_NO_NEW_HOLDOUT_CREDIT",
         "named_collapse_events": sum(observed.values()),
         "certified": len(accepted),
         "certificates": accepted,
-        "unknown_reasons": dict(reasons)}
+        "unknown_reasons": dict(reasons),
+        "abstained_shapes": abstained_shapes}
 
 def parent():
     manifest_bytes = MANIFEST.read_bytes()
