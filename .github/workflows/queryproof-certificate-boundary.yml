@@ -310,6 +310,8 @@ jobs:
                     if row["rule"] in ("InferFiltersFromConstraints", "CollapseProject", "PushDownPredicates")]
           for row in sorted(shapes, key=lambda r: (-r["count"], r["rule"]))[:55]:
               print("EXTERNAL_UNKNOWN_SHAPE", row["count"], row["rule"], row["reason"], row["old_shape"], row["new_shape"])
+          for row in report["sanitized_plan_key_inventory"][:60]:
+              print("EXTERNAL_PLAN_KEYS", row)
           print("EXTERNAL_COUNTEREXAMPLE_EVENTS", coverage["counterexample_events"])
           print("EXTERNAL_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
           print("EXTERNAL_ERROR_CASES", report["error_cases"])

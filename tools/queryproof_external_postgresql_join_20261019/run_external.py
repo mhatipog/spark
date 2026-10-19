@@ -157,6 +157,49 @@ def union_coverage(private_trace_path):
     }
 
 
+def plan_key_diagnostics(private_trace_path):
+    """Metadata keys/op classes only; never serialize full expressions or values."""
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_instrumented"))
+    from rank_ast import decode
+    from collections import Counter
+    signatures = Counter()
+    for line in private_trace_path.read_text(errors="replace").splitlines():
+        if not line.startswith("QUERYPROOF_AST\t"):
+            continue
+        event = decode(line)
+        rule = _rule_basename(event.get("rule"))
+        if rule not in ("InferFiltersFromConstraints", "CollapseProject",
+                        "PushDownPredicates"):
+            continue
+        for tag in ("old", "new"):
+            for node in event.get(tag, []):
+                cls = str(node.get("class", "")).split(".")[-1]
+                attrs = tuple(sorted(node.keys()))
+                if cls == "Project":
+                    shapes = []
+                    for item in node.get("projectList", []):
+                        if isinstance(item, list):
+                            shapes.append(tuple(
+                                str(x.get("class", "")).split(".")[-1]
+                                for x in item if isinstance(x, dict)))
+                    signature = ("Project", tuple(sorted(Counter(shapes).items())))
+                elif node.get("num-children") == 0:
+                    output = node.get("output", None)
+                    shape = (type(output).__name__,
+                             len(output) if isinstance(output, list) else None,
+                             tuple(type(x).__name__ for x in output[:3])
+                             if isinstance(output, list) else ())
+                    signature = ("Leaf", shape)
+                else:
+                    continue
+                signatures[(rule, tag, cls, attrs, signature)] += 1
+    return [
+        {"rule": k[0], "side": k[1], "class": k[2],
+         "keys": list(k[3]), "signature": str(k[4]), "count": v}
+        for k, v in sorted(signatures.items(), key=lambda row: (-row[1], row[0]))
+    ]
+
+
 def parent():
     manifest_bytes = MANIFEST.read_bytes()
     protocol_bytes = PROTOCOL.read_bytes()
@@ -176,6 +219,7 @@ def parent():
         cases_observed = json.loads(child_report.read_text()) if child_report.exists() else {}
         scored = analyze_trace(raw_stderr, set())
         coverage = union_coverage(raw_stderr)
+        key_signatures = plan_key_diagnostics(raw_stderr)
     observations = cases_observed.get("cases", {})
     missing = sorted(set(c["id"] for c in manifest["cases"]) - set(observations))
     failed = sorted(k for k, v in observations.items() if v["status"] != "EXECUTED")
@@ -197,6 +241,7 @@ def parent():
         "row_oracle_mismatch_cases": mismatches,
         "cases": observations,
         "union_coverage": coverage,
+        "sanitized_plan_key_inventory": key_signatures,
         "trace": scored,
         "limitations": [
             "Independent of QueryProof development cases, but sourced from Spark's port "
