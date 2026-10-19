@@ -15,6 +15,7 @@ on:
       - tools/queryproof_holdout_20261018/run_holdout.py
       - tools/queryproof_structural_confirmation_20261019/**
       - tools/queryproof_project_confirmation_20261019/**
+      - tools/queryproof_compositional_confirmation_20261019/**
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
 permissions:
@@ -49,6 +50,7 @@ jobs:
             tools/queryproof_holdout_20261018
             tools/queryproof_structural_confirmation_20261019
             tools/queryproof_project_confirmation_20261019
+            tools/queryproof_compositional_confirmation_20261019
             tools/queryproof_instrumented
       - uses: actions/setup-java@v4
         with:
@@ -168,6 +170,39 @@ jobs:
                  c["frame"] == "unchanged_inner_join" for c in result["certificates"]):
               raise SystemExit("Left-outer join was misidentified as exact inner join")
           '
+      - name: Replay prospectively frozen 18-query compositional frame confirmation
+        run: python -u tools/queryproof_compositional_confirmation_20261019/run_prospective.py
+      - name: Check fresh compositional certificate scoreboard
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          path = Path("artifacts/queryproof_compositional_confirmation_20261019.json")
+          if not path.exists():
+              raise SystemExit("No fresh compositional scoreboard")
+          report = json.loads(path.read_text())
+          frames = report["trace"]["exploratory_compositional_frames"]
+          print("FRAME_CONFIRMATION_SPARK", report["spark_version"])
+          print("FRAME_CONFIRMATION_CASES", report["executed_cases"])
+          print("FRAME_CONFIRMATION_EVENTS", report["trace"]["trace_events"])
+          print("FRAME_CONFIRMATION_CERTIFIED", frames["certified"])
+          print("FRAME_CONFIRMATION_CERTIFICATES", frames["certificates"])
+          print("FRAME_CONFIRMATION_UNKNOWN_REASONS", frames["unknown_reasons"])
+          print("FRAME_CONFIRMATION_PROJECT_PUSHES", report["trace"]["exploratory_project_pushdown"]["certified"])
+          print("FRAME_CONFIRMATION_JOIN_GUARDS", report["trace"]["exploratory_inner_join_guard"]["certified"])
+          print("FRAME_CONFIRMATION_ORACLE_MISMATCHES", report["row_oracle_mismatch_cases"])
+          if report["executed_cases"] != 18 or report["worker_exit_code"] != 0:
+              raise SystemExit("Incomplete compositional confirmation")
+          if report["row_oracle_mismatch_cases"]:
+              raise SystemExit("Independent Spark/SQLite row-bag mismatch")
+          if report["trace"]["decode_failures"] or report["trace"]["instrumentation_failures"]:
+              raise SystemExit("Instrumentation or trace decode failure")
+          if any(x["case"] in {"C17", "C18"} and
+                 x["core"] == "inner_join_implied_filter_insertion"
+                 for x in frames["certificates"]):
+              raise SystemExit("Outer join incorrectly treated as inner")
+          '
       - name: Archive sanitized scoreboard only
         if: always()
         uses: actions/upload-artifact@v4
@@ -177,5 +212,6 @@ jobs:
             artifacts/queryproof_holdout_20261018.json
             artifacts/queryproof_structural_confirmation_20261019.json
             artifacts/queryproof_project_confirmation_20261019.json
+            artifacts/queryproof_compositional_confirmation_20261019.json
           if-no-files-found: warn
           retention-days: 14
