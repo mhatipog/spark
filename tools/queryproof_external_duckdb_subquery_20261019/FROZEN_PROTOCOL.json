@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-duckdb-subquery-out-of-design-20261019",
+  "status": "New independent third-party source-case cohort frozen after the earlier projection suite exposed Spark-VARCHAR dialect incompatibility, before first replay of these 18 SQL queries. Original checker from commit 9d0e65a remains unchanged.",
+  "freeze_date_utc": "2026-10-19",
+  "frozen_verifier_commit": "9d0e65a079cd99a6067256030baa96639d26a76e",
+  "source_commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+  "prospective_collapse_project": true,
+  "primary": "Count exactly certified named CollapseProject transitions on every actual logged optimizer event in 18 preselected DuckDB subquery tests; allow zero coverage; never treat prior partially failed projection suite as successful independent confirmation.",
+  "secondary": [
+    "Spark 4.2 versus SQLite cross-engine row-bag equality on all 18 cases",
+    "Validate trace integrity including missing/invalid events",
+    "Track per-case exact certificates, proof abstentions and alias/literal scope",
+    "Keep original five-rule union and contextual join guard coverage separate"
+  ],
+  "source_selection": "Original DuckDB source at commit 0b272c23: table/test_table_subquery [1..6], table/test_aliasing [1..2], table/test_unnamed_subquery [1..4] (later implicit DuckDB alias conventions and nested FROM FROM excluded), table/test_subquery_union [1], scalar/test_uncorrelated_scalar_subquery [1..5]. All bodies verbatim, no query editing.",
+  "fixture": "CREATE/INSERT data from respective DuckDB sqllogictests: test(i,j) rows (3,4),(4,5),(5,6); a(i) row 42; integers(i) 1,2,3,NULL.",
+  "falsification": [
+    "No case replacement after first SQL execution",
+    "Incomplete 18-query execution is a failed cohort; no partial-success promotion",
+    "UNKNOWN remains abstention, never automatically bug",
+    "Source-selected based on syntax portability and subquery workload, not measured checker success",
+    "Any Spark/SQLite mismatch or invalid trace fails CI",
+    "No upstream PR from proof experiment"
+  ],
+  "limitations": [
+    "Subqueries and table projections are purposefully oversampled, not production workload frequency",
+    "Fixed finite rows only check actual execution; symbolic certificates handle only pure attribute/literal expressions",
+    "Prior failed projection suite remains separately documented and excluded from clean confirmation totals"
+  ]
+}

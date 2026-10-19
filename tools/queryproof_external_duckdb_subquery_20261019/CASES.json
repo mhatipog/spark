@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-duckdb-subquery-out-of-design-20261019",
+  "source": {
+    "repository": "duckdb/duckdb",
+    "commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+    "paths": [
+      "test/sql/subquery/table/test_table_subquery.test",
+      "test/sql/subquery/table/test_aliasing.test",
+      "test/sql/subquery/table/test_unnamed_subquery.test",
+      "test/sql/subquery/table/test_subquery_union.test",
+      "test/sql/subquery/scalar/test_uncorrelated_scalar_subquery.test"
+    ],
+    "selection": "Fixed file order: all six query blocks of table/test_table_subquery.test, both test_aliasing.test, first four of test_unnamed_subquery.test (exclude DuckDB-specific implicit unnamed_subquery aliases and FROM(FROM...) syntax), first of test_subquery_union.test, and first five of scalar/test_uncorrelated_scalar_subquery.test (exclude source SET statements and dialect-dependent scalar multirow settings). All 18 SELECT bodies verbatim; tables reproduce INSERT data. This cohort was frozen after a separate projection cohort failed due CAST AS VARCHAR dialect incompatibility, and is a new source/case set.",
+    "selected_counts": [
+      6,
+      2,
+      4,
+      1,
+      5
+    ],
+    "no_checker_driven_query_rewrites": true
+  },
+  "tables": {
+    "test": {
+      "columns": [
+        {
+          "name": "i",
+          "type": "integer"
+        },
+        {
+          "name": "j",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    "a": {
+      "columns": [
+        {
+          "name": "i",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          42
+        ]
+      ]
+    },
+    "integers": {
+      "columns": [
+        {
+          "name": "i",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          3
+        ],
+        [
+          null
+        ]
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "S01",
+      "sql": "SELECT * FROM (SELECT i, j AS d FROM test ORDER BY i) AS b;",
+      "source_file": "test/sql/subquery/table/test_table_subquery.test",
+      "source_query_ordinal": 1
+    },
+    {
+      "id": "S02",
+      "sql": "SELECT b.d FROM (SELECT i * 2 + j AS d FROM test) AS b;",
+      "source_file": "test/sql/subquery/table/test_table_subquery.test",
+      "source_query_ordinal": 2
+    },
+    {
+      "id": "S03",
+      "sql": "SELECT a.i,a.j,b.r,b.j FROM (SELECT i, j FROM test) AS a INNER JOIN (SELECT i+1 AS r,j FROM test) AS b ON a.i=b.r ORDER BY 1;",
+      "source_file": "test/sql/subquery/table/test_table_subquery.test",
+      "source_query_ordinal": 3
+    },
+    {
+      "id": "S04",
+      "sql": "SELECT * FROM (SELECT i, j FROM test) AS a, (SELECT i+1 AS r,j FROM test) AS b, test WHERE a.i=b.r AND test.j=a.i ORDER BY 1;",
+      "source_file": "test/sql/subquery/table/test_table_subquery.test",
+      "source_query_ordinal": 4
+    },
+    {
+      "id": "S05",
+      "sql": "select sum(x) from (select i as x from test group by i) sq;",
+      "source_file": "test/sql/subquery/table/test_table_subquery.test",
+      "source_query_ordinal": 5
+    },
+    {
+      "id": "S06",
+      "sql": "select sum(x) from (select i+1 as x from test group by x) sq;",
+      "source_file": "test/sql/subquery/table/test_table_subquery.test",
+      "source_query_ordinal": 6
+    },
+    {
+      "id": "S07",
+      "sql": "select * from (select i as j from a group by j) sq1 where j = 42",
+      "source_file": "test/sql/subquery/table/test_aliasing.test",
+      "source_query_ordinal": 1
+    },
+    {
+      "id": "S08",
+      "sql": "select * from (select i as j from a group by i) sq1 where j = 42",
+      "source_file": "test/sql/subquery/table/test_aliasing.test",
+      "source_query_ordinal": 2
+    },
+    {
+      "id": "S09",
+      "sql": "SELECT a FROM (SELECT 42 a)",
+      "source_file": "test/sql/subquery/table/test_unnamed_subquery.test",
+      "source_query_ordinal": 1
+    },
+    {
+      "id": "S10",
+      "sql": "SELECT * FROM (SELECT 42 a), (SELECT 43 b)",
+      "source_file": "test/sql/subquery/table/test_unnamed_subquery.test",
+      "source_query_ordinal": 2
+    },
+    {
+      "id": "S11",
+      "sql": "SELECT * FROM (VALUES (42, 43))",
+      "source_file": "test/sql/subquery/table/test_unnamed_subquery.test",
+      "source_query_ordinal": 3
+    },
+    {
+      "id": "S12",
+      "sql": "SELECT * FROM (SELECT 42 a), (SELECT 43 b), (SELECT 44 c), (SELECT 45 d)",
+      "source_file": "test/sql/subquery/table/test_unnamed_subquery.test",
+      "source_query_ordinal": 4
+    },
+    {
+      "id": "S13",
+      "sql": "select * from (select 42) sq1 union all select * from (select 43) sq2;",
+      "source_file": "test/sql/subquery/table/test_subquery_union.test",
+      "source_query_ordinal": 1
+    },
+    {
+      "id": "S14",
+      "sql": "SELECT * FROM integers WHERE i=(SELECT 1)",
+      "source_file": "test/sql/subquery/scalar/test_uncorrelated_scalar_subquery.test",
+      "source_query_ordinal": 1
+    },
+    {
+      "id": "S15",
+      "sql": "SELECT * FROM integers WHERE i=(SELECT SUM(1))",
+      "source_file": "test/sql/subquery/scalar/test_uncorrelated_scalar_subquery.test",
+      "source_query_ordinal": 2
+    },
+    {
+      "id": "S16",
+      "sql": "SELECT * FROM integers WHERE i=(SELECT MIN(i) FROM integers)",
+      "source_file": "test/sql/subquery/scalar/test_uncorrelated_scalar_subquery.test",
+      "source_query_ordinal": 3
+    },
+    {
+      "id": "S17",
+      "sql": "SELECT * FROM integers WHERE i=(SELECT MAX(i) FROM integers)",
+      "source_file": "test/sql/subquery/scalar/test_uncorrelated_scalar_subquery.test",
+      "source_query_ordinal": 4
+    },
+    {
+      "id": "S18",
+      "sql": "SELECT *, (SELECT MAX(i) FROM integers) FROM integers ORDER BY i",
+      "source_file": "test/sql/subquery/scalar/test_uncorrelated_scalar_subquery.test",
+      "source_query_ordinal": 5
+    }
+  ]
+}
