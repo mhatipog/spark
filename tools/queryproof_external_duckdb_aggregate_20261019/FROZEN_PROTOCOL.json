@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-duckdb-aggregate-context-independent-20261019",
+  "status": "Independent DuckDB-authored aggregate SQL corpus, exact 18 source ordinals and original fixture rows frozen after new aggregate-identity checker landed, before first run of this selected corpus.",
+  "freeze_date_utc": "2026-10-19",
+  "frozen_verifier_commit": "14f37529ea38dbc12dfd62c39dd9e9328f16f6a4",
+  "source_commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+  "prospective_aggregate_identity": true,
+  "primary": "Of all named CollapseProject optimizer transitions from 18 externally authored group-by/aggregate queries, count exact identity-projection removal certificates under unchanged pure integral aggregates, with no minimum target.",
+  "secondary": [
+    "All 18 SQL queries must execute and match SQLite row bags; any error fails",
+    "Preserve original five-checker union, contextual guard and earlier CollapseProject scores separately",
+    "Report full named-rule denominator and all new theorem abstentions",
+    "No raw AST or SQL literal values in the published scoreboard"
+  ],
+  "source_selection": "DuckDB SQLLogicTests commit 0b272c: test_group_by.test initial INSERT state [query blocks 1..11]; test_group_by_alias.test [1,2,3,5,6,8], excluding explicit same-name ambiguity, ORDER BY ALL and FIRST(); test_group_by_null_length.test [1], initial INSERT state. SQL bodies verbatim, all fixtures reproduced. Fixed for syntax portability and aggregate relevance before any optimizer capture.",
+  "fixture": "test(a,b) rows (11,22),(13,22),(12,21); integers(i) rows (1),(2),(3),(NULL); t0(c0) row (1).",
+  "falsification": [
+    "Run all source cases, no post-hoc selection or rewrite",
+    "Zero certificates is a valid outcome; UNKNOWN is not optimizer bug",
+    "Any failed case, row mismatch or trace failure fails the cohort",
+    "A later change in verifier makes this cohort retrospective for that changed theorem",
+    "Source is deliberately aggregate-focused, not random enterprise workload",
+    "No upstream PR until soundness and generality establish practical impact"
+  ],
+  "limitations": [
+    "Fixed small database samples, not runtime correctness proof for full Spark",
+    "Only logical bag equivalence for specified pure aggregate grammar, not physical ordering or UDF execution",
+    "Aggregate-rich source selection oversamples relevant rewrite structures"
+  ]
+}

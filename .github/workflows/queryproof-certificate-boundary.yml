@@ -30,6 +30,7 @@ on:
       - tools/queryproof_external_duckdb_adversarial_20261019/**
       - tools/queryproof_external_duckdb_projection_20261019/**
       - tools/queryproof_external_duckdb_subquery_20261019/**
+      - tools/queryproof_external_duckdb_aggregate_20261019/**
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
 permissions:
@@ -289,6 +290,7 @@ jobs:
             tools/queryproof_external_duckdb_join_20261019
             tools/queryproof_external_duckdb_adversarial_20261019
             tools/queryproof_external_duckdb_subquery_20261019
+            tools/queryproof_external_duckdb_aggregate_20261019
             tools/queryproof_instrumented
       - uses: actions/setup-java@v4
         with:
@@ -444,6 +446,36 @@ jobs:
           if r["trace"]["trace_events"] <= 0:
               raise SystemExit("No optimizer events")
           '
+      - name: Run first clean frozen third-party aggregate identity holdout
+        run: python -u tools/queryproof_external_duckdb_aggregate_20261019/run_aggregate.py
+      - name: Assert complete independent aggregate theorem experiment
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          path = Path("artifacts/queryproof_duckdb_aggregate_20261019.json")
+          if not path.exists():
+              raise SystemExit("Missing newly frozen aggregate sample")
+          r = json.loads(path.read_text())
+          proof = r["posthoc_aggregate_identity"]
+          print("AGGREGATE_HOLDOUT_CASES", r["executed_cases"])
+          print("AGGREGATE_HOLDOUT_EVENTS", r["trace"]["trace_events"])
+          print("AGGREGATE_HOLDOUT_PROOF", proof)
+          print("AGGREGATE_HOLDOUT_BY_RULE", r["union_coverage"]["by_rule"])
+          print("AGGREGATE_HOLDOUT_MISMATCHES", r["row_oracle_mismatch_cases"])
+          print("AGGREGATE_HOLDOUT_ERRORS", r["error_cases"])
+          if proof["status"] != "PROSPECTIVE_FROZEN_THIRD_PARTY_AGGREGATE_COHORT":
+              raise SystemExit("Prospective aggregate protocol status absent")
+          if r["worker_exit_code"] != 0 or r["executed_cases"] != 18:
+              raise SystemExit("Incomplete new aggregate source sample")
+          if r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("Aggregate sample error or cross-engine mismatch")
+          if r["trace"]["decode_failures"] or r["trace"]["instrumentation_failures"]:
+              raise SystemExit("Incomplete Catalyst aggregate trace")
+          if r["trace"]["trace_events"] < 1:
+              raise SystemExit("Zero logged aggregate optimizer events")
+          '
       - name: Archive independent cohort sanitized scoreboard only
         if: always()
         uses: actions/upload-artifact@v4
@@ -454,5 +486,6 @@ jobs:
             artifacts/queryproof_duckdb_join_prospective_20261019.json
             artifacts/queryproof_duckdb_adversarial_20261019.json
             artifacts/queryproof_duckdb_subquery_20261019.json
+            artifacts/queryproof_duckdb_aggregate_20261019.json
           if-no-files-found: warn
           retention-days: 14

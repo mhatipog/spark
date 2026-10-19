@@ -357,6 +357,8 @@ def parent():
         contextual = retrospective_contextual_guard(raw_stderr)
         collapsed = retrospective_project_collapse(raw_stderr)
         aggregate_identity = retrospective_aggregate_identity(raw_stderr)
+        if protocol.get("prospective_aggregate_identity"):
+            aggregate_identity["status"] = "PROSPECTIVE_FROZEN_THIRD_PARTY_AGGREGATE_COHORT"
         if protocol.get("prospective_collapse_project"):
             collapsed["status"] = "PROSPECTIVE_FROZEN_THIRD_PARTY_COHORT"
         if protocol.get("prospective_contextual_guard"):

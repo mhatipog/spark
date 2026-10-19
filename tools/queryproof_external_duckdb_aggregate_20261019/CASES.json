@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-duckdb-aggregate-context-independent-20261019",
+  "source": {
+    "repository": "duckdb/duckdb",
+    "commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+    "paths": [
+      "test/sql/aggregate/group/test_group_by.test",
+      "test/sql/aggregate/group/test_group_by_alias.test",
+      "test/sql/aggregate/group/test_group_by_null_length.test"
+    ],
+    "selection": "Exactly the first eleven SELECT query blocks of test_group_by.test while source test table has first 3 rows; alias test query ordinals [1,2,3,5,6,8] excluding deliberately ambiguous same-name alias (4), nonportable ORDER BY ALL (7), and FIRST() (9); and first SELECT of test_group_by_null_length.test. All SQL bodies verbatim and fixture states reproduced. Selected for cross-engine syntax compatibility and aggregate context, not observed theorem success.",
+    "selected_counts": [
+      11,
+      6,
+      1
+    ],
+    "no_checker_driven_query_rewrites": true
+  },
+  "tables": {
+    "test": {
+      "columns": [
+        {
+          "name": "a",
+          "type": "integer"
+        },
+        {
+          "name": "b",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          11,
+          22
+        ],
+        [
+          13,
+          22
+        ],
+        [
+          12,
+          21
+        ]
+      ]
+    },
+    "integers": {
+      "columns": [
+        {
+          "name": "i",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          3
+        ],
+        [
+          null
+        ]
+      ]
+    },
+    "t0": {
+      "columns": [
+        {
+          "name": "c0",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          1
+        ]
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "G01",
+      "sql": "SELECT SUM(a), COUNT(*), AVG(a) FROM test;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 1
+    },
+    {
+      "id": "G02",
+      "sql": "SELECT COUNT(*) FROM test;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 2
+    },
+    {
+      "id": "G03",
+      "sql": "SELECT SUM(a), COUNT(*) FROM test WHERE a = 11;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 3
+    },
+    {
+      "id": "G04",
+      "sql": "SELECT SUM(a), SUM(b), SUM(a) + SUM (b) FROM test;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 4
+    },
+    {
+      "id": "G05",
+      "sql": "SELECT SUM(a+2), SUM(a) + 2 * COUNT(*) FROM test;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 5
+    },
+    {
+      "id": "G06",
+      "sql": "SELECT b, SUM(a), SUM(a+2), AVG(a) FROM test GROUP BY b ORDER BY b;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 6
+    },
+    {
+      "id": "G07",
+      "sql": "SELECT b, SUM(a) FROM test GROUP BY b ORDER BY COUNT(a);",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 7
+    },
+    {
+      "id": "G08",
+      "sql": "SELECT b, SUM(a) FROM test GROUP BY b ORDER BY COUNT(a) DESC;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 8
+    },
+    {
+      "id": "G09",
+      "sql": "SELECT b, SUM(a), COUNT(*), SUM(a+2) FROM test GROUP BY b ORDER BY b;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 9
+    },
+    {
+      "id": "G10",
+      "sql": "SELECT b % 2 AS f, SUM(a) FROM test GROUP BY f ORDER BY f;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 10
+    },
+    {
+      "id": "G11",
+      "sql": "SELECT b, SUM(a), COUNT(*), SUM(a+2) FROM test WHERE a <= 12 GROUP BY b ORDER BY b;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 11
+    },
+    {
+      "id": "G12",
+      "sql": "SELECT i % 2 AS k, SUM(i) FROM integers WHERE i IS NOT NULL GROUP BY k HAVING k>0;",
+      "source_file": "test/sql/aggregate/group/test_group_by_alias.test",
+      "source_query_ordinal": 1
+    },
+    {
+      "id": "G13",
+      "sql": "SELECT i % 2 AS k, SUM(i) FROM integers WHERE i IS NOT NULL GROUP BY k HAVING i%2>0;",
+      "source_file": "test/sql/aggregate/group/test_group_by_alias.test",
+      "source_query_ordinal": 2
+    },
+    {
+      "id": "G14",
+      "sql": "SELECT i % 2 AS k, SUM(i) FROM integers WHERE i IS NOT NULL GROUP BY 1 HAVING i%2>0;",
+      "source_file": "test/sql/aggregate/group/test_group_by_alias.test",
+      "source_query_ordinal": 3
+    },
+    {
+      "id": "G15",
+      "sql": "SELECT i, i % 2 AS k, SUM(i) FROM integers GROUP BY i ORDER BY k, 3;",
+      "source_file": "test/sql/aggregate/group/test_group_by_alias.test",
+      "source_query_ordinal": 5
+    },
+    {
+      "id": "G16",
+      "sql": "SELECT i, i % 2 AS k, SUM(i) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "test/sql/aggregate/group/test_group_by_alias.test",
+      "source_query_ordinal": 6
+    },
+    {
+      "id": "G17",
+      "sql": "SELECT i, SUM(i) FROM integers GROUP BY i ORDER BY i",
+      "source_file": "test/sql/aggregate/group/test_group_by_alias.test",
+      "source_query_ordinal": 8
+    },
+    {
+      "id": "G18",
+      "sql": "SELECT LENGTH(NULL) FROM t0 GROUP BY NULL;",
+      "source_file": "test/sql/aggregate/group/test_group_by_null_length.test",
+      "source_query_ordinal": 1
+    }
+  ]
+}
