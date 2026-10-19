@@ -105,6 +105,7 @@ def analyze_trace(path, known_rule_names):
     from join_prefilter_certificate import certify_inner_join_prefilter_event
     from project_pushdown_certificate import certify_project_filter_event
     from compositional_project_frame_certificate import certify_pure_project_framed_event
+    from join_filter_transport_certificate import certify_inner_join_filter_transport
 
     events, failures, instrumentation_failures = [], [], []
     for lineno, line in enumerate(Path(path).read_text(errors="replace").splitlines(), 1):
@@ -209,6 +210,20 @@ def analyze_trace(path, known_rule_names):
                 "sqlite_verified": result["sqlite_verified"]})
         else:
             frame_unknowns[result.get("reason", "UNKNOWN")] += 1
+    join_transport_certificates = []
+    join_transport_unknowns = Counter()
+    for event in events:
+        result = certify_inner_join_filter_transport(event)
+        if result["status"] == "EQUIVALENT_IN_FRAGMENT":
+            join_transport_certificates.append({
+                "case": event.get("case"),
+                "rule": _rule_basename(event.get("rule")),
+                "side_guards": result["side_guards"],
+                "input_attributes": result["input_attributes"],
+                "orbits_checked": result["orbits_checked"],
+                "sqlite_verified": result["sqlite_verified"]})
+        else:
+            join_transport_unknowns[result.get("reason", "UNKNOWN")] += 1
     # Exactly the same checker is run for all events.  Prior rule names only
     # determine which already-investigated family is excluded when reporting.
     independent = [e for e in events
@@ -229,6 +244,11 @@ def analyze_trace(path, known_rule_names):
         "infer_filter_keysets": [
             {"keys": list(k), "count": v}
             for k, v in sorted(infer_filter_keysets.items())],
+        "exploratory_join_filter_transport": {
+            "certified": len(join_transport_certificates),
+            "certificates": join_transport_certificates,
+            "unknown_reasons": dict(join_transport_unknowns),
+            "holdout_status": "RETROSPECTIVE_EXPLORATORY_ONLY"},
         "exploratory_compositional_frames": {
             "certified": len(framed_certificates),
             "certificates": framed_certificates,

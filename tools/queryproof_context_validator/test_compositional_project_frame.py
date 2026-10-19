@@ -5,6 +5,7 @@ import unittest
 from compositional_project_frame_certificate import certify_pure_project_framed_event
 from test_join_prefilter import att, expr, event
 from test_project_pushdown import direct_event, project, alias, att as project_att
+from test_join_filter_transport import transported
 
 
 def wrap(core, items):
@@ -76,6 +77,16 @@ class ProjectFrameTests(unittest.TestCase):
                             expr("IsNotNull", [a]))
         ev = wrap(core, [[att(3)]])
         self.assertEqual(certify_pure_project_framed_event(ev)["status"], "UNKNOWN")
+
+    def test_lift_where_transport_across_inner_join(self):
+        a, b = att(0), att(1)
+        core = transported(expr("IsNotNull", [a]),
+                           left=expr("IsNotNull", [a]))
+        ev = wrap(core, [[a], [b]])
+        result = certify_pure_project_framed_event(ev)
+        self.assertEqual(result["status"], "EQUIVALENT_IN_FRAGMENT")
+        self.assertEqual(result["core"], "inner_join_filter_transport")
+        self.assertTrue(result["sqlite_verified"])
 
     def test_wrong_join_predicate_and_invalid_guards_rejected(self):
         a, b = att(0), att(1)

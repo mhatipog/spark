@@ -12,6 +12,7 @@ from join_prefilter_certificate import (
 from project_pushdown_certificate import (
     certify_project_filter_event, project_substitution,
 )
+from join_filter_transport_certificate import certify_inner_join_filter_transport
 
 
 def flat(tree):
@@ -79,6 +80,15 @@ def _certify(event):
             "frames": len(frames), "alias_outputs": sum(x["aliases"] for x in frames),
             "sqlite_verified": swap["sqlite_verified"],
             "orbits_checked_per_core": swap["orbits_checked_per_branch"]}
+    transfer = certify_inner_join_filter_transport(core_event)
+    if transfer["status"] == "EQUIVALENT_IN_FRAGMENT":
+        return {
+            "status": "EQUIVALENT_IN_FRAGMENT",
+            "proof_scope": "compositional_pure_project_frame",
+            "core": "inner_join_filter_transport",
+            "frames": len(frames), "alias_outputs": sum(x["aliases"] for x in frames),
+            "sqlite_verified": transfer["sqlite_verified"],
+            "orbits_checked_per_core": [transfer["orbits_checked"]]}
     raise Unsupported("UNDERLYING_CORE_NOT_CERTIFIED")
 
 
