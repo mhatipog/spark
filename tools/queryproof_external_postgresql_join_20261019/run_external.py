@@ -37,26 +37,40 @@ def worker(manifest_path, output_path):
     spark.sparkContext.setLogLevel("ERROR")
     reference = sqlite3.connect(":memory:")
     try:
-        for name, definition in manifest["tables"].items():
-            assert name.isidentifier() and name[0].isalpha()
-            columns = definition["columns"]
-            assert all(column["type"] in ("integer", "string") for column in columns)
-            spark_schema = StructType([
-                StructField(column["name"],
-                            IntegerType() if column["type"] == "integer"
-                            else StringType(), True)
-                for column in columns])
-            sqlite_types = {"integer": "INTEGER", "string": "TEXT"}
-            ddl = ", ".join('"' + c["name"] + '" ' + sqlite_types[c["type"]]
-                            for c in columns)
-            reference.execute('CREATE TABLE "' + name + '" (' + ddl + ')')
-            placeholders = ",".join("?" for _ in columns)
-            reference.executemany('INSERT INTO "' + name + '" VALUES (' +
-                                  placeholders + ')', definition["rows"])
-            spark.createDataFrame(definition["rows"], spark_schema).createOrReplaceTempView(name)
+        def install_tables(definitions, prior_names):
+            for old_name in prior_names:
+                reference.execute('DROP TABLE IF EXISTS "' + old_name + '"')
+                spark.catalog.dropTempView(old_name)
+            for name, definition in definitions.items():
+                assert name.isidentifier() and name[0].isalpha()
+                columns = definition["columns"]
+                assert all(column["type"] in ("integer", "string")
+                           for column in columns)
+                spark_schema = StructType([
+                    StructField(column["name"],
+                                IntegerType() if column["type"] == "integer"
+                                else StringType(), True)
+                    for column in columns])
+                sqlite_types = {"integer": "INTEGER", "string": "TEXT"}
+                ddl = ", ".join('"' + c["name"] + '" ' + sqlite_types[c["type"]]
+                                for c in columns)
+                reference.execute('CREATE TABLE "' + name + '" (' + ddl + ')')
+                placeholders = ",".join("?" for _ in columns)
+                reference.executemany(
+                    'INSERT INTO "' + name + '" VALUES (' + placeholders + ')',
+                    definition["rows"])
+                (spark.createDataFrame(definition["rows"], spark_schema)
+                 .createOrReplaceTempView(name))
+            return set(definitions)
+
+        active_names, active_definition = set(), None
         observations = {}
         jvm = spark._jvm.java.lang.System
         for case in manifest["cases"]:
+            desired = case.get("tables", manifest["tables"])
+            if desired != active_definition:
+                active_names = install_tables(desired, active_names)
+                active_definition = desired
             key = case["id"]
             jvm.setProperty("queryproof.query.id", key)
             jvm.setProperty("queryproof.ast.enabled", "true")
@@ -401,10 +415,10 @@ def parent():
     protocol_bytes = PROTOCOL.read_bytes()
     manifest = json.loads(manifest_bytes)
     protocol = json.loads(protocol_bytes)
-    assert len(manifest["cases"]) == 18
+    assert len(manifest["cases"]) == protocol.get("required_case_count", 18)
     assert manifest["benchmark_id"] == protocol["benchmark_id"]
     assert len(set((case.get("source_file", ""), case["source_query_ordinal"])
-                   for case in manifest["cases"])) == 18
+                   for case in manifest["cases"])) == len(manifest["cases"])
     with tempfile.TemporaryDirectory(prefix="qp-external-private-") as tmp:
         raw_stderr = Path(tmp) / "raw-catalyst-stderr.txt"
         child_report = Path(tmp) / "private-observations.json"
@@ -450,6 +464,30 @@ def parent():
             else:
                 aggregate_identity["status"] = (
                     "PROSPECTIVE_UNPINNED_VERIFIER_PROVENANCE")
+        if protocol.get("prospective_column_liveness"):
+            pin = json.loads(
+                (MANIFEST.parent / "VERIFIER_PIN.json").read_text())
+            assert pin["benchmark_id"] == manifest["benchmark_id"]
+            assert pin["frozen_verifier_commit"] == protocol["frozen_verifier_commit"]
+            module_path = pin["verifier_module"]
+            assert module_path == (
+                "tools/queryproof_context_validator/"
+                "column_pruning_liveness_certificate.py")
+            current = subprocess.run(
+                ["git", "hash-object", module_path], cwd=ROOT,
+                check=True, capture_output=True, text=True).stdout.strip()
+            baseline = pin["frozen_verifier_git_blob_sha"]
+            assert len(current) == len(baseline) == 40
+            unchanged = current == baseline
+            column_liveness["status"] = (
+                "PROSPECTIVE_FROZEN_THIRD_PARTY_COLUMN_LIVENESS"
+                if unchanged else
+                "RETROSPECTIVE_VERIFIER_CHANGED_AFTER_FREEZE")
+            column_liveness["verifier_provenance"] = {
+                "frozen_verifier_git_blob_sha": baseline,
+                "current_verifier_git_blob_sha": current,
+                "matches_frozen_checker": unchanged,
+            }
         if protocol.get("prospective_collapse_project"):
             collapsed["status"] = "PROSPECTIVE_FROZEN_THIRD_PARTY_COHORT"
         if protocol.get("prospective_contextual_guard"):
@@ -483,10 +521,10 @@ def parent():
         "retrospective_column_liveness": column_liveness,
         "trace": scored,
         "limitations": [
-            "Independent of QueryProof development cases, but sourced from Spark's port "
-            "of PostgreSQL tests, not randomly sampled production workloads.",
+            "Third-party source provenance is specified by each frozen protocol; "
+            "these are purposive regressions, not random production workloads.",
             "Selection excludes non-cross-dialect cases by predeclared schema/syntax rules.",
-            "Exactly 18 queries; selection was not optimized for coverage.",
+            "Cohort size and selection are frozen by the source protocol.",
             "SQLite finite row bag agreement is not a universal semantic equivalence proof.",
             "UNKNOWN is an abstention, not an incorrect optimizer transformation.",
             "Original raw AST and full JVM stderr were deleted with private temp directory."
@@ -504,7 +542,8 @@ def parent():
         "counterexamples": len(coverage["counterexample_events"]),
         "decode_failures": len(scored["decode_failures"]),
         "instrumentation_failures": len(scored["instrumentation_failures"])}), flush=True)
-    complete = (child.returncode == 0 and len(observations) == 18
+    complete = (child.returncode == 0 and
+                len(observations) == protocol.get("required_case_count", 18)
                 and not missing and not failed and not mismatches
                 and scored["trace_events"] > 0
                 and not scored["decode_failures"]

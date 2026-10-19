@@ -1,0 +1,493 @@
+{
+  "schema_version": 2,
+  "benchmark_id": "queryproof-duckdb-column-liveness-independent-20261019",
+  "source": {
+    "repository": "duckdb/duckdb",
+    "commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+    "paths": [
+      "test/sql/aggregate/group/test_group_by_null_length.test",
+      "test/sql/aggregate/group/test_group_by.test",
+      "test/sql/aggregate/group/test_group_by_multi_column.test",
+      "test/sql/aggregate/group/test_group_null.test",
+      "test/sql/aggregate/group/test_group_by_large_string.test",
+      "test/sql/aggregate/group/group_by_limits.test"
+    ],
+    "selection": "15 distinct previously unused SELECT source blocks: null-length ordinals 2,3,4,5,6,7,9; group-by ordinals 13,16,18,21; first query of multi-column, group-null, large-string; integer-limits ordinal 3. Chosen before the first Catalyst replay for the already committed column-liveness theorem. Verbatim SQL strings and exact table rows per original test phase. Nonportable syntax, ambiguous aliases, stateful functions and reused source SQL were excluded before capture."
+  },
+  "tables": {},
+  "cases": [
+    {
+      "id": "A01",
+      "sql": "SELECT c0, LENGTH(NULL) FROM t0 GROUP BY c0;",
+      "source_file": "test/sql/aggregate/group/test_group_by_null_length.test",
+      "source_query_ordinal": 2,
+      "tables": {
+        "t0": {
+          "columns": [
+            {
+              "name": "c0",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A02",
+      "sql": "SELECT NULL, LENGTH(NULL) FROM t0 GROUP BY NULL;",
+      "source_file": "test/sql/aggregate/group/test_group_by_null_length.test",
+      "source_query_ordinal": 3,
+      "tables": {
+        "t0": {
+          "columns": [
+            {
+              "name": "c0",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A03",
+      "sql": "SELECT c0, LENGTH(NULL) FROM t0 GROUP BY c0 ORDER BY c0;",
+      "source_file": "test/sql/aggregate/group/test_group_by_null_length.test",
+      "source_query_ordinal": 4,
+      "tables": {
+        "t0": {
+          "columns": [
+            {
+              "name": "c0",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A04",
+      "sql": "SELECT NULL FROM t0 GROUP BY NULL;",
+      "source_file": "test/sql/aggregate/group/test_group_by_null_length.test",
+      "source_query_ordinal": 5,
+      "tables": {
+        "t0": {
+          "columns": [
+            {
+              "name": "c0",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A05",
+      "sql": "SELECT UPPER(NULL) FROM t0 GROUP BY NULL;",
+      "source_file": "test/sql/aggregate/group/test_group_by_null_length.test",
+      "source_query_ordinal": 6,
+      "tables": {
+        "t0": {
+          "columns": [
+            {
+              "name": "c0",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A06",
+      "sql": "SELECT LOWER(NULL) FROM t0 GROUP BY NULL;",
+      "source_file": "test/sql/aggregate/group/test_group_by_null_length.test",
+      "source_query_ordinal": 7,
+      "tables": {
+        "t0": {
+          "columns": [
+            {
+              "name": "c0",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A07",
+      "sql": "SELECT LENGTH(NULL) + 0 FROM t0 GROUP BY NULL;",
+      "source_file": "test/sql/aggregate/group/test_group_by_null_length.test",
+      "source_query_ordinal": 9,
+      "tables": {
+        "t0": {
+          "columns": [
+            {
+              "name": "c0",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1
+            ],
+            [
+              2
+            ],
+            [
+              3
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A08",
+      "sql": "SELECT i, i + 10 FROM integers GROUP BY i ORDER BY i",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              3,
+              4
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              2,
+              4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A09",
+      "sql": "SELECT 1 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 2;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 16,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              3,
+              4
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              2,
+              4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A10",
+      "sql": "SELECT i % 2 AS k, SUM(i) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 18,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              3,
+              4
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              2,
+              4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A11",
+      "sql": "SELECT test.b, SUM(a) FROM test GROUP BY b ORDER BY COUNT(a) DESC;",
+      "source_file": "test/sql/aggregate/group/test_group_by.test",
+      "source_query_ordinal": 21,
+      "tables": {
+        "test": {
+          "columns": [
+            {
+              "name": "a",
+              "type": "integer"
+            },
+            {
+              "name": "b",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              11,
+              22
+            ],
+            [
+              13,
+              22
+            ],
+            [
+              12,
+              21
+            ],
+            [
+              12,
+              21
+            ],
+            [
+              12,
+              21
+            ],
+            [
+              12,
+              21
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A12",
+      "sql": "SELECT i, j, SUM(k), COUNT(*), COUNT(k) FROM integers GROUP BY i, j ORDER BY 1, 2",
+      "source_file": "test/sql/aggregate/group/test_group_by_multi_column.test",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "k",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1,
+              1,
+              2
+            ],
+            [
+              1,
+              2,
+              2
+            ],
+            [
+              1,
+              1,
+              2
+            ],
+            [
+              2,
+              1,
+              2
+            ],
+            [
+              1,
+              2,
+              4
+            ],
+            [
+              1,
+              2,
+              null
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A13",
+      "sql": "SELECT i, SUM(j) FROM integers GROUP BY i ORDER BY i",
+      "source_file": "test/sql/aggregate/group/test_group_null.test",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              3,
+              4
+            ],
+            [
+              null,
+              4
+            ],
+            [
+              2,
+              4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A14",
+      "sql": "SELECT a, SUM(b) FROM test GROUP BY a ORDER BY a",
+      "source_file": "test/sql/aggregate/group/test_group_by_large_string.test",
+      "source_query_ordinal": 1,
+      "tables": {
+        "test": {
+          "columns": [
+            {
+              "name": "a",
+              "type": "string"
+            },
+            {
+              "name": "b",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              "helloworld",
+              22
+            ],
+            [
+              "thisisalongstring",
+              22
+            ],
+            [
+              "helloworld",
+              21
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "A15",
+      "sql": "SELECT t_k0, COUNT(*) FROM t GROUP BY t_k0 ORDER BY 1;",
+      "source_file": "test/sql/aggregate/group/group_by_limits.test",
+      "source_query_ordinal": 3,
+      "tables": {
+        "t": {
+          "columns": [
+            {
+              "name": "t_k0",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -2147483648
+            ],
+            [
+              2147483647
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

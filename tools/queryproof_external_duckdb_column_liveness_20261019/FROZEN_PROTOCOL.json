@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "benchmark_id": "queryproof-duckdb-column-liveness-independent-20261019",
+  "required_case_count": 15,
+  "freeze_date_utc": "2026-10-19",
+  "frozen_verifier_commit": "aca0ff232c4ce735f7e0d5ff0c23cea5d1625e32",
+  "prospective_column_liveness": true,
+  "source_commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+  "primary": "For every ColumnPruning optimizer transition in all 15 externally authored SQL cases, count exact free-variable liveness certificates for insertion of a direct subset Project beneath an identical whitelisted Aggregate, optionally under identical Sort; no minimum expected.",
+  "secondary": [
+    "All 15 Spark SQL and SQLite reference results must execute with identical row bags or the entire cohort is FAILED",
+    "Retain named ColumnPruning denominator, UNKNOWN cases and error totals",
+    "Preserve original five-checker historical union separately",
+    "No raw SQL literals or full Catalyst AST published",
+    "Version-pin the liveness checker at this freeze commit to avoid crediting retrospective extensions"
+  ],
+  "source_selection": "15 distinct previously unused SELECT source blocks: null-length ordinals 2,3,4,5,6,7,9; group-by ordinals 13,16,18,21; first query of multi-column, group-null, large-string; integer-limits ordinal 3. Chosen before the first Catalyst replay for the already committed column-liveness theorem. Verbatim SQL strings and exact table rows per original test phase. Nonportable syntax, ambiguous aliases, stateful functions and reused source SQL were excluded before capture.",
+  "fixture": "The case.tables maps freeze original rows and schemas from the exact DuckDB SQLLogicTest execution stage for each source query, including staged changes to t0 and reused identifiers with different schemas. No SQL string rewritten.",
+  "falsification": [
+    "Any case fails to execute, any row mismatch, or any trace decode failure fails complete cohort",
+    "Zero liveness certificates is a valid outcome",
+    "Any change to the pinned certificate makes subsequent acceptance retrospective",
+    "Do not modify this protocol, SQL or cases after first run to repair failures"
+  ],
+  "limitations": [
+    "Purposive grouping/aggregate SQL sample, not random production workload",
+    "Same DuckDB source repository as earlier but different unused SQL statements and original fixture phases",
+    "Logical bag semantics only, not optimizer performance or physical order",
+    "Projection/aggregate grammar intentionally incomplete"
+  ]
+}

@@ -33,6 +33,7 @@ on:
       - tools/queryproof_external_duckdb_projection_20261019/**
       - tools/queryproof_external_duckdb_subquery_20261019/**
       - tools/queryproof_external_duckdb_aggregate_20261019/**
+      - tools/queryproof_external_duckdb_column_liveness_20261019/**
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
 permissions:
@@ -485,6 +486,38 @@ jobs:
           if r["trace"]["trace_events"] < 1:
               raise SystemExit("Zero logged aggregate optimizer events")
           '
+      - name: Run preregistered unused DuckDB column-liveness SQL holdout
+        run: python -u tools/queryproof_external_duckdb_column_liveness_20261019/run_column_liveness.py
+      - name: Validate complete prospective column-liveness cohort
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          path = Path("artifacts/queryproof_duckdb_column_liveness_20261019.json")
+          if not path.exists():
+              raise SystemExit("Frozen column-liveness corpus missing")
+          report = json.loads(path.read_text())
+          proof = report["retrospective_column_liveness"]
+          print("COLUMN_HOLDOUT_CASES", report["executed_cases"])
+          print("COLUMN_HOLDOUT_EVENTS", report["trace"]["trace_events"])
+          print("COLUMN_HOLDOUT_PROOF", proof)
+          print("COLUMN_HOLDOUT_ERRORS", report["error_cases"])
+          print("COLUMN_HOLDOUT_MISMATCHES", report["row_oracle_mismatch_cases"])
+          print("COLUMN_HOLDOUT_RULE_DENOMINATORS", report["union_coverage"]["by_rule"])
+          if proof["status"] != "PROSPECTIVE_FROZEN_THIRD_PARTY_COLUMN_LIVENESS":
+              raise SystemExit("Verifier provenance no longer prospective")
+          if not proof["verifier_provenance"]["matches_frozen_checker"]:
+              raise SystemExit("Column checker differs from pinned freeze")
+          if report["worker_exit_code"] != 0 or report["executed_cases"] != 15:
+              raise SystemExit("Missing or failed external SQL case")
+          if report["error_cases"] or report["row_oracle_mismatch_cases"]:
+              raise SystemExit("Cross-engine correctness failure")
+          if report["trace"]["decode_failures"] or report["trace"]["instrumentation_failures"]:
+              raise SystemExit("Trace decode failure")
+          if report["trace"]["trace_events"] <= 0:
+              raise SystemExit("No Catalyst events captured")
+          '
       - name: Archive independent cohort sanitized scoreboard only
         if: always()
         uses: actions/upload-artifact@v4
@@ -496,5 +529,6 @@ jobs:
             artifacts/queryproof_duckdb_adversarial_20261019.json
             artifacts/queryproof_duckdb_subquery_20261019.json
             artifacts/queryproof_duckdb_aggregate_20261019.json
+            artifacts/queryproof_duckdb_column_liveness_20261019.json
           if-no-files-found: warn
           retention-days: 14

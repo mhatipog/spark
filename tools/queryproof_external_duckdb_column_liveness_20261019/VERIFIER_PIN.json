@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-duckdb-column-liveness-independent-20261019",
+  "frozen_verifier_commit": "aca0ff232c4ce735f7e0d5ff0c23cea5d1625e32",
+  "verifier_module": "tools/queryproof_context_validator/column_pruning_liveness_certificate.py",
+  "frozen_verifier_git_blob_sha": "55deae0fcf52b366ce50821f3cf7bf48b97424a7",
+  "note": "Frozen at independent source protocol creation before first replay."
+}
