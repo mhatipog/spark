@@ -41,7 +41,8 @@ def tree_from_preorder(serialized):
 
 def project_output_expr_ids(subtree):
     node, children = subtree
-    require(node.get("class") == LOGICAL + "Project" and len(children) == 1,
+    require(node.get("class") == LOGICAL + "Project" and len(children) == 1
+            and node.get("child") == 0,
             "GUARDED_CHILD_NOT_DIRECT_PROJECT")
     outputs = node.get("projectList")
     require(isinstance(outputs, list) and bool(outputs), "MISSING_PROJECT_LIST")
@@ -50,7 +51,9 @@ def project_output_expr_ids(subtree):
         require(isinstance(item, list) and bool(item), "UNREADABLE_PROJECT_ENTRY")
         top = item[0]
         require(isinstance(top, dict)
-                and top.get("class") in (EXPR + "Alias", EXPR + "AttributeReference"),
+                and top.get("class") == EXPR + "AttributeReference"
+                and top.get("num-children") == 0
+                and top.get("dataType") in {"integer", "long", "short", "byte"},
                 "UNSUPPORTED_PROJECT_OUTPUT")
         identifier = top.get("exprId")
         require(isinstance(identifier, dict) and "id" in identifier,
@@ -77,8 +80,16 @@ def _certify(event):
     require(len(old_children) == len(new_children) == 2,
             "NOT_BINARY_JOIN")
     require(old_root == new_root, "JOIN_METADATA_CHANGED")
+    require(old_root.get("left") == 0 and old_root.get("right") == 1,
+            "INVALID_JOIN_CHILD_INDICES")
     require(old_root.get("joinType") == INNER, "NOT_EXACT_INNER_JOIN")
     join_condition = parse_expression(old_root.get("condition"))
+    side_outputs = [project_output_expr_ids(child) for child in old_children]
+    require(side_outputs[0].isdisjoint(side_outputs[1]),
+            "OVERLAPPING_JOIN_OUTPUT_IDS")
+    require(guard_attribute_expr_ids(join_condition) <= (
+            side_outputs[0] | side_outputs[1]),
+            "JOIN_CONDITION_NOT_SCOPED_TO_OUTPUTS")
     inserted_guards = []
     guarded_sides = []
     for side, (before, after) in enumerate(zip(old_children, new_children)):
@@ -88,11 +99,11 @@ def _certify(event):
         require(node.get("class") == LOGICAL + "Filter"
                 and node.get("num-children") == 1 and len(children) == 1,
                 "SIDE_CHANGE_NOT_INSERTED_FILTER")
-        require(set(node) == {"class", "num-children", "condition"},
-                "EXTRA_FILTER_METADATA")
+        require(set(node) == {"class", "num-children", "condition", "child"}
+                and node.get("child") == 0, "EXTRA_FILTER_METADATA")
         require(children[0] == before, "CHILD_NOT_IDENTICAL")
         guard = parse_expression(node["condition"])
-        available = project_output_expr_ids(before)
+        available = side_outputs[side]
         require(guard_attribute_expr_ids(guard) <= available,
                 "GUARD_NOT_SCOPED_TO_CHILD_OUTPUT")
         inserted_guards.append(guard)
