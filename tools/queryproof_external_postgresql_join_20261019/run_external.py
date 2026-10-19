@@ -247,6 +247,15 @@ def safe_collapse_plan_shape(serialized):
                     str(expression.get("class", "")).split(".")[-1]
                     for expression in item if isinstance(expression, dict)])
             result["project_classes"] = expressions
+        if name == "Aggregate":
+            result["aggregate_field_keys"] = sorted(node)
+            for field in ("groupingExpressions", "aggregateExpressions"):
+                values = node.get(field)
+                if isinstance(values, list):
+                    result[field + "_classes"] = [
+                        [str(part.get("class", "")).split(".")[-1]
+                         for part in item if isinstance(part, dict)]
+                        for item in values if isinstance(item, list)]
         result["children"] = [compress(child) for child in children]
         return result
 
