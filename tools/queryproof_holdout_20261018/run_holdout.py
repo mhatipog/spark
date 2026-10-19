@@ -101,6 +101,7 @@ def analyze_trace(path, known_rule_names):
     sys.path.insert(0, str(HERE.parent / "queryproof_instrumented"))
     from rank_ast import decode
     from run_orbit_trace import classify_events
+    from equality_orbits import certify_predicate_event
 
     events, failures, instrumentation_failures = [], [], []
     for lineno, line in enumerate(Path(path).read_text(errors="replace").splitlines(), 1):
@@ -114,6 +115,30 @@ def analyze_trace(path, known_rule_names):
         except Exception as exc:
             failures.append({"line": lineno, "type": type(exc).__name__})
     scored = classify_events(events)
+    # Exploratory diagnostics contain only logical-plan operator classes/arity.
+    # Never persist SQL literals, attributes, exprIds, or the raw AST.
+    def public_plan_shape(nodes):
+        if not isinstance(nodes, list):
+            return "<invalid>"
+        prefix = "org.apache.spark.sql.catalyst.plans.logical."
+        return "/".join(
+            (node.get("class", "").removeprefix(prefix)
+             if isinstance(node, dict)
+             and str(node.get("class", "")).startswith(prefix) else "OTHER")
+            + ":" + str(node.get("num-children", "?"))
+            for node in nodes if isinstance(node, dict)
+        )
+
+    unknown_shapes = Counter()
+    for event in events:
+        case = event.get("case", "unlabelled")
+        report = certify_predicate_event(event)
+        if report["status"] == "UNKNOWN":
+            key = (case, _rule_basename(event.get("rule")),
+                   report.get("reason", "UNKNOWN"),
+                   public_plan_shape(event.get("old")),
+                   public_plan_shape(event.get("new")))
+            unknown_shapes[key] += 1
     # Exactly the same checker is run for all events.  Prior rule names only
     # determine which already-investigated family is excluded when reporting.
     independent = [e for e in events
@@ -131,6 +156,10 @@ def analyze_trace(path, known_rule_names):
         "instrumentation_failures": instrumentation_failures,
         "possible_trace_truncation": len(events) >= 2500,
         "all_events": scored["summary"],
+        "structural_diagnostics": [
+            {"case": k[0], "rule": k[1], "reason": k[2],
+             "old_shape": k[3], "new_shape": k[4], "count": v}
+            for k, v in sorted(unknown_shapes.items())],
         "unseen_rule_events": holdout["summary"],
         "per_unseen_rule": {k: dict(v) for k, v in sorted(by_rule.items())},
         "per_operator": {k: dict(v) for k, v in sorted(by_operator.items())},
