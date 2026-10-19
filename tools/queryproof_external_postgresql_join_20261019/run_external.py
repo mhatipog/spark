@@ -289,6 +289,8 @@ def parent():
         key_signatures = plan_key_diagnostics(raw_stderr)
         contextual = retrospective_contextual_guard(raw_stderr)
         collapsed = retrospective_project_collapse(raw_stderr)
+        if protocol.get("prospective_collapse_project"):
+            collapsed["status"] = "PROSPECTIVE_FROZEN_THIRD_PARTY_COHORT"
         if protocol.get("prospective_contextual_guard"):
             contextual["status"] = "PROSPECTIVE_FROZEN_DUCKDB_COHORT"
     observations = cases_observed.get("cases", {})

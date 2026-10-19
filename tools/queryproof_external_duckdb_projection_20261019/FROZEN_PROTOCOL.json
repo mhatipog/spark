@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-duckdb-projection-holdout-20261019",
+  "status": "Third-party SQL source files, 18 query ordinals and data fixtures fixed after CollapseProject checker code landed, before the first replay of this new corpus.",
+  "freeze_date_utc": "2026-10-19",
+  "frozen_verifier_commit": "9d0e65a079cd99a6067256030baa96639d26a76e",
+  "source_commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+  "prospective_collapse_project": true,
+  "primary": "For all named CollapseProject optimizer transitions among 18 fixed DuckDB-authored projection queries, count exact pure expression-substitution row-bag certificates. Report denominator and UNKNOWN reasons even when zero; no a-priori minimum.",
+  "secondary": [
+    "18/18 query execution and Spark 4.2.0 versus SQLite row bag equality; errors fail",
+    "Original five-checker union and contextual join guards remain separate frozen/historical metrics",
+    "Reject changes to child relation, ambiguous output IDs, volatile or complex expressions, and mismatched literals/column types",
+    "Sanitized AST evidence, rule counts and per-case certificates; no raw Catalyst AST released"
+  ],
+  "source_selection": "Read duckdb/duckdb at pinned SHA in fixed source-file order; choose SELECT ordinals [4,6,7,8,9,10] from test_simple_projection.test, [1,2,3,4,5,6,7] from test_scalar_projection.test, [1,2,3,4,5] from test_table_star.test. Pre-exclude source-time empty-state queries, non-SELECT INSERT, DuckDB-specific alias syntax, query errors, and DuckDB-specific lateral binding. No optimizer-result-driven selection.",
+  "fixture": "Reproduce the post-INSERT rows of a, test and r4 tables from original three DuckDB sqllogictest files as fixed Spark/SQLite tables.",
+  "falsification": [
+    "Never call this historical corpus evidence for the prior 16 contextual join-guard certificates",
+    "No modification to exact checker after this protocol freeze without marking current cohort as development only",
+    "No query rewrites or case exclusions after seeing run outcomes",
+    "Zero named CollapseProject events or zero certificates is valid evidence and must be reported",
+    "Any execution error, independent row mismatch or trace-integrity failure fails CI",
+    "Leave unrelated transforms UNKNOWN, not WRONG; do not create upstream PR"
+  ],
+  "limitations": [
+    "SQL selected for projection relevance rather than random production queries",
+    "Small finite SQL datasets and symbolic pure-projection fragment only",
+    "Output column values and row multiplicities proved, not physical order, resource use or evaluation timing"
+  ]
+}
