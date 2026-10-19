@@ -263,6 +263,41 @@ def safe_collapse_plan_shape(serialized):
 
 
 
+
+def retrospective_column_pruning_liveness(private_trace_path):
+    """Pure free-variable theorem on already inspected source; no holdout credit."""
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_instrumented"))
+    from rank_ast import decode
+    from column_pruning_liveness_certificate import (
+        certify_column_pruning_liveness_event,
+    )
+    successes, unknowns, named = [], Counter(), 0
+    for line in private_trace_path.read_text(errors="replace").splitlines():
+        if not line.startswith("QUERYPROOF_AST\t"):
+            continue
+        event = decode(line)
+        if _rule_basename(event.get("rule")) != "ColumnPruning":
+            continue
+        named += 1
+        result = certify_column_pruning_liveness_event(event)
+        if result["status"] == "EQUIVALENT_IN_FRAGMENT":
+            successes.append({
+                "case": event.get("case"),
+                "kept_columns": result["kept_columns"],
+                "dropped_columns": result["dropped_columns"],
+                "empty_projection_supported": result["empty_projection_supported"],
+                "sort_frames": result["sort_frames"],
+            })
+        else:
+            unknowns[result.get("reason", "UNKNOWN")] += 1
+    return {"status": "RETROSPECTIVE_DEVELOPMENT_ONLY_NO_NEW_HOLDOUT_CREDIT",
+            "named_column_pruning_events": named,
+            "certified": len(successes),
+            "certificates": successes,
+            "unknown_reasons": dict(unknowns)}
+
+
 def diagnose_column_pruning(private_trace_path):
     """Structural triage only: no certificates or private values exported."""
     sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
@@ -386,6 +421,7 @@ def parent():
         collapsed = retrospective_project_collapse(raw_stderr)
         aggregate_identity = retrospective_aggregate_identity(raw_stderr)
         pruning_diagnostic = diagnose_column_pruning(raw_stderr)
+        column_liveness = retrospective_column_pruning_liveness(raw_stderr)
         if protocol.get("prospective_aggregate_identity"):
             pin_path = MANIFEST.parent / "VERIFIER_PIN.json"
             if pin_path.exists():
@@ -444,6 +480,7 @@ def parent():
         "posthoc_collapse_project": collapsed,
         "posthoc_aggregate_identity": aggregate_identity,
         "column_pruning_diagnostic": pruning_diagnostic,
+        "retrospective_column_liveness": column_liveness,
         "trace": scored,
         "limitations": [
             "Independent of QueryProof development cases, but sourced from Spark's port "

@@ -20,6 +20,8 @@ on:
       - tools/queryproof_context_validator/test_collapse_project.py
       - tools/queryproof_context_validator/aggregate_framed_identity_certificate.py
       - tools/queryproof_context_validator/test_aggregate_framed_identity.py
+      - tools/queryproof_context_validator/column_pruning_liveness_certificate.py
+      - tools/queryproof_context_validator/test_column_pruning_liveness.py
       - tools/queryproof_holdout_20261018/run_holdout.py
       - tools/queryproof_structural_confirmation_20261019/**
       - tools/queryproof_project_confirmation_20261019/**
@@ -62,6 +64,8 @@ jobs:
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_collapse_project.py' -v
       - name: Verify exact identity-Project elimination under integral Aggregate contexts
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_aggregate_framed_identity.py' -v
+      - name: Verify pure aggregate column-liveness and empty projections
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_column_pruning_liveness.py' -v
   frozen-catalyst-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 28
@@ -465,6 +469,7 @@ jobs:
           print("AGGREGATE_HOLDOUT_REDACTED_COLLAPSE_SHAPES", r["posthoc_collapse_project"])
           print("AGGREGATE_HOLDOUT_BY_RULE", r["union_coverage"]["by_rule"])
           print("AGGREGATE_COLUMN_PRUNING_DIAGNOSTIC", r["column_pruning_diagnostic"])
+          print("AGGREGATE_POSTHOC_COLUMN_LIVENESS", r["retrospective_column_liveness"])
           print("AGGREGATE_HOLDOUT_MISMATCHES", r["row_oracle_mismatch_cases"])
           print("AGGREGATE_HOLDOUT_ERRORS", r["error_cases"])
           if proof["status"] != "RETROSPECTIVE_VERIFIER_CHANGED_AFTER_FREEZE":
