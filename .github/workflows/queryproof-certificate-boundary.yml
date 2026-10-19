@@ -10,6 +10,8 @@ on:
       - tools/queryproof_context_validator/test_join_prefilter.py
       - tools/queryproof_context_validator/project_pushdown_certificate.py
       - tools/queryproof_context_validator/test_project_pushdown.py
+      - tools/queryproof_context_validator/compositional_project_frame_certificate.py
+      - tools/queryproof_context_validator/test_compositional_project_frame.py
       - tools/queryproof_holdout_20261018/run_holdout.py
       - tools/queryproof_structural_confirmation_20261019/**
       - tools/queryproof_project_confirmation_20261019/**
@@ -34,6 +36,8 @@ jobs:
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_join_prefilter.py' -v
       - name: Verify identity/alias projection filter commutation
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_project_pushdown.py' -v
+      - name: Verify compositional pure projection frames
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_compositional_project_frame.py' -v
   frozen-catalyst-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 28
@@ -83,6 +87,7 @@ jobs:
               print("UNKNOWN_SHAPE", count, *pattern)
           print("EXPLORATORY_INNER_JOIN_GUARD", report["trace"]["exploratory_inner_join_guard"])
           print("EXPLORATORY_PROJECT_PUSHDOWN", report["trace"]["exploratory_project_pushdown"])
+          print("EXPLORATORY_COMPOSITIONAL_FRAMES", report["trace"]["exploratory_compositional_frames"])
           print("INFER_FILTER_METADATA_KEYS", report["trace"]["infer_filter_keysets"])
           print("ROW_ORACLE_MISMATCH_CASES", report["row_oracle_mismatch_cases"])
           if report["executed_cases"] != 18:
@@ -113,6 +118,7 @@ jobs:
           print("CONFIRMATION_JOIN_GUARD_CERTIFICATES", guard["certificates"])
           print("CONFIRMATION_JOIN_GUARD_UNKNOWN_REASONS", guard["unknown_reasons"])
           print("CONFIRMATION_EXPLORATORY_PROJECT_PUSHDOWN", report["trace"]["exploratory_project_pushdown"])
+          print("CONFIRMATION_EXPLORATORY_FRAMES", report["trace"]["exploratory_compositional_frames"])
           print("CONFIRMATION_SQLITE_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
           if report["executed_cases"] != 18 or report["worker_exit_code"] != 0:
               raise SystemExit("Confirmation cohort did not complete")
@@ -141,6 +147,7 @@ jobs:
           print("PROJECT_CONFIRMATION_EVENTS", report["trace"]["trace_events"])
           print("PROJECT_CONFIRMATION_CERTIFIED", result["certified"])
           print("PROJECT_CONFIRMATION_CERTIFICATES", result["certificates"])
+          print("PROJECT_CONFIRMATION_EXPLORATORY_FRAMES", report["trace"]["exploratory_compositional_frames"])
           print("PROJECT_CONFIRMATION_UNKNOWN_REASONS", result["unknown_reasons"])
           print("PROJECT_CONFIRMATION_PROJECT_ITEM_SHAPES", result["project_entry_shapes"])
           from collections import Counter

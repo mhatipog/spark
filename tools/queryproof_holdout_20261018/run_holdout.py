@@ -104,6 +104,7 @@ def analyze_trace(path, known_rule_names):
     from equality_orbits import certify_predicate_event
     from join_prefilter_certificate import certify_inner_join_prefilter_event
     from project_pushdown_certificate import certify_project_filter_event
+    from compositional_project_frame_certificate import certify_pure_project_framed_event
 
     events, failures, instrumentation_failures = [], [], []
     for lineno, line in enumerate(Path(path).read_text(errors="replace").splitlines(), 1):
@@ -193,6 +194,21 @@ def analyze_trace(path, known_rule_names):
                 "sqlite_verified": result["sqlite_verified"]})
         else:
             swap_unknowns[result.get("reason", "UNKNOWN")] += 1
+    framed_certificates = []
+    frame_unknowns = Counter()
+    for event in events:
+        result = certify_pure_project_framed_event(event)
+        if result["status"] == "EQUIVALENT_IN_FRAGMENT":
+            framed_certificates.append({
+                "case": event.get("case"),
+                "rule": _rule_basename(event.get("rule")),
+                "core": result["core"],
+                "frames": result["frames"],
+                "alias_outputs": result["alias_outputs"],
+                "orbits_checked_per_core": result["orbits_checked_per_core"],
+                "sqlite_verified": result["sqlite_verified"]})
+        else:
+            frame_unknowns[result.get("reason", "UNKNOWN")] += 1
     # Exactly the same checker is run for all events.  Prior rule names only
     # determine which already-investigated family is excluded when reporting.
     independent = [e for e in events
@@ -213,6 +229,11 @@ def analyze_trace(path, known_rule_names):
         "infer_filter_keysets": [
             {"keys": list(k), "count": v}
             for k, v in sorted(infer_filter_keysets.items())],
+        "exploratory_compositional_frames": {
+            "certified": len(framed_certificates),
+            "certificates": framed_certificates,
+            "unknown_reasons": dict(frame_unknowns),
+            "holdout_status": "RETROSPECTIVE_EXPLORATORY_ONLY"},
         "exploratory_project_pushdown": {
             "certified": len(exploratory_swaps),
             "certificates": exploratory_swaps,
