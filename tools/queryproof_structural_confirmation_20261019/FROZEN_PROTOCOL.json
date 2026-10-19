@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-structural-join-prefilter-confirmation-20261019",
+  "freeze_date_utc": "2026-10-19",
+  "status": "Prospective confirmation cohort specified after separate 2026-10-18 developmental holdout diagnostics, before first execution of these new SQL strings/data.",
+  "scope": "18 fixed queries over two fresh nullable-integer data sources; 15 INNER JOIN and 3 LEFT OUTER JOIN control queries.",
+  "preregistered_primary": "Total exact, independently SQLite-verified root INNER JOIN redundant-side-Filter insertion certificates observed among all RuleExecutor transitions, with denominator total transitions and breakdown by case/rule.",
+  "preregistered_secondary": "The unmodified 2026-10-18 predicate-only certificate counts and reasons, without combining either metric with the 2026-10-18 development suite as if independent.",
+  "eligibility": "The new join guard verifier is frozen to commit afad3673f90c8dbf95a3ab11c8b7eec61d238ae9. It requires root binary INNER JOIN, identical join metadata/children except inserted unary Filter wrappers, direct Project output identity and non-overlapping scopes, supported nullable-integral equality/nullness grammar, and complete TRUE-set implication.",
+  "adversarial_controls": "Three left outer joins must never be certified by the inner join certificate; disjunctive and NULL-specific join predicates intentionally challenge unconditional not-null inference.",
+  "validation": "Exact Bell(n+1) valuation orbit implication, independently checked using SQLite expression semantics; row multiset agreement between Spark 4.2.0 and independent SQLite on the new fixed fixture.",
+  "rules_known_from_prior_round_excluded_from_primary": [
+    "OptimizeJoinCondition",
+    "RewritePredicateSubquery"
+  ],
+  "limitations": [
+    "Case family is design-informed, not randomized blind external SQL.",
+    "The finite row oracle cannot establish full correctness for unsupported operators.",
+    "No Spark bug is implied by UNKNOWN, and a rule name is an observation rather than a proof premise.",
+    "Raw Catalyst JSON is confidential; the runner retains only shape-only diagnostics."
+  ],
+  "stop_rules": [
+    "Never change these 18 cases or source rows after first Spark run.",
+    "Do not tweak validator after first result and call the same cohort new holdout.",
+    "Keep this confirmation separate from October 18 retrospective scores."
+  ]
+}
