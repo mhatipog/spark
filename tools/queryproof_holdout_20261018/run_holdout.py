@@ -102,6 +102,7 @@ def analyze_trace(path, known_rule_names):
     from rank_ast import decode
     from run_orbit_trace import classify_events
     from equality_orbits import certify_predicate_event
+    from join_prefilter_certificate import certify_inner_join_prefilter_event
 
     events, failures, instrumentation_failures = [], [], []
     for lineno, line in enumerate(Path(path).read_text(errors="replace").splitlines(), 1):
@@ -139,6 +140,20 @@ def analyze_trace(path, known_rule_names):
                    public_plan_shape(event.get("old")),
                    public_plan_shape(event.get("new")))
             unknown_shapes[key] += 1
+    prospective_guards = []
+    guard_unknowns = Counter()
+    for event in events:
+        result = certify_inner_join_prefilter_event(event)
+        if result["status"] == "EQUIVALENT_IN_FRAGMENT":
+            prospective_guards.append({
+                "case": event.get("case"),
+                "rule": _rule_basename(event.get("rule")),
+                "guarded_sides": result["guarded_sides"],
+                "input_attributes": result["input_attributes"],
+                "orbits_checked": result["orbits_checked"],
+                "sqlite_verified": result["sqlite_verified"]})
+        else:
+            guard_unknowns[result.get("reason", "UNKNOWN")] += 1
     # Exactly the same checker is run for all events.  Prior rule names only
     # determine which already-investigated family is excluded when reporting.
     independent = [e for e in events
@@ -156,6 +171,11 @@ def analyze_trace(path, known_rule_names):
         "instrumentation_failures": instrumentation_failures,
         "possible_trace_truncation": len(events) >= 2500,
         "all_events": scored["summary"],
+        "exploratory_inner_join_guard": {
+            "certified": len(prospective_guards),
+            "certificates": prospective_guards,
+            "unknown_reasons": dict(guard_unknowns),
+            "holdout_status": "EXPLORATORY_ONLY_NOT_PRIMARY_FROZEN_METRIC"},
         "structural_diagnostics": [
             {"case": k[0], "rule": k[1], "reason": k[2],
              "old_shape": k[3], "new_shape": k[4], "count": v}
