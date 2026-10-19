@@ -9,6 +9,7 @@ on:
       - tools/queryproof_context_validator/join_prefilter_certificate.py
       - tools/queryproof_context_validator/test_join_prefilter.py
       - tools/queryproof_holdout_20261018/run_holdout.py
+      - tools/queryproof_structural_confirmation_20261019/**
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
 permissions:
@@ -37,6 +38,7 @@ jobs:
           sparse-checkout: |
             tools/queryproof_context_validator
             tools/queryproof_holdout_20261018
+            tools/queryproof_structural_confirmation_20261019
             tools/queryproof_instrumented
       - uses: actions/setup-java@v4
         with:
@@ -83,11 +85,43 @@ jobs:
           if report["trace"]["decode_failures"] or report["trace"]["instrumentation_failures"]:
               raise SystemExit("Trace integrity failure")
           '
+      - name: Replay separately frozen 18-query structural confirmation cohort
+        run: python -u tools/queryproof_structural_confirmation_20261019/run_prospective.py
+      - name: Check preregistered structural confirmation scoreboard
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          path = Path("artifacts/queryproof_structural_confirmation_20261019.json")
+          if not path.exists():
+              raise SystemExit("No confirmation scoreboard produced")
+          report = json.loads(path.read_text())
+          guard = report["trace"]["exploratory_inner_join_guard"]
+          print("CONFIRMATION_SPARK_VERSION", report["spark_version"])
+          print("CONFIRMATION_EXECUTED_CASES", report["executed_cases"])
+          print("CONFIRMATION_TRACE_EVENTS", report["trace"]["trace_events"])
+          print("CONFIRMATION_BASELINE_STATUSES", report["trace"]["all_events"]["statuses"])
+          print("CONFIRMATION_JOIN_GUARD_CERTIFIED", guard["certified"])
+          print("CONFIRMATION_JOIN_GUARD_CERTIFICATES", guard["certificates"])
+          print("CONFIRMATION_JOIN_GUARD_UNKNOWN_REASONS", guard["unknown_reasons"])
+          print("CONFIRMATION_SQLITE_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
+          if report["executed_cases"] != 18 or report["worker_exit_code"] != 0:
+              raise SystemExit("Confirmation cohort did not complete")
+          if report["row_oracle_mismatch_cases"]:
+              raise SystemExit("Confirmation independent row-oracle disagreement")
+          if report["trace"]["decode_failures"] or report["trace"]["instrumentation_failures"]:
+              raise SystemExit("Confirmation trace integrity failure")
+          if any(x["case"] in {"S13", "S14", "S15"} for x in guard["certificates"]):
+              raise SystemExit("Outer join incorrectly certified")
+          '
       - name: Archive sanitized scoreboard only
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: queryproof-hardened-catalyst-holdout-4.2
-          path: artifacts/queryproof_holdout_20261018.json
+          name: queryproof-hardened-and-prospective-4.2
+          path: |
+            artifacts/queryproof_holdout_20261018.json
+            artifacts/queryproof_structural_confirmation_20261019.json
           if-no-files-found: warn
           retention-days: 14
