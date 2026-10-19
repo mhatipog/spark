@@ -18,6 +18,8 @@ on:
       - tools/queryproof_context_validator/test_contextual_join_guard.py
       - tools/queryproof_context_validator/collapse_project_certificate.py
       - tools/queryproof_context_validator/test_collapse_project.py
+      - tools/queryproof_context_validator/aggregate_framed_identity_certificate.py
+      - tools/queryproof_context_validator/test_aggregate_framed_identity.py
       - tools/queryproof_holdout_20261018/run_holdout.py
       - tools/queryproof_structural_confirmation_20261019/**
       - tools/queryproof_project_confirmation_20261019/**
@@ -57,6 +59,8 @@ jobs:
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_contextual_join_guard.py' -v
       - name: Verify symbolic CollapseProject substitution and adversarial abstentions
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_collapse_project.py' -v
+      - name: Verify exact identity-Project elimination under integral Aggregate contexts
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_aggregate_framed_identity.py' -v
   frozen-catalyst-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 28
@@ -424,6 +428,7 @@ jobs:
           print("SUBQUERY_HOLDOUT_SPARK", r["spark_version"])
           print("SUBQUERY_HOLDOUT_EVENTS", r["trace"]["trace_events"])
           print("SUBQUERY_HOLDOUT_COLLAPSE", p)
+          print("SUBQUERY_POSTHOC_AGGREGATE_IDENTITY", r["posthoc_aggregate_identity"])
           print("SUBQUERY_HOLDOUT_NAMED_RULES", r["union_coverage"]["by_rule"])
           print("SUBQUERY_HOLDOUT_ORIGINAL_FIVE", r["union_coverage"]["union_statuses"])
           print("SUBQUERY_HOLDOUT_ROW_MISMATCHES", r["row_oracle_mismatch_cases"])

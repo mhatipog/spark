@@ -302,6 +302,37 @@ def retrospective_project_collapse(private_trace_path):
         "unknown_reasons": dict(reasons),
         "abstained_shapes": abstained_shapes}
 
+
+def retrospective_aggregate_identity(private_trace_path):
+    """Aggregate-framed identity theorem, post-hoc on ALL earlier cohorts."""
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_instrumented"))
+    from rank_ast import decode
+    from aggregate_framed_identity_certificate import (
+        certify_aggregate_framed_identity_event,
+    )
+    results, reasons, total = [], Counter(), 0
+    for line in private_trace_path.read_text(errors="replace").splitlines():
+        if not line.startswith("QUERYPROOF_AST\t"):
+            continue
+        event = decode(line)
+        rule = _rule_basename(event.get("rule"))
+        if rule != "CollapseProject":
+            continue
+        total += 1
+        proof = certify_aggregate_framed_identity_event(event)
+        if proof["status"] == "EQUIVALENT_IN_FRAGMENT":
+            results.append({"case": event.get("case"),
+                            "aggregate_frames": proof["aggregate_frames"],
+                            "forwarded_columns": proof["forwarded_columns"]})
+        else:
+            reasons[proof.get("reason", "UNKNOWN")] += 1
+    return {"status": "RETROSPECTIVE_DEVELOPMENT_ONLY",
+            "named_collapse_events": total,
+            "certified": len(results),
+            "certificates": results,
+            "unknown_reasons": dict(reasons)}
+
 def parent():
     manifest_bytes = MANIFEST.read_bytes()
     protocol_bytes = PROTOCOL.read_bytes()
@@ -325,6 +356,7 @@ def parent():
         key_signatures = plan_key_diagnostics(raw_stderr)
         contextual = retrospective_contextual_guard(raw_stderr)
         collapsed = retrospective_project_collapse(raw_stderr)
+        aggregate_identity = retrospective_aggregate_identity(raw_stderr)
         if protocol.get("prospective_collapse_project"):
             collapsed["status"] = "PROSPECTIVE_FROZEN_THIRD_PARTY_COHORT"
         if protocol.get("prospective_contextual_guard"):
@@ -353,6 +385,7 @@ def parent():
         "sanitized_plan_key_inventory": key_signatures,
         "posthoc_contextual_guard": contextual,
         "posthoc_collapse_project": collapsed,
+        "posthoc_aggregate_identity": aggregate_identity,
         "trace": scored,
         "limitations": [
             "Independent of QueryProof development cases, but sourced from Spark's port "
@@ -372,6 +405,7 @@ def parent():
         "families": coverage["per_certificate_family"],
         "posthoc_contextual_guard": contextual["certified"],
         "retrospective_collapse_project": collapsed["certified"],
+        "retrospective_aggregate_identity": aggregate_identity["certified"],
         "counterexamples": len(coverage["counterexample_events"]),
         "decode_failures": len(scored["decode_failures"]),
         "instrumentation_failures": len(scored["instrumentation_failures"])}), flush=True)
