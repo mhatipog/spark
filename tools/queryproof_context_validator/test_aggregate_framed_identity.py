@@ -28,9 +28,9 @@ def example():
     group = aggregate([[intermediate]], [alias(intermediate, 20, "group_x")])
     agg_attr = alias_ref(20, "group_x")
     sum_expr = alias(agg_attr, 30, "total")
-    sum_expr.insert(1, {"class": EX + "AggregateExpression",
+    sum_expr.insert(1, {"class": EX + "aggregate.AggregateExpression",
                         "num-children": 1, "aggregateFunction": 0})
-    sum_expr.insert(2, {"class": EX + "Sum", "num-children": 1, "child": 0})
+    sum_expr.insert(2, {"class": EX + "aggregate.Sum", "num-children": 1, "child": 0})
     summary = aggregate([], [sum_expr])
     leaf = logical_rdd(a)
     return {"old": [summary, group, forwarded, created, leaf],

@@ -110,9 +110,9 @@ def _aggregate_scope(node, source):
                         "AGGREGATE_ALIAS_SOURCE_OUT_OF_SCOPE")
             else:
                 ae, fun, attr = entry[1:]
-                require(ae.get("class") == EXPR + "AggregateExpression" and
+                require(ae.get("class") == EXPR + "aggregate.AggregateExpression" and
                         ae.get("num-children") == 1 and
-                        fun.get("class") == EXPR + "Sum" and
+                        fun.get("class") == EXPR + "aggregate.Sum" and
                         fun.get("num-children") == 1,
                         "UNTRUSTED_AGGREGATE_FUNCTION")
                 key, source_type, _ = _attribute(attr)
