@@ -21,14 +21,14 @@ def expr(op, *children):
 
 def project(attribute):
     node = {"class": PL + "Project", "num-children": 1,
-            "projectList": [[attribute]]}
+            "projectList": [[attribute]], "child": 0}
     return [node, {"class": PL + "LocalRelation", "num-children": 0}]
 
 
 def event(condition=None, left_guard=None, right_guard=None):
     a, b = att(0), att(1)
     join = {"class": PL + "Join", "num-children": 2,
-            "joinType": INNER,
+            "left": 0, "right": 1, "joinType": INNER,
             "condition": condition if condition is not None
                          else expr("EqualTo", [a], [b])}
     left, right = project(a), project(b)
@@ -36,7 +36,7 @@ def event(condition=None, left_guard=None, right_guard=None):
         if guard is None:
             return nodes
         return [{"class": PL + "Filter", "num-children": 1,
-                 "condition": guard}, *nodes]
+                 "condition": guard, "child": 0}, *nodes]
     return {"old": [join, *left, *right],
             "new": [dict(join), *with_guard(left, left_guard),
                     *with_guard(right, right_guard)]}
