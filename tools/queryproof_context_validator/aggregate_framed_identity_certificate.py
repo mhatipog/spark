@@ -1,13 +1,14 @@
-"""Sound identity-Project removal under pure integer Aggregate frames.
+"""Sound identity-Project removal under pure Aggregate and Sort frames.
 
 For each *defined* row sequence of T, Project(T.output attributes)(T)
 forwards precisely the same rows, types, identifiers and order. Applying the
-same deterministic relational aggregates above both plans preserves output
-row bags. The verified Aggregate grammar only allows grouped attributes,
+same checked Aggregate/Sort contexts above both plans preserves output
+row bags. Sort is certified only as a bag-preserving permutation.
+The verified Aggregate grammar only allows grouped attributes,
 attribute aliases and integral SUM; it rejects volatile/UDF expressions.
 
 This is a separate, narrower theorem from general projection composition.
-An untouched arithmetic expression in T is NEVER inlined or re-evaluated.
+An untouched Add or Remainder in T is NEVER inlined or re-evaluated.
 """
 from equality_orbits import Unsupported, require
 from join_prefilter_certificate import tree_from_preorder, LOGICAL, EXPR
@@ -56,15 +57,15 @@ def _retained_project_output(tree):
                     dtype = _literal(target)[1]
             else:
                 require(len(item) == 4 and
-                        item[1].get("class") == EXPR + "Add" and
+                        item[1].get("class") in (EXPR + "Add", EXPR + "Remainder") and
                         item[1].get("num-children") == 2,
                         "UNKNOWN_RETAINED_EXPRESSION")
                 key, dtype, _ = _attribute(item[2])
                 require(key in scope and scope[key] == dtype and
-                        dtype in {"integer", "long"}, "ADD_LEFT_NOT_INTEGRAL_SCOPED")
+                        dtype in {"integer", "long"}, "RETAINED_ARITHMETIC_LEFT_NOT_INTEGRAL_SCOPED")
                 ltype = _literal(item[3])[1]
-                require(ltype == dtype, "ADD_OPERAND_TYPE_MISMATCH")
-                # Spark integral+integral of the same type has that result type.
+                require(ltype == dtype, "RETAINED_ARITHMETIC_OPERAND_TYPE_MISMATCH")
+                # Spark same-type integer Add/Remainder retain their integral type.
                 # The Add subtree itself remains byte-for-byte unchanged.
             out = _source_name(head, dtype)
         outputs.append(out)
@@ -129,15 +130,17 @@ def _certify(event):
     old = tree_from_preorder(event["old"])
     new = tree_from_preorder(event["new"])
     frames = []
-    while old[0].get("class") == LOGICAL + "Aggregate":
+    while old[0].get("class") in (LOGICAL + "Sort", LOGICAL + "Aggregate"):
         node, children = old
         counterpart, new_children = new
         require(node == counterpart and node.get("num-children") == 1 and
+                node.get("child") == 0 and
                 len(children) == len(new_children) == 1,
-                "AGGREGATE_FRAME_CHANGED")
-        frames.append(node)
+                "CONTEXT_FRAME_CHANGED")
+        frames.append((node.get("class").split(".")[-1], node))
         old, new = children[0], new_children[0]
-    require(frames, "NO_AGGREGATE_FRAMES")
+    require(any(kind == "Aggregate" for kind, _ in frames),
+            "NO_AGGREGATE_FRAMES")
     identity, identity_children = old
     require(identity.get("class") == LOGICAL + "Project" and
             identity.get("num-children") == 1 and
@@ -157,14 +160,20 @@ def _certify(event):
         require(observed == (key, dtype, name),
                 "NOT_IDENTITY_IN_OUTPUT_ORDER")
     scope = {key: dtype for key, dtype, _ in retained_output}
-    for aggregate in reversed(frames):
-        scope = _aggregate_scope(aggregate, scope)
+    for kind, frame in reversed(frames):
+        if kind == "Aggregate":
+            scope = _aggregate_scope(frame, scope)
+        else:
+            require(kind == "Sort", "UNEXPECTED_CONTEXT_FRAME")
+            # An unchanged Sort is a row-bag permutation, not an ordered
+            # equivalence certificate. Subsequent operators see equal bags.
     return {
         "status": "EQUIVALENT_IN_FRAGMENT",
         "proof_scope": "identity_project_removed_under_pure_integer_aggregates",
-        "aggregate_frames": len(frames),
+        "aggregate_frames": sum(kind == "Aggregate" for kind, _ in frames),
+        "sort_frames": sum(kind == "Sort" for kind, _ in frames),
         "forwarded_columns": len(retained_output),
-        "semantic_law": "A2(A1(identity(T))) == A2(A1(T)) as row bags",
+        "semantic_law": "C(identity(T)) == C(T) as row bags for pure contexts",
         "untouched_child_expressions": True}
 
 
