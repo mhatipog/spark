@@ -462,6 +462,7 @@ jobs:
           print("AGGREGATE_HOLDOUT_CASES", r["executed_cases"])
           print("AGGREGATE_HOLDOUT_EVENTS", r["trace"]["trace_events"])
           print("AGGREGATE_HOLDOUT_PROOF", proof)
+          print("AGGREGATE_HOLDOUT_REDACTED_COLLAPSE_SHAPES", r["posthoc_collapse_project"])
           print("AGGREGATE_HOLDOUT_BY_RULE", r["union_coverage"]["by_rule"])
           print("AGGREGATE_HOLDOUT_MISMATCHES", r["row_oracle_mismatch_cases"])
           print("AGGREGATE_HOLDOUT_ERRORS", r["error_cases"])
