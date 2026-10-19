@@ -143,6 +143,13 @@ jobs:
           print("PROJECT_CONFIRMATION_CERTIFICATES", result["certificates"])
           print("PROJECT_CONFIRMATION_UNKNOWN_REASONS", result["unknown_reasons"])
           print("PROJECT_CONFIRMATION_PROJECT_ITEM_SHAPES", result["project_entry_shapes"])
+          from collections import Counter
+          pushes = Counter()
+          for item in report["trace"]["structural_diagnostics"]:
+              if item["rule"] == "PushDownPredicates":
+                  pushes[(item["reason"], item["old_shape"], item["new_shape"])] += item["count"]
+          for (reason, old, new), count in pushes.most_common(35):
+              print("PROJECT_CONFIRMATION_PUSHDOWN_SHAPE", count, reason, old, new)
           print("PROJECT_CONFIRMATION_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
           if report["executed_cases"] != 18 or report["worker_exit_code"] != 0:
               raise SystemExit("Prospective projection cohort incomplete")
