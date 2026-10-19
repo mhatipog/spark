@@ -6,6 +6,8 @@ on:
     paths:
       - tools/queryproof_context_validator/equality_orbits.py
       - tools/queryproof_context_validator/test_equality_orbits.py
+      - tools/queryproof_context_validator/join_prefilter_certificate.py
+      - tools/queryproof_context_validator/test_join_prefilter.py
       - tools/queryproof_holdout_20261018/run_holdout.py
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
@@ -24,6 +26,8 @@ jobs:
           python-version: '3.11'
       - name: Verify exact orbit certificates and reject malformed traces
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_equality_orbits.py' -v
+      - name: Verify inner join prefilter implication and reject unsafe scopes
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_join_prefilter.py' -v
   frozen-catalyst-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 28
@@ -69,6 +73,7 @@ jobs:
               patterns[(row["rule"], row["reason"], row["old_shape"], row["new_shape"])] += row["count"]
           for pattern, count in patterns.most_common(45):
               print("UNKNOWN_SHAPE", count, *pattern)
+          print("EXPLORATORY_INNER_JOIN_GUARD", report["trace"]["exploratory_inner_join_guard"])
           print("ROW_ORACLE_MISMATCH_CASES", report["row_oracle_mismatch_cases"])
           if report["executed_cases"] != 18:
               raise SystemExit("Incomplete case execution")
