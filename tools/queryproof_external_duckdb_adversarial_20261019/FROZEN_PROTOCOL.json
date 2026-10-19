@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-duckdb-null-duplicate-outer-adversarial-20261019",
+  "status": "Preregistered adversarial third cohort; verifier unchanged from ff06b4; SQL/data frozen before optimizer replay.",
+  "freeze_date_utc": "2026-10-19",
+  "prospective_contextual_guard": true,
+  "frozen_verifier_commit": "ff06b44929ec9f0fd841d404797e04a8e5790a19",
+  "source_repo": "duckdb/duckdb",
+  "source_commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+  "primary": "Any exact certificate must be sound on nullable/duplicate-heavy INNER joins and never treat a genuinely LEFT/RIGHT OUTER Catalyst AST join as an INNER join. Count complete contextual guard certificate events and UNKNOWN among all traced rule changes and separately among named rules; zero accepted is valid.",
+  "secondary": [
+    "18/18 SQL execution Spark 4.2 and SQLite 3.45 with equal row-bag hash incl duplicates and nulls",
+    "Per-rule accepted/abstained counts and side guards, with Bell orbit and SQLite valuations",
+    "Zero trace integrity errors and explicit handling of result-order irrelevance",
+    "Log no AST or SQL literals"
+  ],
+  "selection": "Queries 3,4,14-17 from DuckDB test/sql/join/inner/test_join_is_not_distinct.test, after the relevant CREATE/INSERT state; queries 1-9 and 11-13 from DuckDB test/sql/join/left_outer/test_left_outer.test. All original queries verbatim. Duplicate source ordinal 10 excluded as duplicate of 5.",
+  "constraints": [
+    "Verifier and SQL remain unchanged after first run for prospective status",
+    "No acceptance via rule name; AST join type only",
+    "Output bag comparison ignores ORDER BY, and no ordered result equivalence is claimed",
+    "No universal correctness claim from fixture-only row matches",
+    "No upstream PR or new infrastructure costs"
+  ]
+}

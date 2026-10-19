@@ -23,6 +23,7 @@ on:
       - tools/queryproof_transport_confirmation_20261019/**
       - tools/queryproof_external_postgresql_join_20261019/**
       - tools/queryproof_external_duckdb_join_20261019/**
+      - tools/queryproof_external_duckdb_adversarial_20261019/**
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
 permissions:
@@ -276,6 +277,7 @@ jobs:
             tools/queryproof_holdout_20261018
             tools/queryproof_external_postgresql_join_20261019
             tools/queryproof_external_duckdb_join_20261019
+            tools/queryproof_external_duckdb_adversarial_20261019
             tools/queryproof_instrumented
       - uses: actions/setup-java@v4
         with:
@@ -365,6 +367,38 @@ jobs:
           if report["trace"]["trace_events"] <= 0:
               raise SystemExit("No optimizer traces")
           '
+      - name: Run separate prospective NULL/duplicate/outer-join negative-control cohort
+        run: python -u tools/queryproof_external_duckdb_adversarial_20261019/run_adversarial.py
+      - name: Verify adversarial SQL rows and conservative contextual proof decisions
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          path = Path("artifacts/queryproof_duckdb_adversarial_20261019.json")
+          if not path.exists():
+              raise SystemExit("Missing NULL and outer adversarial scoreboard")
+          r = json.loads(path.read_text())
+          p = r["posthoc_contextual_guard"]
+          print("ADVERSARIAL_CASES", r["executed_cases"])
+          print("ADVERSARIAL_SPARK", r["spark_version"])
+          print("ADVERSARIAL_EVENTS", r["trace"]["trace_events"])
+          print("ADVERSARIAL_PROOFS", p)
+          print("ADVERSARIAL_ORIGINAL_FIVE_UNION", r["union_coverage"]["union_statuses"])
+          print("ADVERSARIAL_BY_RULE", r["union_coverage"]["by_rule"])
+          print("ADVERSARIAL_ROW_MISMATCHES", r["row_oracle_mismatch_cases"])
+          print("ADVERSARIAL_ERRORS", r["error_cases"])
+          if p["status"] != "PROSPECTIVE_FROZEN_DUCKDB_COHORT":
+              raise SystemExit("Adversarial sample not frozen as prospective")
+          if r["worker_exit_code"] != 0 or r["executed_cases"] != 18:
+              raise SystemExit("Adversarial sample incomplete")
+          if r["row_oracle_mismatch_cases"] or r["error_cases"]:
+              raise SystemExit("Row bag or SQL dialect disagreement")
+          if r["trace"]["decode_failures"] or r["trace"]["instrumentation_failures"]:
+              raise SystemExit("Adversarial trace failure")
+          if r["trace"]["trace_events"] < 1:
+              raise SystemExit("Missing adversarial Catalyst events")
+          '
       - name: Archive independent cohort sanitized scoreboard only
         if: always()
         uses: actions/upload-artifact@v4
@@ -373,5 +407,6 @@ jobs:
           path: |
             artifacts/queryproof_external_postgresql_join_20261019.json
             artifacts/queryproof_duckdb_join_prospective_20261019.json
+            artifacts/queryproof_duckdb_adversarial_20261019.json
           if-no-files-found: warn
           retention-days: 14

@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-duckdb-null-duplicate-outer-adversarial-20261019",
+  "source": {
+    "repository": "duckdb/duckdb",
+    "commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+    "paths": [
+      "test/sql/join/inner/test_join_is_not_distinct.test",
+      "test/sql/join/left_outer/test_left_outer.test"
+    ],
+    "selection": "Integer tables only: test_join_is_not_distinct.test query ordinals [3,4,14,15,16,17] after the original duplicate INSERT/NULL-table CREATE; test_left_outer.test ordinals [1,2,3,4,5,6,7,8,9,11,12,13] (skip repeated identical ordinal 10). Original SQL unchanged; original table states preserved. Frozen before this cohort's first Spark execution.",
+    "selected_counts": [
+      6,
+      12
+    ],
+    "purpose": "Independent original vendor SQL clauses with NULL-safe equality, ordinary equality, duplicate-preserving self joins, LEFT/RIGHT OUTER, NULL ON, disjunctive ON."
+  },
+  "tables": {
+    "tbl": {
+      "columns": [
+        {
+          "name": "col0",
+          "type": "integer"
+        },
+        {
+          "name": "col1",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    "tbl_null": {
+      "columns": [
+        {
+          "name": "col0",
+          "type": "integer"
+        },
+        {
+          "name": "col1",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          null
+        ],
+        [
+          null,
+          1
+        ],
+        [
+          0,
+          null
+        ],
+        [
+          null,
+          0
+        ],
+        [
+          null,
+          null
+        ]
+      ]
+    },
+    "integers": {
+      "columns": [
+        {
+          "name": "i",
+          "type": "integer"
+        },
+        {
+          "name": "j",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    "integers2": {
+      "columns": [
+        {
+          "name": "k",
+          "type": "integer"
+        },
+        {
+          "name": "l",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          1,
+          10
+        ],
+        [
+          2,
+          20
+        ]
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "A01",
+      "source_file": "test/sql/join/inner/test_join_is_not_distinct.test",
+      "source_query_ordinal": 3,
+      "sql": "SELECT x.col1, y.col1 FROM tbl x JOIN tbl y\nON x.col0 = y.col0 AND (x.col1 IS NOT DISTINCT FROM y.col1)\nORDER BY x.col1;"
+    },
+    {
+      "id": "A02",
+      "source_file": "test/sql/join/inner/test_join_is_not_distinct.test",
+      "source_query_ordinal": 4,
+      "sql": "SELECT x.col1, y.col1 FROM tbl x JOIN tbl y\nON x.col0 = y.col0 AND x.col1 = y.col1\nORDER BY x.col1;"
+    },
+    {
+      "id": "A03",
+      "source_file": "test/sql/join/inner/test_join_is_not_distinct.test",
+      "source_query_ordinal": 14,
+      "sql": "SELECT x.col1, y.col1 FROM tbl_null x JOIN tbl_null y\nON x.col0 = y.col0 AND (x.col1 IS NOT DISTINCT FROM y.col1)\nORDER BY x.col1, y.col1;"
+    },
+    {
+      "id": "A04",
+      "source_file": "test/sql/join/inner/test_join_is_not_distinct.test",
+      "source_query_ordinal": 15,
+      "sql": "SELECT x.col1, y.col1 FROM tbl_null x JOIN tbl_null y\nON x.col0 = y.col0 AND x.col1 = y.col1\nORDER BY x.col1;"
+    },
+    {
+      "id": "A05",
+      "source_file": "test/sql/join/inner/test_join_is_not_distinct.test",
+      "source_query_ordinal": 16,
+      "sql": "SELECT x.col1, y.col1 FROM tbl_null x JOIN tbl_null y\nON x.col0 = y.col0 AND (x.col1 IS NOT DISTINCT FROM y.col1)\nORDER BY x.col1;"
+    },
+    {
+      "id": "A06",
+      "source_file": "test/sql/join/inner/test_join_is_not_distinct.test",
+      "source_query_ordinal": 17,
+      "sql": "SELECT x.col1, y.col1 FROM tbl_null x JOIN tbl_null y\nON x.col0 = y.col0 AND x.col1 = y.col1\nORDER BY x.col1;"
+    },
+    {
+      "id": "A07",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 1,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON integers.i=integers2.k ORDER BY i"
+    },
+    {
+      "id": "A08",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 2,
+      "sql": "SELECT * FROM integers2 RIGHT OUTER JOIN integers ON integers.i=integers2.k ORDER BY i"
+    },
+    {
+      "id": "A09",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 3,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON integers.i=integers2.k  WHERE k IS NOT NULL ORDER BY i"
+    },
+    {
+      "id": "A10",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 4,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON integers.i=integers2.k AND integers2.k IS NOT NULL ORDER BY i"
+    },
+    {
+      "id": "A11",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 5,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON i=1 ORDER BY i, k;"
+    },
+    {
+      "id": "A12",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 6,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON 1=1 ORDER BY i, k;"
+    },
+    {
+      "id": "A13",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 7,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN (SELECT * FROM integers2 WHERE 1<>1) tbl2 ON 1=2 ORDER BY i;"
+    },
+    {
+      "id": "A14",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 8,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON 1=2 ORDER BY i;"
+    },
+    {
+      "id": "A15",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 9,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON NULL<>NULL ORDER BY i;"
+    },
+    {
+      "id": "A16",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 11,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON l=20 ORDER BY i, k;"
+    },
+    {
+      "id": "A17",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 12,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON l>0 ORDER BY i, k;"
+    },
+    {
+      "id": "A18",
+      "source_file": "test/sql/join/left_outer/test_left_outer.test",
+      "source_query_ordinal": 13,
+      "sql": "SELECT * FROM integers LEFT OUTER JOIN integers2 ON i=1 OR l=20 ORDER BY i, k;"
+    }
+  ]
+}
