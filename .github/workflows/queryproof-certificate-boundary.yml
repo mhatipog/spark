@@ -304,6 +304,12 @@ jobs:
           print("EXTERNAL_FAMILIES", coverage["per_certificate_family"])
           print("EXTERNAL_OVERLAPS", coverage["overlap_families"])
           print("EXTERNAL_BY_RULE", coverage["by_rule"])
+          for label in ("exploratory_inner_join_guard", "exploratory_project_pushdown", "exploratory_compositional_frames", "exploratory_join_filter_transport"):
+              print("EXTERNAL_FAMILY_UNKNOWNS", label, report["trace"][label]["unknown_reasons"])
+          shapes = [row for row in report["trace"]["structural_diagnostics"]
+                    if row["rule"] in ("InferFiltersFromConstraints", "CollapseProject", "PushDownPredicates")]
+          for row in sorted(shapes, key=lambda r: (-r["count"], r["rule"]))[:55]:
+              print("EXTERNAL_UNKNOWN_SHAPE", row["count"], row["rule"], row["reason"], row["old_shape"], row["new_shape"])
           print("EXTERNAL_COUNTEREXAMPLE_EVENTS", coverage["counterexample_events"])
           print("EXTERNAL_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
           print("EXTERNAL_ERROR_CASES", report["error_cases"])
