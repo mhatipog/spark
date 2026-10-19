@@ -38,7 +38,7 @@ def worker(manifest_path, output_path):
     reference = sqlite3.connect(":memory:")
     try:
         for name, definition in manifest["tables"].items():
-            assert name in ("J1_TBL", "J2_TBL")
+            assert name.isidentifier() and name[0].isalpha()
             columns = definition["columns"]
             assert all(column["type"] in ("integer", "string") for column in columns)
             spark_schema = StructType([
@@ -238,7 +238,8 @@ def parent():
     protocol = json.loads(protocol_bytes)
     assert len(manifest["cases"]) == 18
     assert manifest["benchmark_id"] == protocol["benchmark_id"]
-    assert len(set(case["source_query_ordinal"] for case in manifest["cases"])) == 18
+    assert len(set((case.get("source_file", ""), case["source_query_ordinal"])
+                   for case in manifest["cases"])) == 18
     with tempfile.TemporaryDirectory(prefix="qp-external-private-") as tmp:
         raw_stderr = Path(tmp) / "raw-catalyst-stderr.txt"
         child_report = Path(tmp) / "private-observations.json"
@@ -252,6 +253,8 @@ def parent():
         coverage = union_coverage(raw_stderr)
         key_signatures = plan_key_diagnostics(raw_stderr)
         contextual = retrospective_contextual_guard(raw_stderr)
+        if protocol.get("prospective_contextual_guard"):
+            contextual["status"] = "PROSPECTIVE_FROZEN_DUCKDB_COHORT"
     observations = cases_observed.get("cases", {})
     missing = sorted(set(c["id"] for c in manifest["cases"]) - set(observations))
     failed = sorted(k for k, v in observations.items() if v["status"] != "EXECUTED")
