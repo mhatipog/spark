@@ -14,6 +14,8 @@ on:
       - tools/queryproof_context_validator/test_compositional_project_frame.py
       - tools/queryproof_context_validator/join_filter_transport_certificate.py
       - tools/queryproof_context_validator/test_join_filter_transport.py
+      - tools/queryproof_context_validator/contextual_join_guard_certificate.py
+      - tools/queryproof_context_validator/test_contextual_join_guard.py
       - tools/queryproof_holdout_20261018/run_holdout.py
       - tools/queryproof_structural_confirmation_20261019/**
       - tools/queryproof_project_confirmation_20261019/**
@@ -45,6 +47,8 @@ jobs:
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_compositional_project_frame.py' -v
       - name: Verify complete INNER JOIN predicate transport
         run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_join_filter_transport.py' -v
+      - name: Verify contextual join guards under safe Literal-Project and Sort frames
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_contextual_join_guard.py' -v
   frozen-catalyst-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 28
@@ -312,6 +316,7 @@ jobs:
               print("EXTERNAL_UNKNOWN_SHAPE", row["count"], row["rule"], row["reason"], row["old_shape"], row["new_shape"])
           for row in report["sanitized_plan_key_inventory"][:60]:
               print("EXTERNAL_PLAN_KEYS", row)
+          print("EXTERNAL_POSTHOC_CONTEXTUAL_GUARD", report["posthoc_contextual_guard"])
           print("EXTERNAL_COUNTEREXAMPLE_EVENTS", coverage["counterexample_events"])
           print("EXTERNAL_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
           print("EXTERNAL_ERROR_CASES", report["error_cases"])

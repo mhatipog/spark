@@ -200,6 +200,37 @@ def plan_key_diagnostics(private_trace_path):
     ]
 
 
+def retrospective_contextual_guard(private_trace_path):
+    """Deliberately *not* part of the source-frozen five-checker union metric."""
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_instrumented"))
+    from rank_ast import decode
+    from contextual_join_guard_certificate import certify_contextual_join_guard_event
+    passed = []
+    by_rule = Counter()
+    reasons = Counter()
+    for line in private_trace_path.read_text(errors="replace").splitlines():
+        if not line.startswith("QUERYPROOF_AST\t"):
+            continue
+        event = decode(line)
+        verdict = certify_contextual_join_guard_event(event)
+        rule = _rule_basename(event.get("rule"))
+        if verdict["status"] == "EQUIVALENT_IN_FRAGMENT":
+            passed.append({
+                "case": event.get("case"), "rule": rule,
+                "frames": verdict["frames"], "constants": verdict["constants"],
+                "guarded_sides": verdict["guarded_sides"],
+                "orbits_checked": verdict["orbits_checked"],
+                "sqlite_verified": verdict["sqlite_verified"]})
+            by_rule[rule] += 1
+        else:
+            reasons[verdict.get("reason", "UNKNOWN")] += 1
+    return {
+        "status": "RETROSPECTIVE_EXPLORATORY_ONLY_AFTER_ZERO_COVERAGE_HOLDOUT",
+        "certified": len(passed), "certificates": passed,
+        "by_rule": dict(by_rule), "unknown_reasons": dict(reasons)}
+
+
 def parent():
     manifest_bytes = MANIFEST.read_bytes()
     protocol_bytes = PROTOCOL.read_bytes()
@@ -220,6 +251,7 @@ def parent():
         scored = analyze_trace(raw_stderr, set())
         coverage = union_coverage(raw_stderr)
         key_signatures = plan_key_diagnostics(raw_stderr)
+        contextual = retrospective_contextual_guard(raw_stderr)
     observations = cases_observed.get("cases", {})
     missing = sorted(set(c["id"] for c in manifest["cases"]) - set(observations))
     failed = sorted(k for k, v in observations.items() if v["status"] != "EXECUTED")
@@ -242,6 +274,7 @@ def parent():
         "cases": observations,
         "union_coverage": coverage,
         "sanitized_plan_key_inventory": key_signatures,
+        "posthoc_contextual_guard": contextual,
         "trace": scored,
         "limitations": [
             "Independent of QueryProof development cases, but sourced from Spark's port "
@@ -259,6 +292,7 @@ def parent():
         "events": scored["trace_events"],
         "union": coverage["union_statuses"],
         "families": coverage["per_certificate_family"],
+        "posthoc_contextual_guard": contextual["certified"],
         "counterexamples": len(coverage["counterexample_events"]),
         "decode_failures": len(scored["decode_failures"]),
         "instrumentation_failures": len(scored["instrumentation_failures"])}), flush=True)
