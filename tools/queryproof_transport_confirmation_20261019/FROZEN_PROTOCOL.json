@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-inner-join-predicate-transport-20261019",
+  "freeze_date_utc": "2026-10-19",
+  "status": "Preregistered fifth suite with new SQL/data, frozen before first execution on instrumented Spark.",
+  "frozen_verifier_commit": "35314636b8d0ce04d922a3df0f2fa72c0974325c",
+  "preregistered_primary": "Exact TRUE-set certificate count for total Filter-over-INNER-JOIN predicate transport or its unchanged pure-Project framed variant, among all instrumented Catalyst changes, with complete event denominator and proof/double-counting disclosures. Report zero if none.",
+  "preregistered_secondary": "Counts of existing predicate-only, implied INNER JOIN side-guard, direct Filter/Project, and pure-Project-framed proofs. Every accepted event requires complete Bell(n+1) nullable-integral 3VL orbit equality and SQLite-independent confirmation. Check Spark-vs-SQLite row bags.",
+  "randomization": "Fixed 32-bit LCG seed 0x20261021 (multiplier 1664525, increment 1013904223), newly generated nullable integer source rows including all-NULL and duplicate rows. Fixed strata T01-T05 single-side WHERE, T06-T09 two-side WHERE, T10-T12 cross-side WHERE, T13-T14 disjunctive 3VL controls, T15-T16 null contradiction controls, T17-T18 LEFT OUTER with null-rejecting WHERE.",
+  "eligibility": "Theorem Filter(P, Join_Inner(C,L,R)) ≡ Join_Inner(C', optional Filter(GL,L), optional Filter(GR,R)) iff C∧P is TRUE exactly when C'∧GL∧GR is TRUE for all nullable-integral valuations; unchanged exact join metadata other than condition, unchanged source Project subtrees, strict side-scoped pushed guards, both sides with pure identity/direct-alias Project. May be wrapped by unchanged pure direct/alias Project frames. Fail closed outside grammar.",
+  "stop_rules": [
+    "Never modify SQL/data after first Spark replay.",
+    "Any verifier alteration after this replay makes future measurements on this cohort retrospective.",
+    "No claim of external workload representativeness, general Spark correctness, or bug disclosure.",
+    "Publish only sanitized shape-only diagnostics, no raw full Catalyst AST."
+  ],
+  "rules_known_from_prior_round_excluded_from_primary": [
+    "OptimizeJoinCondition",
+    "RewritePredicateSubquery"
+  ],
+  "limitations": [
+    "SQL sampled within intentionally selected join/WHERE families.",
+    "Finite fixture SQLite oracle is a consistency check, not proof outside grammar.",
+    "LEFT OUTER source SQL can legitimately optimize to INNER under null-rejecting WHERE; eligibility depends on exact actual Catalyst join type at event, never source spelling."
+  ]
+}

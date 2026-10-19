@@ -18,6 +18,7 @@ on:
       - tools/queryproof_structural_confirmation_20261019/**
       - tools/queryproof_project_confirmation_20261019/**
       - tools/queryproof_compositional_confirmation_20261019/**
+      - tools/queryproof_transport_confirmation_20261019/**
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
 permissions:
@@ -55,6 +56,7 @@ jobs:
             tools/queryproof_structural_confirmation_20261019
             tools/queryproof_project_confirmation_20261019
             tools/queryproof_compositional_confirmation_20261019
+            tools/queryproof_transport_confirmation_20261019
             tools/queryproof_instrumented
       - uses: actions/setup-java@v4
         with:
@@ -211,6 +213,38 @@ jobs:
                  for x in frames["certificates"]):
               raise SystemExit("Outer join incorrectly treated as inner")
           '
+      - name: Replay fifth preregistered 18-query INNER JOIN predicate-transport cohort
+        run: python -u tools/queryproof_transport_confirmation_20261019/run_prospective.py
+      - name: Check prospective INNER JOIN transport certificate scoreboard
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          path = Path("artifacts/queryproof_transport_confirmation_20261019.json")
+          if not path.exists():
+              raise SystemExit("Missing transport confirmation scoreboard")
+          report = json.loads(path.read_text())
+          direct = report["trace"]["exploratory_join_filter_transport"]
+          framed = report["trace"]["exploratory_compositional_frames"]
+          transport_frames = [x for x in framed["certificates"] if x["core"] == "inner_join_filter_transport"]
+          print("TRANSPORT_CONFIRMATION_SPARK", report["spark_version"])
+          print("TRANSPORT_CONFIRMATION_CASES", report["executed_cases"])
+          print("TRANSPORT_CONFIRMATION_EVENTS", report["trace"]["trace_events"])
+          print("TRANSPORT_CONFIRMATION_DIRECT", direct["certified"])
+          print("TRANSPORT_CONFIRMATION_DIRECT_DETAILS", direct["certificates"])
+          print("TRANSPORT_CONFIRMATION_FRAMED", len(transport_frames))
+          print("TRANSPORT_CONFIRMATION_FRAMED_DETAILS", transport_frames)
+          print("TRANSPORT_CONFIRMATION_DIRECT_UNKNOWN", direct["unknown_reasons"])
+          print("TRANSPORT_CONFIRMATION_FRAME_UNKNOWN", framed["unknown_reasons"])
+          print("TRANSPORT_CONFIRMATION_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
+          if report["executed_cases"] != 18 or report["worker_exit_code"] != 0:
+              raise SystemExit("Incomplete fifth suite")
+          if report["row_oracle_mismatch_cases"]:
+              raise SystemExit("Independent Spark/SQLite row-bag disagreement")
+          if report["trace"]["decode_failures"] or report["trace"]["instrumentation_failures"]:
+              raise SystemExit("Catalyst trace integrity failure")
+          '
       - name: Archive sanitized scoreboard only
         if: always()
         uses: actions/upload-artifact@v4
@@ -221,5 +255,6 @@ jobs:
             artifacts/queryproof_structural_confirmation_20261019.json
             artifacts/queryproof_project_confirmation_20261019.json
             artifacts/queryproof_compositional_confirmation_20261019.json
+            artifacts/queryproof_transport_confirmation_20261019.json
           if-no-files-found: warn
           retention-days: 14
