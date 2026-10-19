@@ -140,6 +140,15 @@ def analyze_trace(path, known_rule_names):
                    public_plan_shape(event.get("old")),
                    public_plan_shape(event.get("new")))
             unknown_shapes[key] += 1
+    # Names only: identify additional Catalyst Filter serialization fields.
+    infer_filter_keysets = Counter()
+    for event in events:
+        if _rule_basename(event.get("rule")) != "InferFiltersFromConstraints":
+            continue
+        for node in event.get("new", []):
+            if (isinstance(node, dict) and node.get("class") ==
+                    "org.apache.spark.sql.catalyst.plans.logical.Filter"):
+                infer_filter_keysets[tuple(sorted(node))] += 1
     prospective_guards = []
     guard_unknowns = Counter()
     for event in events:
@@ -171,6 +180,9 @@ def analyze_trace(path, known_rule_names):
         "instrumentation_failures": instrumentation_failures,
         "possible_trace_truncation": len(events) >= 2500,
         "all_events": scored["summary"],
+        "infer_filter_keysets": [
+            {"keys": list(k), "count": v}
+            for k, v in sorted(infer_filter_keysets.items())],
         "exploratory_inner_join_guard": {
             "certified": len(prospective_guards),
             "certificates": prospective_guards,
