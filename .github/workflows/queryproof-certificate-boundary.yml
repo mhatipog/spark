@@ -19,6 +19,7 @@ on:
       - tools/queryproof_project_confirmation_20261019/**
       - tools/queryproof_compositional_confirmation_20261019/**
       - tools/queryproof_transport_confirmation_20261019/**
+      - tools/queryproof_external_postgresql_join_20261019/**
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
 permissions:
@@ -256,5 +257,70 @@ jobs:
             artifacts/queryproof_project_confirmation_20261019.json
             artifacts/queryproof_compositional_confirmation_20261019.json
             artifacts/queryproof_transport_confirmation_20261019.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  external-postgresql-join-generalization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official released PySpark
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument disposable Catalyst wheel
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Run preregistered out-of-design PostgreSQL join regression sample
+        run: python -u tools/queryproof_external_postgresql_join_20261019/run_external.py
+      - name: Summarize cross-engine row bags and exact proof union without coverage target
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          path = Path("artifacts/queryproof_external_postgresql_join_20261019.json")
+          if not path.exists():
+              raise SystemExit("Missing external workload scoreboard")
+          report = json.loads(path.read_text())
+          coverage = report["union_coverage"]
+          print("EXTERNAL_SOURCE", report["source"]["repository"], report["source"]["commit"])
+          print("EXTERNAL_SPARK", report["spark_version"])
+          print("EXTERNAL_SQLITE", report["sqlite_version"])
+          print("EXTERNAL_CASES", report["executed_cases"])
+          print("EXTERNAL_EVENTS", coverage["event_denominator"])
+          print("EXTERNAL_UNION", coverage["union_statuses"])
+          print("EXTERNAL_FAMILIES", coverage["per_certificate_family"])
+          print("EXTERNAL_OVERLAPS", coverage["overlap_families"])
+          print("EXTERNAL_BY_RULE", coverage["by_rule"])
+          print("EXTERNAL_COUNTEREXAMPLE_EVENTS", coverage["counterexample_events"])
+          print("EXTERNAL_ROW_MISMATCHES", report["row_oracle_mismatch_cases"])
+          print("EXTERNAL_ERROR_CASES", report["error_cases"])
+          if report["worker_exit_code"] != 0 or report["executed_cases"] != 18:
+              raise SystemExit("External workload incomplete")
+          if report["row_oracle_mismatch_cases"] or report["error_cases"]:
+              raise SystemExit("Cross-engine mismatch or query error")
+          if report["trace"]["decode_failures"] or report["trace"]["instrumentation_failures"]:
+              raise SystemExit("Incomplete AST trace")
+          if not coverage["event_denominator"]:
+              raise SystemExit("No optimizer events captured")
+          '
+      - name: Archive independent cohort sanitized scoreboard only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-external-postgresql-joins-4.2
+          path: artifacts/queryproof_external_postgresql_join_20261019.json
           if-no-files-found: warn
           retention-days: 14

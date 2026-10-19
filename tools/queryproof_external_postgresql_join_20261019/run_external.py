@@ -1,0 +1,240 @@
+"""Preselected third-party-derived Spark SQL regression replay.
+
+Pure orchestration and reporting. The frozen QueryProof certificate implementations
+are imported unchanged; this file MUST NOT define or alter any proof decision.
+"""
+import argparse
+from collections import Counter, defaultdict
+import hashlib
+import json
+from pathlib import Path
+import sqlite3
+import subprocess
+import sys
+import tempfile
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent.parent
+sys.path.insert(0, str(ROOT / "tools" / "queryproof_holdout_20261018"))
+from run_holdout import canonical_bag, analyze_trace, _rule_basename
+
+MANIFEST = HERE / "CASES.json"
+PROTOCOL = HERE / "FROZEN_PROTOCOL.json"
+OUTPUT = ROOT / "artifacts" / "queryproof_external_postgresql_join_20261019.json"
+
+
+def worker(manifest_path, output_path):
+    from pyspark.sql import SparkSession
+    from pyspark.sql.types import IntegerType, StringType, StructField, StructType
+
+    manifest = json.loads(manifest_path.read_text())
+    spark = (SparkSession.builder.master("local[2]")
+             .appName("QueryProof externally sourced PostgreSQL join regression")
+             .config("spark.ui.enabled", "false")
+             .config("spark.sql.adaptive.enabled", "false")
+             .config("spark.sql.shuffle.partitions", "2")
+             .getOrCreate())
+    spark.sparkContext.setLogLevel("ERROR")
+    reference = sqlite3.connect(":memory:")
+    try:
+        for name, definition in manifest["tables"].items():
+            assert name in ("J1_TBL", "J2_TBL")
+            columns = definition["columns"]
+            assert all(column["type"] in ("integer", "string") for column in columns)
+            spark_schema = StructType([
+                StructField(column["name"],
+                            IntegerType() if column["type"] == "integer"
+                            else StringType(), True)
+                for column in columns])
+            sqlite_types = {"integer": "INTEGER", "string": "TEXT"}
+            ddl = ", ".join('"' + c["name"] + '" ' + sqlite_types[c["type"]]
+                            for c in columns)
+            reference.execute('CREATE TABLE "' + name + '" (' + ddl + ')')
+            placeholders = ",".join("?" for _ in columns)
+            reference.executemany('INSERT INTO "' + name + '" VALUES (' +
+                                  placeholders + ')', definition["rows"])
+            spark.createDataFrame(definition["rows"], spark_schema).createOrReplaceTempView(name)
+        observations = {}
+        jvm = spark._jvm.java.lang.System
+        for case in manifest["cases"]:
+            key = case["id"]
+            jvm.setProperty("queryproof.query.id", key)
+            jvm.setProperty("queryproof.ast.enabled", "true")
+            try:
+                expected = reference.execute(case["sql"]).fetchall()
+                df = spark.sql(case["sql"])
+                df._jdf.queryExecution().optimizedPlan()
+                actual = [tuple(row) for row in df.collect()]
+                expected_bag = canonical_bag(expected)
+                actual_bag = canonical_bag(actual)
+                observations[key] = {
+                    "status": "EXECUTED",
+                    "oracle_match": expected_bag == actual_bag,
+                    "spark": actual_bag, "sqlite_reference": expected_bag}
+            except Exception as exc:
+                # Deliberately omit error text and full logical plans.
+                observations[key] = {"status": "ERROR", "error_type": type(exc).__name__}
+            finally:
+                jvm.clearProperty("queryproof.ast.enabled")
+                jvm.clearProperty("queryproof.query.id")
+            print("QUERYPROOF_EXTERNAL_CASE", key, observations[key]["status"], flush=True)
+        output_path.write_text(json.dumps({
+            "spark_version": spark.version,
+            "sqlite_version": sqlite3.sqlite_version,
+            "cases": observations}, indent=2))
+        return int(any(x["status"] != "EXECUTED" or not x["oracle_match"]
+                       for x in observations.values()))
+    finally:
+        reference.close()
+        spark.stop()
+
+
+def union_coverage(private_trace_path):
+    """Combine five *frozen* checkers per event without counting overlaps twice."""
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_instrumented"))
+    from rank_ast import decode
+    from equality_orbits import certify_predicate_event
+    from join_prefilter_certificate import certify_inner_join_prefilter_event
+    from project_pushdown_certificate import certify_project_filter_event
+    from compositional_project_frame_certificate import certify_pure_project_framed_event
+    from join_filter_transport_certificate import certify_inner_join_filter_transport
+
+    checkers = {
+        "predicate_orbit": certify_predicate_event,
+        "inner_join_prefilter": certify_inner_join_prefilter_event,
+        "project_filter": certify_project_filter_event,
+        "pure_project_frame": certify_pure_project_framed_event,
+        "inner_join_transport": certify_inner_join_filter_transport,
+    }
+    counts = Counter()
+    by_family = Counter()
+    by_rule = defaultdict(Counter)
+    by_case = defaultdict(Counter)
+    overlapping = Counter()
+    unconstrained = Counter()
+    counterexample_events = []
+    for line in private_trace_path.read_text(errors="replace").splitlines():
+        if not line.startswith("QUERYPROOF_AST\t"):
+            continue
+        event = decode(line)
+        accepted = []
+        for family, checker in checkers.items():
+            verdict = checker(event)
+            status = verdict["status"]
+            if status == "EQUIVALENT_IN_FRAGMENT":
+                accepted.append(family)
+                by_family[family] += 1
+            elif status == "COUNTEREXAMPLE":
+                counterexample_events.append({
+                    "case": event.get("case"),
+                    "rule": _rule_basename(event.get("rule")),
+                    "family": family})
+        case = event.get("case", "unlabelled")
+        rule = _rule_basename(event.get("rule"))
+        label = "CERTIFIED" if accepted else "UNKNOWN"
+        counts[label] += 1
+        by_rule[rule][label] += 1
+        by_case[case][label] += 1
+        if len(accepted) > 1:
+            overlapping["+".join(accepted)] += 1
+        if not accepted:
+            unconstrained[rule] += 1
+    return {
+        "event_denominator": sum(counts.values()),
+        "union_statuses": dict(counts),
+        "per_certificate_family": dict(by_family),
+        "overlap_families": dict(overlapping),
+        "by_rule": {key: dict(val) for key, val in sorted(by_rule.items())},
+        "by_case": {key: dict(val) for key, val in sorted(by_case.items())},
+        "unknown_rule_counts": dict(unconstrained),
+        "counterexample_events": counterexample_events,
+        "coverage_explanation": (
+            "An event counts once in union CERTIFIED iff at least one unchanged "
+            "checker returned EQUIVALENT_IN_FRAGMENT. Others are UNKNOWN, not bugs. "
+            "COUNTEREXAMPLE is only a fragment-local proof result, not necessarily "
+            "a reachable optimizer defect.")
+    }
+
+
+def parent():
+    manifest_bytes = MANIFEST.read_bytes()
+    protocol_bytes = PROTOCOL.read_bytes()
+    manifest = json.loads(manifest_bytes)
+    protocol = json.loads(protocol_bytes)
+    assert len(manifest["cases"]) == 18
+    assert manifest["benchmark_id"] == protocol["benchmark_id"]
+    assert len(set(case["source_query_ordinal"] for case in manifest["cases"])) == 18
+    with tempfile.TemporaryDirectory(prefix="qp-external-private-") as tmp:
+        raw_stderr = Path(tmp) / "raw-catalyst-stderr.txt"
+        child_report = Path(tmp) / "private-observations.json"
+        with raw_stderr.open("w", encoding="utf8") as stream:
+            child = subprocess.run([
+                sys.executable, str(HERE / "run_external.py"),
+                "--worker", str(MANIFEST), str(child_report)
+            ], cwd=str(ROOT), stderr=stream, check=False)
+        cases_observed = json.loads(child_report.read_text()) if child_report.exists() else {}
+        scored = analyze_trace(raw_stderr, set())
+        coverage = union_coverage(raw_stderr)
+    observations = cases_observed.get("cases", {})
+    missing = sorted(set(c["id"] for c in manifest["cases"]) - set(observations))
+    failed = sorted(k for k, v in observations.items() if v["status"] != "EXECUTED")
+    mismatches = sorted(k for k, v in observations.items()
+                        if v["status"] == "EXECUTED" and not v["oracle_match"])
+    assert coverage["event_denominator"] == scored["trace_events"], "Scorer denominator differs"
+    report = {
+        "protocol": manifest["benchmark_id"],
+        "source": manifest["source"],
+        "verifier_frozen_commit": protocol["frozen_verifier_commit"],
+        "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+        "protocol_sha256": hashlib.sha256(protocol_bytes).hexdigest(),
+        "spark_version": cases_observed.get("spark_version"),
+        "sqlite_version": cases_observed.get("sqlite_version"),
+        "worker_exit_code": child.returncode,
+        "executed_cases": len(observations),
+        "missing_cases": missing,
+        "error_cases": failed,
+        "row_oracle_mismatch_cases": mismatches,
+        "cases": observations,
+        "union_coverage": coverage,
+        "trace": scored,
+        "limitations": [
+            "Independent of QueryProof development cases, but sourced from Spark's port "
+            "of PostgreSQL tests, not randomly sampled production workloads.",
+            "Selection excludes non-cross-dialect cases by predeclared schema/syntax rules.",
+            "Exactly 18 queries; selection was not optimized for coverage.",
+            "SQLite finite row bag agreement is not a universal semantic equivalence proof.",
+            "UNKNOWN is an abstention, not an incorrect optimizer transformation.",
+            "Original raw AST and full JVM stderr were deleted with private temp directory."
+        ]}
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT.write_text(json.dumps(report, indent=2), encoding="utf8")
+    print("QUERYPROOF_EXTERNAL_SUMMARY", json.dumps({
+        "cases": len(observations), "errors": failed, "mismatches": mismatches,
+        "events": scored["trace_events"],
+        "union": coverage["union_statuses"],
+        "families": coverage["per_certificate_family"],
+        "counterexamples": len(coverage["counterexample_events"]),
+        "decode_failures": len(scored["decode_failures"]),
+        "instrumentation_failures": len(scored["instrumentation_failures"])}), flush=True)
+    complete = (child.returncode == 0 and len(observations) == 18
+                and not missing and not failed and not mismatches
+                and scored["trace_events"] > 0
+                and not scored["decode_failures"]
+                and not scored["instrumentation_failures"]
+                and not scored["possible_trace_truncation"])
+    return 0 if complete else 1
+
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("--worker", action="store_true")
+    p.add_argument("worker_args", nargs="*")
+    args = p.parse_args()
+    if args.worker:
+        if len(args.worker_args) != 2:
+            p.error("worker expects manifest path and private observations path")
+        raise SystemExit(worker(Path(args.worker_args[0]), Path(args.worker_args[1])))
+    if args.worker_args:
+        p.error("unexpected positional arguments")
+    raise SystemExit(parent())

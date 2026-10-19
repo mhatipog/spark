@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-independent-postgresql-join-regression-20261019",
+  "source": {
+    "repository": "apache/spark",
+    "path": "sql/core/src/test/resources/sql-tests/inputs/postgreSQL/join.sql",
+    "commit": "b2c6f51268d7b94b0f82096262fc5381cd9cf0f9",
+    "provenance": "Spark port preserving PostgreSQL regression join queries; query ordinals counted among uncommented SELECT statements between CORRELATION NAMES and More complicated constructs",
+    "source_query_ordinals": [
+      1,
+      2,
+      6,
+      8,
+      10,
+      11,
+      12,
+      14,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26
+    ],
+    "selection_note": "First 18 statements in source order that use J1_TBL/J2_TBL without unsupported FROM-column-alias lists, ambiguous unqualified i, or columns defined by such alias lists. Query SQL copied verbatim modulo removing comments and terminal semicolons. Selected before any external Spark optimizer replay."
+  },
+  "tables": {
+    "J1_TBL": {
+      "columns": [
+        {
+          "name": "i",
+          "type": "integer"
+        },
+        {
+          "name": "j",
+          "type": "integer"
+        },
+        {
+          "name": "t",
+          "type": "string"
+        }
+      ],
+      "rows": [
+        [
+          1,
+          4,
+          "one"
+        ],
+        [
+          2,
+          3,
+          "two"
+        ],
+        [
+          3,
+          2,
+          "three"
+        ],
+        [
+          4,
+          1,
+          "four"
+        ],
+        [
+          5,
+          0,
+          "five"
+        ],
+        [
+          6,
+          6,
+          "six"
+        ],
+        [
+          7,
+          7,
+          "seven"
+        ],
+        [
+          8,
+          8,
+          "eight"
+        ],
+        [
+          0,
+          null,
+          "zero"
+        ],
+        [
+          null,
+          null,
+          "null"
+        ],
+        [
+          null,
+          0,
+          "zero"
+        ]
+      ]
+    },
+    "J2_TBL": {
+      "columns": [
+        {
+          "name": "i",
+          "type": "integer"
+        },
+        {
+          "name": "k",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          1,
+          -1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          -3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          5,
+          -5
+        ],
+        [
+          5,
+          -5
+        ],
+        [
+          0,
+          null
+        ],
+        [
+          null,
+          null
+        ],
+        [
+          null,
+          0
+        ]
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "X01",
+      "source_query_ordinal": 1,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL AS tx"
+    },
+    {
+      "id": "X02",
+      "source_query_ordinal": 2,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL tx"
+    },
+    {
+      "id": "X03",
+      "source_query_ordinal": 6,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL CROSS JOIN J2_TBL"
+    },
+    {
+      "id": "X04",
+      "source_query_ordinal": 8,
+      "sql": "SELECT '' AS `xxx`, t1.i, k, t\n  FROM J1_TBL t1 CROSS JOIN J2_TBL t2"
+    },
+    {
+      "id": "X05",
+      "source_query_ordinal": 10,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL CROSS JOIN J2_TBL a CROSS JOIN J2_TBL b"
+    },
+    {
+      "id": "X06",
+      "source_query_ordinal": 11,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL INNER JOIN J2_TBL USING (i)"
+    },
+    {
+      "id": "X07",
+      "source_query_ordinal": 12,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL JOIN J2_TBL USING (i)"
+    },
+    {
+      "id": "X08",
+      "source_query_ordinal": 14,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL NATURAL JOIN J2_TBL"
+    },
+    {
+      "id": "X09",
+      "source_query_ordinal": 17,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL JOIN J2_TBL ON (J1_TBL.i = J2_TBL.i)"
+    },
+    {
+      "id": "X10",
+      "source_query_ordinal": 18,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL JOIN J2_TBL ON (J1_TBL.i = J2_TBL.k)"
+    },
+    {
+      "id": "X11",
+      "source_query_ordinal": 19,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL JOIN J2_TBL ON (J1_TBL.i <= J2_TBL.k)"
+    },
+    {
+      "id": "X12",
+      "source_query_ordinal": 20,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL LEFT OUTER JOIN J2_TBL USING (i)\n  ORDER BY i, k, t"
+    },
+    {
+      "id": "X13",
+      "source_query_ordinal": 21,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL LEFT JOIN J2_TBL USING (i)\n  ORDER BY i, k, t"
+    },
+    {
+      "id": "X14",
+      "source_query_ordinal": 22,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL RIGHT OUTER JOIN J2_TBL USING (i)"
+    },
+    {
+      "id": "X15",
+      "source_query_ordinal": 23,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL RIGHT JOIN J2_TBL USING (i)"
+    },
+    {
+      "id": "X16",
+      "source_query_ordinal": 24,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL FULL OUTER JOIN J2_TBL USING (i)\n  ORDER BY i, k, t"
+    },
+    {
+      "id": "X17",
+      "source_query_ordinal": 25,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL FULL JOIN J2_TBL USING (i)\n  ORDER BY i, k, t"
+    },
+    {
+      "id": "X18",
+      "source_query_ordinal": 26,
+      "sql": "SELECT '' AS `xxx`, *\n  FROM J1_TBL LEFT JOIN J2_TBL USING (i) WHERE (k = 1)"
+    }
+  ]
+}

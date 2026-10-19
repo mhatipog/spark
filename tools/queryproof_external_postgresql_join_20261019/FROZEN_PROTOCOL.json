@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "queryproof-independent-postgresql-join-regression-20261019",
+  "status": "External SQL and exact fixture frozen before first optimizer execution (verifier unchanged).",
+  "freeze_date_utc": "2026-10-19",
+  "frozen_verifier_commit": "35314636b8d0ce04d922a3df0f2fa72c0974325c",
+  "source_commit": "b2c6f51268d7b94b0f82096262fc5381cd9cf0f9",
+  "primary": "Among all actual logged optimizer rewrite events in 18 preselected PostgreSQL-derived Spark SQL regression queries, fraction certified by at least one of five unchanged checkers (union over events, no double-counting). Report zero, false positives and UNKNOWN openly.",
+  "secondary": [
+    "Per-family exact proof counts and overlap",
+    "Per-rule and per-case certified versus UNKNOWN",
+    "Spark 4.2.0 / SQLite per-query multiset comparison, with nulls and duplicates",
+    "Predicates with fragment counterexample statuses flagged only as local expression witnesses, not automatically bugs",
+    "Trace completeness, decode/instrumentation failures and optimizer event denominator"
+  ],
+  "source_selection": "Use exact verbatim SQL from apache/spark sql/core/src/test/resources/sql-tests/inputs/postgreSQL/join.sql at pinned upstream commit, between CORRELATION NAMES and More complicated constructs. Extract comment-stripped SELECT statements separated by semicolon, in source order; first 18 involving preexisting J1_TBL and J2_TBL without FROM-column-list aliasing, unqualified ambiguous i, or renamed-table-column references. Ordinals [1,2,6,8,10,11,12,14,17,18,19,20,21,22,23,24,25,26].",
+  "fixture": "Recreate initial J1_TBL and J2_TBL integer/string schema and all 11+9 INSERT rows from same Spark/PostgreSQL file, including duplicates and NULLs, independently in Spark and SQLite.",
+  "falsification": [
+    "Abstain rather than accept unrecognized rules/expressions",
+    "No selection or SQL changes after first external Spark execution",
+    "No theorem/checker alterations; later changes on this cohort are retrospective",
+    "Zero certificates is a valid and scientifically informative result",
+    "Any Spark-vs-SQLite row bag discrepancy, missing event instrumentation or case error fails CI",
+    "No upstream pull request from this research until independent soundness evidence"
+  ],
+  "limitations": [
+    "Workload selected from PostgreSQL-derived tests in Spark repository, not representative production SQL",
+    "Selection deliberately excludes unsupported SQL dialect alias lists and ambiguous queries",
+    "All SQL in selected subset is join-focused, so aggregation/window coverage remains out of-sample",
+    "Fixture is small finite data; row agreement not a universal proof",
+    "All five theorem families continue to be narrow by design"
+  ]
+}
