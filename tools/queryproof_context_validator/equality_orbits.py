@@ -38,6 +38,21 @@ def kind(node):
     return node.get("class", "").rsplit(".", 1)[-1]
 
 
+def validate_plan_tree(nodes):
+    """Verify that the serialized preorder stream describes exactly one plan."""
+    require(isinstance(nodes, list) and bool(nodes), "EMPTY_PLAN_TREE")
+    pending = 1
+    for node in nodes:
+        require(pending > 0, "TRAILING_PLAN_NODES")
+        require(isinstance(node, dict), "INVALID_PLAN_NODE")
+        require(isinstance(node.get("class"), str) and bool(node["class"]),
+                "MISSING_PLAN_CLASS")
+        arity = node.get("num-children")
+        require(type(arity) is int and arity >= 0, "INVALID_PLAN_ARITY")
+        pending += arity - 1
+    require(pending == 0, "TRUNCATED_PLAN_TREE")
+
+
 def parse_expression(serialized):
     require(isinstance(serialized, list) and bool(serialized), "NO_EXPRESSION")
 
@@ -46,6 +61,9 @@ def parse_expression(serialized):
         node = serialized[pos]
         require(isinstance(node, dict), "INVALID_NODE")
         op = kind(node)
+        require(node.get("class") ==
+                "org.apache.spark.sql.catalyst.expressions." + op,
+                "UNTRUSTED_EXPRESSION_CLASS:" + op)
         size = node.get("num-children")
         require(type(size) is int and 0 <= size <= 2, "INVALID_ARITY")
         if op == "AttributeReference":
@@ -292,6 +310,8 @@ def certify_predicate_event(event):
         old, new = event["old"], event["new"]
         require(isinstance(old, list) and isinstance(new, list)
                 and len(old) == len(new), "PLAN_SHAPE_CHANGED")
+        validate_plan_tree(old)
+        validate_plan_tree(new)
         changed = [i for i in range(len(old)) if old[i] != new[i]]
         require(len(changed) == 1, "MULTIPLE_PLAN_NODES_CHANGED")
         i = changed[0]
@@ -299,11 +319,17 @@ def certify_predicate_event(event):
         operator = kind(a)
         require(operator == kind(b) and operator in ("Join", "Filter"),
                 "CHANGED_NODE_NOT_PREDICATE_CONSUMER")
+        require(a.get("class") ==
+                "org.apache.spark.sql.catalyst.plans.logical." + operator,
+                "UNTRUSTED_CONSUMER_CLASS")
         require({k: v for k, v in a.items() if k != "condition"} ==
                 {k: v for k, v in b.items() if k != "condition"},
                 "NON_CONDITION_PREDICATE_CHANGE")
         if operator == "Join":
-            require("Inner$" in json.dumps(a.get("joinType", {})), "NOT_INNER_JOIN")
+            require(a.get("num-children") == 2, "NOT_BINARY_JOIN")
+            require(a.get("joinType") ==
+                    {"object": "org.apache.spark.sql.catalyst.plans.Inner$"},
+                    "UNRECOGNIZED_JOIN_TYPE_METADATA")
         else:
             require(a.get("num-children") == 1, "NOT_UNARY_FILTER")
         p, q = parse_expression(a.get("condition")), parse_expression(b.get("condition"))
