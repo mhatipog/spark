@@ -446,7 +446,7 @@ jobs:
           if r["trace"]["trace_events"] <= 0:
               raise SystemExit("No optimizer events")
           '
-      - name: Run first clean frozen third-party aggregate identity holdout
+      - name: Replay frozen aggregate corpus with verifier-version provenance
         run: python -u tools/queryproof_external_duckdb_aggregate_20261019/run_aggregate.py
       - name: Assert complete independent aggregate theorem experiment
         if: always()
@@ -466,8 +466,10 @@ jobs:
           print("AGGREGATE_HOLDOUT_BY_RULE", r["union_coverage"]["by_rule"])
           print("AGGREGATE_HOLDOUT_MISMATCHES", r["row_oracle_mismatch_cases"])
           print("AGGREGATE_HOLDOUT_ERRORS", r["error_cases"])
-          if proof["status"] != "PROSPECTIVE_FROZEN_THIRD_PARTY_AGGREGATE_COHORT":
-              raise SystemExit("Prospective aggregate protocol status absent")
+          if proof["status"] != "RETROSPECTIVE_VERIFIER_CHANGED_AFTER_FREEZE":
+              raise SystemExit("Extended checker must not earn prospective credit on this known cohort")
+          if proof["verifier_provenance"]["matches_frozen_checker"]:
+              raise SystemExit("Verifier pin unexpectedly matches after extension")
           if r["worker_exit_code"] != 0 or r["executed_cases"] != 18:
               raise SystemExit("Incomplete new aggregate source sample")
           if r["error_cases"] or r["row_oracle_mismatch_cases"]:

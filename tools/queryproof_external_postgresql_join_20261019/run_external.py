@@ -358,7 +358,33 @@ def parent():
         collapsed = retrospective_project_collapse(raw_stderr)
         aggregate_identity = retrospective_aggregate_identity(raw_stderr)
         if protocol.get("prospective_aggregate_identity"):
-            aggregate_identity["status"] = "PROSPECTIVE_FROZEN_THIRD_PARTY_AGGREGATE_COHORT"
+            pin_path = MANIFEST.parent / "VERIFIER_PIN.json"
+            if pin_path.exists():
+                pin = json.loads(pin_path.read_text())
+                assert pin["benchmark_id"] == manifest["benchmark_id"]
+                assert pin["frozen_verifier_commit"] == protocol["frozen_verifier_commit"]
+                module_path = pin["verifier_module"]
+                assert module_path == (
+                    "tools/queryproof_context_validator/"
+                    "aggregate_framed_identity_certificate.py")
+                current = subprocess.run(
+                    ["git", "hash-object", module_path], cwd=ROOT,
+                    check=True, capture_output=True, text=True).stdout.strip()
+                baseline = pin["frozen_verifier_git_blob_sha"]
+                assert len(current) == len(baseline) == 40
+                unchanged = current == baseline
+                aggregate_identity["status"] = (
+                    "PROSPECTIVE_FROZEN_THIRD_PARTY_AGGREGATE_COHORT"
+                    if unchanged else "RETROSPECTIVE_VERIFIER_CHANGED_AFTER_FREEZE")
+                aggregate_identity["verifier_provenance"] = {
+                    "frozen_verifier_git_blob_sha": baseline,
+                    "current_verifier_git_blob_sha": current,
+                    "matches_frozen_checker": unchanged,
+                    "original_sql_protocol_unchanged": True,
+                }
+            else:
+                aggregate_identity["status"] = (
+                    "PROSPECTIVE_UNPINNED_VERIFIER_PROVENANCE")
         if protocol.get("prospective_collapse_project"):
             collapsed["status"] = "PROSPECTIVE_FROZEN_THIRD_PARTY_COHORT"
         if protocol.get("prospective_contextual_guard"):
