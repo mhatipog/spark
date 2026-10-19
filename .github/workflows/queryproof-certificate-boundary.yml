@@ -6,6 +6,7 @@ on:
     paths:
       - tools/queryproof_context_validator/equality_orbits.py
       - tools/queryproof_context_validator/test_equality_orbits.py
+      - tools/queryproof_holdout_20261018/run_holdout.py
       - .github/workflows/queryproof-certificate-boundary.yml
   workflow_dispatch:
 permissions:
@@ -62,6 +63,12 @@ jobs:
           print("TRACE_EVENTS", report["trace"]["trace_events"])
           print("ALL_STATUSES", statuses)
           print("UNKNOWN_REASONS", report["trace"]["all_events"]["unknown_reasons"])
+          from collections import Counter
+          patterns = Counter()
+          for row in report["trace"]["structural_diagnostics"]:
+              patterns[(row["rule"], row["reason"], row["old_shape"], row["new_shape"])] += row["count"]
+          for pattern, count in patterns.most_common(45):
+              print("UNKNOWN_SHAPE", count, *pattern)
           print("ROW_ORACLE_MISMATCH_CASES", report["row_oracle_mismatch_cases"])
           if report["executed_cases"] != 18:
               raise SystemExit("Incomplete case execution")
