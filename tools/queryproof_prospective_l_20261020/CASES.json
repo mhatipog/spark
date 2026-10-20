@@ -1,0 +1,5215 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-preserved-jvm-frame-prospective-l-20261020",
+  "source": {
+    "repository": "Independent xorshift32 seeded synthetic grammar with eight SQL structural families",
+    "seed": 1779033703,
+    "prng": "xorshift32: x^=x<<13; x^=x>>>17; x^=x<<5; state uint32; draw modulo span",
+    "rows_per_case": 16,
+    "moduli": [
+      3,
+      5,
+      7,
+      9,
+      11,
+      17
+    ],
+    "families": [
+      "FILTERED_REPEAT",
+      "COALESCE_ALIAS",
+      "CASE_ALIAS",
+      "PROJECTED_SUBQUERY",
+      "SELF_JOIN",
+      "HAVING_REPEAT",
+      "TWO_KEY_MIXED",
+      "ARITH_ALIAS"
+    ],
+    "limitations": "Synthetic generated evaluation, not third-party; actual Spark and SQLite compared only after source and frame-proof pins."
+  },
+  "cases": [
+    {
+      "id": "L01",
+      "sql": "SELECT i, COUNT(*) FROM integers WHERE j IS NOT NULL GROUP BY i, i ORDER BY 1;",
+      "source_file": "independent/l20261020/FILTERED_REPEAT",
+      "source_query_ordinal": 1,
+      "family": "FILTERED_REPEAT",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              4,
+              1,
+              -79
+            ],
+            [
+              4,
+              1,
+              -79
+            ],
+            [
+              null,
+              29,
+              -26
+            ],
+            [
+              -36,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              4,
+              0,
+              15
+            ],
+            [
+              -33,
+              null,
+              -42
+            ],
+            [
+              42,
+              51,
+              78
+            ],
+            [
+              85,
+              -51,
+              7
+            ],
+            [
+              -34,
+              -84,
+              -64
+            ],
+            [
+              42,
+              -25,
+              29
+            ],
+            [
+              -44,
+              -28,
+              -72
+            ],
+            [
+              -88,
+              null,
+              -46
+            ],
+            [
+              -66,
+              -78,
+              -46
+            ],
+            [
+              -51,
+              -52,
+              null
+            ],
+            [
+              -58,
+              28,
+              25
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L02",
+      "sql": "SELECT i, COUNT(*) FROM integers WHERE j IS NOT NULL GROUP BY i, i ORDER BY 1;",
+      "source_file": "independent/l20261020/FILTERED_REPEAT",
+      "source_query_ordinal": 2,
+      "family": "FILTERED_REPEAT",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              16,
+              -78,
+              9
+            ],
+            [
+              16,
+              -78,
+              9
+            ],
+            [
+              null,
+              -34,
+              52
+            ],
+            [
+              -39,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              87,
+              -12,
+              -45
+            ],
+            [
+              -82,
+              -36,
+              89
+            ],
+            [
+              32,
+              -77,
+              -46
+            ],
+            [
+              62,
+              29,
+              -26
+            ],
+            [
+              -69,
+              -54,
+              -47
+            ],
+            [
+              44,
+              72,
+              52
+            ],
+            [
+              null,
+              -87,
+              33
+            ],
+            [
+              -52,
+              59,
+              -77
+            ],
+            [
+              23,
+              -43,
+              null
+            ],
+            [
+              -21,
+              -25,
+              28
+            ],
+            [
+              73,
+              22,
+              -66
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L03",
+      "sql": "SELECT i, COUNT(*) FROM integers WHERE j IS NOT NULL GROUP BY i, i ORDER BY 1;",
+      "source_file": "independent/l20261020/FILTERED_REPEAT",
+      "source_query_ordinal": 3,
+      "family": "FILTERED_REPEAT",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              26,
+              85,
+              -18
+            ],
+            [
+              26,
+              85,
+              -18
+            ],
+            [
+              null,
+              24,
+              -44
+            ],
+            [
+              15,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              -71,
+              -23
+            ],
+            [
+              null,
+              null,
+              -53
+            ],
+            [
+              null,
+              -59,
+              82
+            ],
+            [
+              -75,
+              -69,
+              -19
+            ],
+            [
+              -50,
+              -21,
+              29
+            ],
+            [
+              -41,
+              -57,
+              -33
+            ],
+            [
+              null,
+              -87,
+              -51
+            ],
+            [
+              -12,
+              -47,
+              -28
+            ],
+            [
+              -4,
+              77,
+              -47
+            ],
+            [
+              17,
+              12,
+              -25
+            ],
+            [
+              -55,
+              -81,
+              14
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L04",
+      "sql": "SELECT i, COUNT(*) FROM integers WHERE j IS NOT NULL GROUP BY i, i ORDER BY 1;",
+      "source_file": "independent/l20261020/FILTERED_REPEAT",
+      "source_query_ordinal": 4,
+      "family": "FILTERED_REPEAT",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              9,
+              -77,
+              -74
+            ],
+            [
+              9,
+              -77,
+              -74
+            ],
+            [
+              null,
+              3,
+              58
+            ],
+            [
+              -24,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -84,
+              -58,
+              -40
+            ],
+            [
+              44,
+              8,
+              -3
+            ],
+            [
+              null,
+              -22,
+              -78
+            ],
+            [
+              47,
+              72,
+              -86
+            ],
+            [
+              29,
+              -55,
+              -78
+            ],
+            [
+              55,
+              -56,
+              -64
+            ],
+            [
+              -16,
+              -30,
+              56
+            ],
+            [
+              null,
+              -62,
+              15
+            ],
+            [
+              -19,
+              73,
+              -82
+            ],
+            [
+              9,
+              null,
+              -66
+            ],
+            [
+              -22,
+              -68,
+              73
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L05",
+      "sql": "SELECT i, COUNT(*) FROM integers WHERE j IS NOT NULL GROUP BY i, i ORDER BY 1;",
+      "source_file": "independent/l20261020/FILTERED_REPEAT",
+      "source_query_ordinal": 5,
+      "family": "FILTERED_REPEAT",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              17,
+              -67,
+              14
+            ],
+            [
+              17,
+              -67,
+              14
+            ],
+            [
+              null,
+              8,
+              54
+            ],
+            [
+              -25,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              79,
+              -88,
+              -27
+            ],
+            [
+              -63,
+              -16,
+              -80
+            ],
+            [
+              67,
+              -90,
+              -81
+            ],
+            [
+              5,
+              -65,
+              29
+            ],
+            [
+              3,
+              -42,
+              62
+            ],
+            [
+              -81,
+              -45,
+              69
+            ],
+            [
+              48,
+              -45,
+              -51
+            ],
+            [
+              49,
+              -43,
+              11
+            ],
+            [
+              40,
+              -50,
+              -9
+            ],
+            [
+              -31,
+              72,
+              28
+            ],
+            [
+              83,
+              -87,
+              -50
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L06",
+      "sql": "SELECT i, COUNT(*) FROM integers WHERE j IS NOT NULL GROUP BY i, i ORDER BY 1;",
+      "source_file": "independent/l20261020/FILTERED_REPEAT",
+      "source_query_ordinal": 6,
+      "family": "FILTERED_REPEAT",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -11,
+              57,
+              85
+            ],
+            [
+              -11,
+              57,
+              85
+            ],
+            [
+              null,
+              13,
+              61
+            ],
+            [
+              -6,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              44,
+              9,
+              80
+            ],
+            [
+              -71,
+              -9,
+              11
+            ],
+            [
+              null,
+              -6,
+              60
+            ],
+            [
+              null,
+              -70,
+              null
+            ],
+            [
+              -31,
+              -15,
+              40
+            ],
+            [
+              -85,
+              34,
+              null
+            ],
+            [
+              47,
+              2,
+              -28
+            ],
+            [
+              34,
+              -57,
+              29
+            ],
+            [
+              -45,
+              -2,
+              9
+            ],
+            [
+              67,
+              32,
+              21
+            ],
+            [
+              -81,
+              -26,
+              62
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L07",
+      "sql": "SELECT COALESCE(i, -77) AS k, SUM(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/COALESCE_ALIAS",
+      "source_query_ordinal": 7,
+      "family": "COALESCE_ALIAS",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              28,
+              -33,
+              44
+            ],
+            [
+              28,
+              -33,
+              44
+            ],
+            [
+              null,
+              1,
+              -49
+            ],
+            [
+              -10,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              -36,
+              36
+            ],
+            [
+              0,
+              25,
+              19
+            ],
+            [
+              67,
+              -70,
+              -90
+            ],
+            [
+              null,
+              -61,
+              -46
+            ],
+            [
+              88,
+              80,
+              null
+            ],
+            [
+              -63,
+              -69,
+              -17
+            ],
+            [
+              -57,
+              -2,
+              90
+            ],
+            [
+              -32,
+              15,
+              5
+            ],
+            [
+              70,
+              -37,
+              86
+            ],
+            [
+              22,
+              48,
+              60
+            ],
+            [
+              -76,
+              16,
+              90
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L08",
+      "sql": "SELECT COALESCE(i, -77) AS k, SUM(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/COALESCE_ALIAS",
+      "source_query_ordinal": 8,
+      "family": "COALESCE_ALIAS",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              0,
+              -44,
+              -71
+            ],
+            [
+              0,
+              -44,
+              -71
+            ],
+            [
+              null,
+              17,
+              71
+            ],
+            [
+              19,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              58,
+              -72,
+              null
+            ],
+            [
+              -9,
+              37,
+              14
+            ],
+            [
+              -52,
+              null,
+              -83
+            ],
+            [
+              27,
+              27,
+              -6
+            ],
+            [
+              -32,
+              50,
+              -61
+            ],
+            [
+              -20,
+              -30,
+              -71
+            ],
+            [
+              -83,
+              -85,
+              41
+            ],
+            [
+              -65,
+              -61,
+              -9
+            ],
+            [
+              -8,
+              -79,
+              -68
+            ],
+            [
+              -2,
+              41,
+              0
+            ],
+            [
+              12,
+              84,
+              -9
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L09",
+      "sql": "SELECT COALESCE(i, -77) AS k, SUM(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/COALESCE_ALIAS",
+      "source_query_ordinal": 9,
+      "family": "COALESCE_ALIAS",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -62,
+              -54,
+              44
+            ],
+            [
+              -62,
+              -54,
+              44
+            ],
+            [
+              null,
+              -20,
+              22
+            ],
+            [
+              31,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -35,
+              null,
+              -21
+            ],
+            [
+              -59,
+              80,
+              -11
+            ],
+            [
+              24,
+              -90,
+              -27
+            ],
+            [
+              -41,
+              -1,
+              -72
+            ],
+            [
+              30,
+              36,
+              68
+            ],
+            [
+              -32,
+              -37,
+              null
+            ],
+            [
+              -46,
+              82,
+              48
+            ],
+            [
+              -11,
+              -23,
+              1
+            ],
+            [
+              null,
+              84,
+              -53
+            ],
+            [
+              -39,
+              -59,
+              79
+            ],
+            [
+              -42,
+              2,
+              null
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L10",
+      "sql": "SELECT COALESCE(i, -77) AS k, SUM(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/COALESCE_ALIAS",
+      "source_query_ordinal": 10,
+      "family": "COALESCE_ALIAS",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -1,
+              -50,
+              -50
+            ],
+            [
+              -1,
+              -50,
+              -50
+            ],
+            [
+              null,
+              19,
+              -5
+            ],
+            [
+              -2,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              null,
+              44,
+              44
+            ],
+            [
+              14,
+              -23,
+              -7
+            ],
+            [
+              -15,
+              79,
+              -16
+            ],
+            [
+              null,
+              38,
+              53
+            ],
+            [
+              70,
+              5,
+              45
+            ],
+            [
+              22,
+              -37,
+              -55
+            ],
+            [
+              52,
+              -35,
+              84
+            ],
+            [
+              -2,
+              82,
+              38
+            ],
+            [
+              -68,
+              82,
+              -13
+            ],
+            [
+              -60,
+              77,
+              2
+            ],
+            [
+              73,
+              21,
+              -6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L11",
+      "sql": "SELECT COALESCE(i, -77) AS k, SUM(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/COALESCE_ALIAS",
+      "source_query_ordinal": 11,
+      "family": "COALESCE_ALIAS",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -13,
+              88,
+              -3
+            ],
+            [
+              -13,
+              88,
+              -3
+            ],
+            [
+              null,
+              -3,
+              -65
+            ],
+            [
+              -29,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -42,
+              44,
+              21
+            ],
+            [
+              58,
+              68,
+              -18
+            ],
+            [
+              -89,
+              38,
+              -22
+            ],
+            [
+              null,
+              36,
+              90
+            ],
+            [
+              -4,
+              46,
+              -52
+            ],
+            [
+              81,
+              null,
+              51
+            ],
+            [
+              82,
+              13,
+              87
+            ],
+            [
+              -53,
+              24,
+              34
+            ],
+            [
+              82,
+              13,
+              -81
+            ],
+            [
+              69,
+              -1,
+              null
+            ],
+            [
+              -81,
+              -76,
+              -11
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L12",
+      "sql": "SELECT COALESCE(i, -77) AS k, SUM(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/COALESCE_ALIAS",
+      "source_query_ordinal": 12,
+      "family": "COALESCE_ALIAS",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              64,
+              1,
+              90
+            ],
+            [
+              64,
+              1,
+              90
+            ],
+            [
+              null,
+              3,
+              80
+            ],
+            [
+              -13,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              2,
+              20,
+              -19
+            ],
+            [
+              null,
+              -33,
+              -55
+            ],
+            [
+              -42,
+              -38,
+              -53
+            ],
+            [
+              36,
+              88,
+              -76
+            ],
+            [
+              -32,
+              -66,
+              null
+            ],
+            [
+              -6,
+              89,
+              -81
+            ],
+            [
+              -90,
+              -58,
+              -54
+            ],
+            [
+              18,
+              -51,
+              null
+            ],
+            [
+              63,
+              -51,
+              -57
+            ],
+            [
+              -78,
+              null,
+              -26
+            ],
+            [
+              29,
+              -44,
+              53
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L13",
+      "sql": "SELECT CASE WHEN i IS NULL THEN -1 ELSE i % 3 END AS k, COUNT(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/CASE_ALIAS",
+      "source_query_ordinal": 13,
+      "family": "CASE_ALIAS",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              23,
+              29,
+              77
+            ],
+            [
+              23,
+              29,
+              77
+            ],
+            [
+              null,
+              43,
+              -5
+            ],
+            [
+              1,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -54,
+              -24,
+              -30
+            ],
+            [
+              67,
+              23,
+              -56
+            ],
+            [
+              -15,
+              -63,
+              null
+            ],
+            [
+              65,
+              -47,
+              79
+            ],
+            [
+              37,
+              35,
+              51
+            ],
+            [
+              null,
+              42,
+              -33
+            ],
+            [
+              -3,
+              24,
+              -18
+            ],
+            [
+              -21,
+              null,
+              -4
+            ],
+            [
+              -60,
+              13,
+              77
+            ],
+            [
+              -5,
+              -16,
+              -80
+            ],
+            [
+              36,
+              -17,
+              -60
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L14",
+      "sql": "SELECT CASE WHEN i IS NULL THEN -1 ELSE i % 5 END AS k, COUNT(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/CASE_ALIAS",
+      "source_query_ordinal": 14,
+      "family": "CASE_ALIAS",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              80,
+              -23,
+              28
+            ],
+            [
+              80,
+              -23,
+              28
+            ],
+            [
+              null,
+              -20,
+              43
+            ],
+            [
+              44,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              14,
+              85,
+              73
+            ],
+            [
+              -75,
+              -84,
+              null
+            ],
+            [
+              -23,
+              -87,
+              -56
+            ],
+            [
+              -61,
+              66,
+              -73
+            ],
+            [
+              11,
+              null,
+              67
+            ],
+            [
+              -74,
+              37,
+              19
+            ],
+            [
+              32,
+              -38,
+              -12
+            ],
+            [
+              53,
+              55,
+              71
+            ],
+            [
+              -14,
+              58,
+              -20
+            ],
+            [
+              -84,
+              -3,
+              53
+            ],
+            [
+              -12,
+              29,
+              34
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L15",
+      "sql": "SELECT CASE WHEN i IS NULL THEN -1 ELSE i % 7 END AS k, COUNT(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/CASE_ALIAS",
+      "source_query_ordinal": 15,
+      "family": "CASE_ALIAS",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -1,
+              -9,
+              64
+            ],
+            [
+              -1,
+              -9,
+              64
+            ],
+            [
+              null,
+              42,
+              72
+            ],
+            [
+              46,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              6,
+              -49,
+              -87
+            ],
+            [
+              -82,
+              3,
+              8
+            ],
+            [
+              -6,
+              67,
+              null
+            ],
+            [
+              38,
+              15,
+              -49
+            ],
+            [
+              -66,
+              34,
+              53
+            ],
+            [
+              4,
+              3,
+              -21
+            ],
+            [
+              -16,
+              null,
+              51
+            ],
+            [
+              -47,
+              38,
+              -77
+            ],
+            [
+              78,
+              null,
+              -6
+            ],
+            [
+              -31,
+              63,
+              -58
+            ],
+            [
+              80,
+              69,
+              57
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L16",
+      "sql": "SELECT CASE WHEN i IS NULL THEN -1 ELSE i % 9 END AS k, COUNT(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/CASE_ALIAS",
+      "source_query_ordinal": 16,
+      "family": "CASE_ALIAS",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1,
+              86,
+              -22
+            ],
+            [
+              1,
+              86,
+              -22
+            ],
+            [
+              null,
+              -21,
+              -4
+            ],
+            [
+              32,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              11,
+              46,
+              -75
+            ],
+            [
+              72,
+              null,
+              74
+            ],
+            [
+              -9,
+              54,
+              -66
+            ],
+            [
+              42,
+              51,
+              -8
+            ],
+            [
+              -19,
+              38,
+              71
+            ],
+            [
+              70,
+              null,
+              -86
+            ],
+            [
+              71,
+              62,
+              57
+            ],
+            [
+              -30,
+              -19,
+              null
+            ],
+            [
+              12,
+              42,
+              -7
+            ],
+            [
+              43,
+              -8,
+              56
+            ],
+            [
+              75,
+              null,
+              -86
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L17",
+      "sql": "SELECT CASE WHEN i IS NULL THEN -1 ELSE i % 11 END AS k, COUNT(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/CASE_ALIAS",
+      "source_query_ordinal": 17,
+      "family": "CASE_ALIAS",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              8,
+              65,
+              -73
+            ],
+            [
+              8,
+              65,
+              -73
+            ],
+            [
+              null,
+              -7,
+              56
+            ],
+            [
+              30,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              64,
+              -28,
+              5
+            ],
+            [
+              -75,
+              81,
+              73
+            ],
+            [
+              -75,
+              null,
+              -82
+            ],
+            [
+              21,
+              57,
+              null
+            ],
+            [
+              null,
+              54,
+              -24
+            ],
+            [
+              null,
+              30,
+              54
+            ],
+            [
+              -75,
+              -25,
+              -52
+            ],
+            [
+              67,
+              68,
+              31
+            ],
+            [
+              33,
+              -14,
+              54
+            ],
+            [
+              -24,
+              -76,
+              -17
+            ],
+            [
+              -47,
+              -48,
+              74
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L18",
+      "sql": "SELECT CASE WHEN i IS NULL THEN -1 ELSE i % 17 END AS k, COUNT(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/CASE_ALIAS",
+      "source_query_ordinal": 18,
+      "family": "CASE_ALIAS",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              67,
+              -8,
+              -85
+            ],
+            [
+              67,
+              -8,
+              -85
+            ],
+            [
+              null,
+              -29,
+              -13
+            ],
+            [
+              -38,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              17,
+              -8,
+              -43
+            ],
+            [
+              84,
+              null,
+              -41
+            ],
+            [
+              null,
+              64,
+              -47
+            ],
+            [
+              -40,
+              23,
+              19
+            ],
+            [
+              -88,
+              null,
+              -71
+            ],
+            [
+              -88,
+              5,
+              -27
+            ],
+            [
+              6,
+              14,
+              81
+            ],
+            [
+              80,
+              -76,
+              -47
+            ],
+            [
+              null,
+              49,
+              -53
+            ],
+            [
+              35,
+              -9,
+              48
+            ],
+            [
+              59,
+              76,
+              -25
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L19",
+      "sql": "SELECT k, MIN(extra) FROM (SELECT i % 3 AS k, extra FROM integers WHERE j > -50) src GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/PROJECTED_SUBQUERY",
+      "source_query_ordinal": 19,
+      "family": "PROJECTED_SUBQUERY",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              2,
+              12,
+              10
+            ],
+            [
+              2,
+              12,
+              10
+            ],
+            [
+              null,
+              -30,
+              -24
+            ],
+            [
+              -11,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              16,
+              64,
+              49
+            ],
+            [
+              -69,
+              35,
+              -64
+            ],
+            [
+              -76,
+              -63,
+              72
+            ],
+            [
+              25,
+              66,
+              -66
+            ],
+            [
+              -69,
+              null,
+              46
+            ],
+            [
+              73,
+              -84,
+              61
+            ],
+            [
+              -39,
+              -74,
+              15
+            ],
+            [
+              -7,
+              68,
+              -1
+            ],
+            [
+              71,
+              0,
+              35
+            ],
+            [
+              47,
+              -2,
+              null
+            ],
+            [
+              -10,
+              -46,
+              null
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L20",
+      "sql": "SELECT k, MIN(extra) FROM (SELECT i % 5 AS k, extra FROM integers WHERE j > -50) src GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/PROJECTED_SUBQUERY",
+      "source_query_ordinal": 20,
+      "family": "PROJECTED_SUBQUERY",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -27,
+              -22,
+              -28
+            ],
+            [
+              -27,
+              -22,
+              -28
+            ],
+            [
+              null,
+              23,
+              21
+            ],
+            [
+              -29,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              39,
+              63,
+              -13
+            ],
+            [
+              66,
+              -16,
+              -44
+            ],
+            [
+              -63,
+              19,
+              -70
+            ],
+            [
+              -17,
+              -76,
+              null
+            ],
+            [
+              60,
+              46,
+              57
+            ],
+            [
+              11,
+              84,
+              -71
+            ],
+            [
+              17,
+              0,
+              74
+            ],
+            [
+              26,
+              -31,
+              -50
+            ],
+            [
+              -70,
+              -14,
+              -80
+            ],
+            [
+              -88,
+              -12,
+              -41
+            ],
+            [
+              -32,
+              -9,
+              26
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L21",
+      "sql": "SELECT k, MIN(extra) FROM (SELECT i % 7 AS k, extra FROM integers WHERE j > -50) src GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/PROJECTED_SUBQUERY",
+      "source_query_ordinal": 21,
+      "family": "PROJECTED_SUBQUERY",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              40,
+              31,
+              -70
+            ],
+            [
+              40,
+              31,
+              -70
+            ],
+            [
+              null,
+              -23,
+              -56
+            ],
+            [
+              -49,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              51,
+              null,
+              48
+            ],
+            [
+              -74,
+              -41,
+              -88
+            ],
+            [
+              66,
+              -30,
+              -76
+            ],
+            [
+              0,
+              -73,
+              null
+            ],
+            [
+              -77,
+              47,
+              17
+            ],
+            [
+              -84,
+              19,
+              29
+            ],
+            [
+              -32,
+              null,
+              -56
+            ],
+            [
+              28,
+              30,
+              null
+            ],
+            [
+              18,
+              -50,
+              -71
+            ],
+            [
+              5,
+              70,
+              88
+            ],
+            [
+              21,
+              29,
+              54
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L22",
+      "sql": "SELECT k, MIN(extra) FROM (SELECT i % 9 AS k, extra FROM integers WHERE j > -50) src GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/PROJECTED_SUBQUERY",
+      "source_query_ordinal": 22,
+      "family": "PROJECTED_SUBQUERY",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -67,
+              -9,
+              -67
+            ],
+            [
+              -67,
+              -9,
+              -67
+            ],
+            [
+              null,
+              -22,
+              36
+            ],
+            [
+              34,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              56,
+              -78,
+              90
+            ],
+            [
+              -87,
+              69,
+              24
+            ],
+            [
+              42,
+              -79,
+              79
+            ],
+            [
+              null,
+              20,
+              78
+            ],
+            [
+              87,
+              18,
+              81
+            ],
+            [
+              null,
+              -38,
+              null
+            ],
+            [
+              28,
+              -22,
+              24
+            ],
+            [
+              null,
+              58,
+              null
+            ],
+            [
+              71,
+              -45,
+              51
+            ],
+            [
+              33,
+              -36,
+              -25
+            ],
+            [
+              72,
+              19,
+              72
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L23",
+      "sql": "SELECT k, MIN(extra) FROM (SELECT i % 11 AS k, extra FROM integers WHERE j > -50) src GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/PROJECTED_SUBQUERY",
+      "source_query_ordinal": 23,
+      "family": "PROJECTED_SUBQUERY",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              24,
+              4,
+              44
+            ],
+            [
+              24,
+              4,
+              44
+            ],
+            [
+              null,
+              -36,
+              43
+            ],
+            [
+              -5,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -50,
+              -15,
+              59
+            ],
+            [
+              60,
+              23,
+              -18
+            ],
+            [
+              6,
+              45,
+              63
+            ],
+            [
+              79,
+              -52,
+              -23
+            ],
+            [
+              -69,
+              -83,
+              -24
+            ],
+            [
+              -13,
+              -51,
+              81
+            ],
+            [
+              -51,
+              null,
+              16
+            ],
+            [
+              0,
+              81,
+              -73
+            ],
+            [
+              -37,
+              73,
+              81
+            ],
+            [
+              -53,
+              26,
+              77
+            ],
+            [
+              51,
+              66,
+              null
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L24",
+      "sql": "SELECT k, MIN(extra) FROM (SELECT i % 17 AS k, extra FROM integers WHERE j > -50) src GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/PROJECTED_SUBQUERY",
+      "source_query_ordinal": 24,
+      "family": "PROJECTED_SUBQUERY",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -44,
+              44,
+              -84
+            ],
+            [
+              -44,
+              44,
+              -84
+            ],
+            [
+              null,
+              1,
+              65
+            ],
+            [
+              -42,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -70,
+              55,
+              43
+            ],
+            [
+              15,
+              69,
+              null
+            ],
+            [
+              26,
+              -2,
+              74
+            ],
+            [
+              -85,
+              68,
+              86
+            ],
+            [
+              -62,
+              -33,
+              80
+            ],
+            [
+              0,
+              45,
+              -7
+            ],
+            [
+              -79,
+              null,
+              -17
+            ],
+            [
+              -48,
+              19,
+              89
+            ],
+            [
+              58,
+              46,
+              8
+            ],
+            [
+              61,
+              1,
+              78
+            ],
+            [
+              9,
+              -29,
+              -22
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L25",
+      "sql": "SELECT a.i, COUNT(*) FROM integers a INNER JOIN integers b ON a.i = b.i WHERE b.extra IS NOT NULL GROUP BY a.i, a.i ORDER BY 1;",
+      "source_file": "independent/l20261020/SELF_JOIN",
+      "source_query_ordinal": 25,
+      "family": "SELF_JOIN",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -81,
+              9,
+              -68
+            ],
+            [
+              -81,
+              9,
+              -68
+            ],
+            [
+              null,
+              -12,
+              3
+            ],
+            [
+              7,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              72,
+              -42,
+              -75
+            ],
+            [
+              60,
+              -61,
+              -29
+            ],
+            [
+              -43,
+              23,
+              -43
+            ],
+            [
+              -38,
+              78,
+              69
+            ],
+            [
+              -33,
+              -78,
+              -13
+            ],
+            [
+              -64,
+              49,
+              65
+            ],
+            [
+              7,
+              null,
+              -24
+            ],
+            [
+              null,
+              -2,
+              -4
+            ],
+            [
+              -10,
+              -29,
+              64
+            ],
+            [
+              -79,
+              -59,
+              -1
+            ],
+            [
+              -36,
+              -60,
+              49
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L26",
+      "sql": "SELECT a.i, COUNT(*) FROM integers a INNER JOIN integers b ON a.i = b.i WHERE b.extra IS NOT NULL GROUP BY a.i, a.i ORDER BY 1;",
+      "source_file": "independent/l20261020/SELF_JOIN",
+      "source_query_ordinal": 26,
+      "family": "SELF_JOIN",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              0,
+              -60,
+              -69
+            ],
+            [
+              0,
+              -60,
+              -69
+            ],
+            [
+              null,
+              -43,
+              71
+            ],
+            [
+              -5,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              71,
+              -24,
+              59
+            ],
+            [
+              -44,
+              -61,
+              null
+            ],
+            [
+              -58,
+              -47,
+              20
+            ],
+            [
+              32,
+              63,
+              -53
+            ],
+            [
+              -3,
+              54,
+              57
+            ],
+            [
+              28,
+              -76,
+              36
+            ],
+            [
+              5,
+              -27,
+              75
+            ],
+            [
+              81,
+              -40,
+              -51
+            ],
+            [
+              11,
+              -55,
+              null
+            ],
+            [
+              26,
+              -75,
+              73
+            ],
+            [
+              -33,
+              -38,
+              -68
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L27",
+      "sql": "SELECT a.i, COUNT(*) FROM integers a INNER JOIN integers b ON a.i = b.i WHERE b.extra IS NOT NULL GROUP BY a.i, a.i ORDER BY 1;",
+      "source_file": "independent/l20261020/SELF_JOIN",
+      "source_query_ordinal": 27,
+      "family": "SELF_JOIN",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -31,
+              -73,
+              7
+            ],
+            [
+              -31,
+              -73,
+              7
+            ],
+            [
+              null,
+              -44,
+              -24
+            ],
+            [
+              -51,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -10,
+              -7,
+              20
+            ],
+            [
+              79,
+              -85,
+              83
+            ],
+            [
+              -26,
+              -85,
+              30
+            ],
+            [
+              19,
+              -50,
+              14
+            ],
+            [
+              -87,
+              13,
+              75
+            ],
+            [
+              -50,
+              -46,
+              -14
+            ],
+            [
+              34,
+              null,
+              68
+            ],
+            [
+              5,
+              -74,
+              -47
+            ],
+            [
+              -68,
+              20,
+              -4
+            ],
+            [
+              25,
+              73,
+              4
+            ],
+            [
+              36,
+              9,
+              70
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L28",
+      "sql": "SELECT a.i, COUNT(*) FROM integers a INNER JOIN integers b ON a.i = b.i WHERE b.extra IS NOT NULL GROUP BY a.i, a.i ORDER BY 1;",
+      "source_file": "independent/l20261020/SELF_JOIN",
+      "source_query_ordinal": 28,
+      "family": "SELF_JOIN",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              23,
+              20,
+              -25
+            ],
+            [
+              23,
+              20,
+              -25
+            ],
+            [
+              null,
+              28,
+              -39
+            ],
+            [
+              -52,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              30,
+              -35,
+              -53
+            ],
+            [
+              11,
+              73,
+              -50
+            ],
+            [
+              -51,
+              null,
+              -69
+            ],
+            [
+              -32,
+              89,
+              -64
+            ],
+            [
+              62,
+              -30,
+              -76
+            ],
+            [
+              -41,
+              12,
+              null
+            ],
+            [
+              null,
+              -79,
+              38
+            ],
+            [
+              null,
+              17,
+              18
+            ],
+            [
+              null,
+              -54,
+              25
+            ],
+            [
+              -60,
+              59,
+              null
+            ],
+            [
+              76,
+              66,
+              58
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L29",
+      "sql": "SELECT a.i, COUNT(*) FROM integers a INNER JOIN integers b ON a.i = b.i WHERE b.extra IS NOT NULL GROUP BY a.i, a.i ORDER BY 1;",
+      "source_file": "independent/l20261020/SELF_JOIN",
+      "source_query_ordinal": 29,
+      "family": "SELF_JOIN",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -21,
+              76,
+              24
+            ],
+            [
+              -21,
+              76,
+              24
+            ],
+            [
+              null,
+              -5,
+              71
+            ],
+            [
+              46,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -87,
+              60,
+              -3
+            ],
+            [
+              -36,
+              5,
+              0
+            ],
+            [
+              85,
+              -42,
+              -41
+            ],
+            [
+              -72,
+              -83,
+              67
+            ],
+            [
+              -36,
+              null,
+              -23
+            ],
+            [
+              78,
+              -28,
+              -35
+            ],
+            [
+              26,
+              -88,
+              90
+            ],
+            [
+              null,
+              -86,
+              -83
+            ],
+            [
+              -3,
+              -14,
+              6
+            ],
+            [
+              -49,
+              -76,
+              19
+            ],
+            [
+              -61,
+              -87,
+              null
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L30",
+      "sql": "SELECT a.i, COUNT(*) FROM integers a INNER JOIN integers b ON a.i = b.i WHERE b.extra IS NOT NULL GROUP BY a.i, a.i ORDER BY 1;",
+      "source_file": "independent/l20261020/SELF_JOIN",
+      "source_query_ordinal": 30,
+      "family": "SELF_JOIN",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              15,
+              8,
+              36
+            ],
+            [
+              15,
+              8,
+              36
+            ],
+            [
+              null,
+              -12,
+              -1
+            ],
+            [
+              31,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -51,
+              89,
+              -32
+            ],
+            [
+              27,
+              -76,
+              2
+            ],
+            [
+              -51,
+              -25,
+              -35
+            ],
+            [
+              77,
+              -30,
+              -76
+            ],
+            [
+              34,
+              -57,
+              -66
+            ],
+            [
+              62,
+              -51,
+              -88
+            ],
+            [
+              -1,
+              -67,
+              73
+            ],
+            [
+              58,
+              55,
+              -5
+            ],
+            [
+              -71,
+              -42,
+              -30
+            ],
+            [
+              -14,
+              -73,
+              -31
+            ],
+            [
+              0,
+              41,
+              18
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L31",
+      "sql": "SELECT i, SUM(extra) FROM integers GROUP BY i, i HAVING COUNT(extra) > 0 ORDER BY 1;",
+      "source_file": "independent/l20261020/HAVING_REPEAT",
+      "source_query_ordinal": 31,
+      "family": "HAVING_REPEAT",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -60,
+              71,
+              -74
+            ],
+            [
+              -60,
+              71,
+              -74
+            ],
+            [
+              null,
+              32,
+              -60
+            ],
+            [
+              -22,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -11,
+              -15,
+              22
+            ],
+            [
+              null,
+              -10,
+              -37
+            ],
+            [
+              -60,
+              34,
+              67
+            ],
+            [
+              -45,
+              52,
+              -87
+            ],
+            [
+              -52,
+              14,
+              -90
+            ],
+            [
+              -49,
+              35,
+              -68
+            ],
+            [
+              null,
+              32,
+              34
+            ],
+            [
+              -30,
+              null,
+              13
+            ],
+            [
+              10,
+              -43,
+              -51
+            ],
+            [
+              28,
+              -39,
+              30
+            ],
+            [
+              21,
+              69,
+              -51
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L32",
+      "sql": "SELECT i, SUM(extra) FROM integers GROUP BY i, i HAVING COUNT(extra) > 0 ORDER BY 1;",
+      "source_file": "independent/l20261020/HAVING_REPEAT",
+      "source_query_ordinal": 32,
+      "family": "HAVING_REPEAT",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -61,
+              31,
+              -77
+            ],
+            [
+              -61,
+              31,
+              -77
+            ],
+            [
+              null,
+              -18,
+              -7
+            ],
+            [
+              -37,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              21,
+              -82,
+              -81
+            ],
+            [
+              null,
+              -57,
+              89
+            ],
+            [
+              17,
+              -10,
+              -16
+            ],
+            [
+              -74,
+              88,
+              null
+            ],
+            [
+              -71,
+              35,
+              null
+            ],
+            [
+              -71,
+              -78,
+              -20
+            ],
+            [
+              69,
+              65,
+              44
+            ],
+            [
+              -37,
+              -72,
+              -68
+            ],
+            [
+              70,
+              82,
+              83
+            ],
+            [
+              35,
+              66,
+              -31
+            ],
+            [
+              54,
+              null,
+              82
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L33",
+      "sql": "SELECT i, SUM(extra) FROM integers GROUP BY i, i HAVING COUNT(extra) > 0 ORDER BY 1;",
+      "source_file": "independent/l20261020/HAVING_REPEAT",
+      "source_query_ordinal": 33,
+      "family": "HAVING_REPEAT",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -70,
+              -39,
+              90
+            ],
+            [
+              -70,
+              -39,
+              90
+            ],
+            [
+              null,
+              -4,
+              -51
+            ],
+            [
+              48,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              37,
+              -43,
+              22
+            ],
+            [
+              -62,
+              -58,
+              15
+            ],
+            [
+              -55,
+              null,
+              -77
+            ],
+            [
+              -13,
+              29,
+              -45
+            ],
+            [
+              -13,
+              -24,
+              -57
+            ],
+            [
+              -8,
+              -41,
+              74
+            ],
+            [
+              89,
+              -16,
+              75
+            ],
+            [
+              13,
+              -60,
+              60
+            ],
+            [
+              89,
+              -42,
+              -18
+            ],
+            [
+              -38,
+              85,
+              14
+            ],
+            [
+              -51,
+              -7,
+              -6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L34",
+      "sql": "SELECT i, SUM(extra) FROM integers GROUP BY i, i HAVING COUNT(extra) > 0 ORDER BY 1;",
+      "source_file": "independent/l20261020/HAVING_REPEAT",
+      "source_query_ordinal": 34,
+      "family": "HAVING_REPEAT",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -81,
+              -43,
+              70
+            ],
+            [
+              -81,
+              -43,
+              70
+            ],
+            [
+              null,
+              16,
+              -32
+            ],
+            [
+              35,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              38,
+              -70,
+              -79
+            ],
+            [
+              -27,
+              -53,
+              -29
+            ],
+            [
+              null,
+              20,
+              14
+            ],
+            [
+              13,
+              null,
+              61
+            ],
+            [
+              -55,
+              -49,
+              17
+            ],
+            [
+              27,
+              -33,
+              28
+            ],
+            [
+              76,
+              -79,
+              null
+            ],
+            [
+              39,
+              43,
+              87
+            ],
+            [
+              62,
+              -51,
+              -56
+            ],
+            [
+              -55,
+              19,
+              78
+            ],
+            [
+              81,
+              -27,
+              -40
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L35",
+      "sql": "SELECT i, SUM(extra) FROM integers GROUP BY i, i HAVING COUNT(extra) > 0 ORDER BY 1;",
+      "source_file": "independent/l20261020/HAVING_REPEAT",
+      "source_query_ordinal": 35,
+      "family": "HAVING_REPEAT",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -52,
+              62,
+              33
+            ],
+            [
+              -52,
+              62,
+              33
+            ],
+            [
+              null,
+              -5,
+              -49
+            ],
+            [
+              49,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              null,
+              82,
+              -66
+            ],
+            [
+              29,
+              20,
+              29
+            ],
+            [
+              -48,
+              -43,
+              87
+            ],
+            [
+              -20,
+              84,
+              -72
+            ],
+            [
+              null,
+              -32,
+              null
+            ],
+            [
+              -73,
+              -31,
+              0
+            ],
+            [
+              86,
+              -30,
+              47
+            ],
+            [
+              11,
+              9,
+              -78
+            ],
+            [
+              null,
+              -85,
+              -15
+            ],
+            [
+              null,
+              18,
+              -46
+            ],
+            [
+              -21,
+              -84,
+              49
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L36",
+      "sql": "SELECT i, SUM(extra) FROM integers GROUP BY i, i HAVING COUNT(extra) > 0 ORDER BY 1;",
+      "source_file": "independent/l20261020/HAVING_REPEAT",
+      "source_query_ordinal": 36,
+      "family": "HAVING_REPEAT",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              29,
+              -56,
+              -8
+            ],
+            [
+              29,
+              -56,
+              -8
+            ],
+            [
+              null,
+              19,
+              73
+            ],
+            [
+              30,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              48,
+              -38,
+              40
+            ],
+            [
+              40,
+              -51,
+              null
+            ],
+            [
+              4,
+              1,
+              45
+            ],
+            [
+              -87,
+              -27,
+              70
+            ],
+            [
+              7,
+              -87,
+              -59
+            ],
+            [
+              null,
+              -26,
+              -10
+            ],
+            [
+              77,
+              42,
+              -68
+            ],
+            [
+              -61,
+              11,
+              -76
+            ],
+            [
+              49,
+              36,
+              -58
+            ],
+            [
+              37,
+              31,
+              null
+            ],
+            [
+              -19,
+              9,
+              -69
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L37",
+      "sql": "SELECT i, j, MAX(extra) FROM integers WHERE extra IS NOT NULL GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "independent/l20261020/TWO_KEY_MIXED",
+      "source_query_ordinal": 37,
+      "family": "TWO_KEY_MIXED",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -11,
+              31,
+              -73
+            ],
+            [
+              -11,
+              31,
+              -73
+            ],
+            [
+              null,
+              -2,
+              62
+            ],
+            [
+              -47,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              null,
+              null,
+              81
+            ],
+            [
+              -27,
+              38,
+              -28
+            ],
+            [
+              64,
+              -46,
+              54
+            ],
+            [
+              -29,
+              -69,
+              -30
+            ],
+            [
+              -19,
+              -71,
+              -35
+            ],
+            [
+              null,
+              14,
+              30
+            ],
+            [
+              5,
+              -87,
+              -41
+            ],
+            [
+              61,
+              -84,
+              88
+            ],
+            [
+              15,
+              89,
+              7
+            ],
+            [
+              22,
+              84,
+              -50
+            ],
+            [
+              32,
+              -33,
+              -75
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L38",
+      "sql": "SELECT i, j, MAX(extra) FROM integers WHERE extra IS NOT NULL GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "independent/l20261020/TWO_KEY_MIXED",
+      "source_query_ordinal": 38,
+      "family": "TWO_KEY_MIXED",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -58,
+              85,
+              -45
+            ],
+            [
+              -58,
+              85,
+              -45
+            ],
+            [
+              null,
+              34,
+              -20
+            ],
+            [
+              20,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -70,
+              51,
+              3
+            ],
+            [
+              null,
+              87,
+              -80
+            ],
+            [
+              -1,
+              -89,
+              -1
+            ],
+            [
+              -36,
+              -90,
+              -75
+            ],
+            [
+              43,
+              -73,
+              32
+            ],
+            [
+              6,
+              17,
+              70
+            ],
+            [
+              56,
+              76,
+              3
+            ],
+            [
+              -76,
+              -50,
+              12
+            ],
+            [
+              54,
+              -30,
+              null
+            ],
+            [
+              14,
+              76,
+              44
+            ],
+            [
+              63,
+              null,
+              -34
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L39",
+      "sql": "SELECT i, j, MAX(extra) FROM integers WHERE extra IS NOT NULL GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "independent/l20261020/TWO_KEY_MIXED",
+      "source_query_ordinal": 39,
+      "family": "TWO_KEY_MIXED",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -59,
+              -2,
+              73
+            ],
+            [
+              -59,
+              -2,
+              73
+            ],
+            [
+              null,
+              1,
+              11
+            ],
+            [
+              15,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              16,
+              33,
+              77
+            ],
+            [
+              -8,
+              -24,
+              -24
+            ],
+            [
+              -77,
+              -67,
+              90
+            ],
+            [
+              -36,
+              21,
+              54
+            ],
+            [
+              -37,
+              3,
+              40
+            ],
+            [
+              -18,
+              62,
+              -22
+            ],
+            [
+              -13,
+              30,
+              -84
+            ],
+            [
+              65,
+              null,
+              -82
+            ],
+            [
+              34,
+              -54,
+              15
+            ],
+            [
+              -1,
+              49,
+              -59
+            ],
+            [
+              81,
+              32,
+              -55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L40",
+      "sql": "SELECT i, j, MAX(extra) FROM integers WHERE extra IS NOT NULL GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "independent/l20261020/TWO_KEY_MIXED",
+      "source_query_ordinal": 40,
+      "family": "TWO_KEY_MIXED",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              69,
+              -26,
+              30
+            ],
+            [
+              69,
+              -26,
+              30
+            ],
+            [
+              null,
+              -38,
+              -66
+            ],
+            [
+              -52,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              11,
+              -2,
+              -16
+            ],
+            [
+              35,
+              -72,
+              -50
+            ],
+            [
+              -23,
+              14,
+              null
+            ],
+            [
+              50,
+              null,
+              -87
+            ],
+            [
+              null,
+              -22,
+              80
+            ],
+            [
+              -22,
+              -15,
+              89
+            ],
+            [
+              52,
+              -11,
+              45
+            ],
+            [
+              -70,
+              -48,
+              -8
+            ],
+            [
+              38,
+              null,
+              68
+            ],
+            [
+              -12,
+              -42,
+              24
+            ],
+            [
+              -77,
+              null,
+              70
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L41",
+      "sql": "SELECT i, j, MAX(extra) FROM integers WHERE extra IS NOT NULL GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "independent/l20261020/TWO_KEY_MIXED",
+      "source_query_ordinal": 41,
+      "family": "TWO_KEY_MIXED",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              13,
+              68,
+              -52
+            ],
+            [
+              13,
+              68,
+              -52
+            ],
+            [
+              null,
+              1,
+              -54
+            ],
+            [
+              22,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              65,
+              69,
+              -83
+            ],
+            [
+              -67,
+              -29,
+              82
+            ],
+            [
+              78,
+              -89,
+              24
+            ],
+            [
+              -89,
+              -19,
+              38
+            ],
+            [
+              34,
+              19,
+              15
+            ],
+            [
+              -83,
+              41,
+              -31
+            ],
+            [
+              -50,
+              -24,
+              76
+            ],
+            [
+              44,
+              -74,
+              -88
+            ],
+            [
+              19,
+              -22,
+              53
+            ],
+            [
+              11,
+              46,
+              -65
+            ],
+            [
+              -83,
+              null,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L42",
+      "sql": "SELECT i, j, MAX(extra) FROM integers WHERE extra IS NOT NULL GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "independent/l20261020/TWO_KEY_MIXED",
+      "source_query_ordinal": 42,
+      "family": "TWO_KEY_MIXED",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -4,
+              -32,
+              -3
+            ],
+            [
+              -4,
+              -32,
+              -3
+            ],
+            [
+              null,
+              -16,
+              -51
+            ],
+            [
+              46,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              null,
+              null,
+              -39
+            ],
+            [
+              84,
+              48,
+              83
+            ],
+            [
+              -68,
+              -79,
+              24
+            ],
+            [
+              76,
+              -39,
+              -59
+            ],
+            [
+              32,
+              44,
+              -43
+            ],
+            [
+              null,
+              12,
+              -4
+            ],
+            [
+              27,
+              -23,
+              30
+            ],
+            [
+              59,
+              -85,
+              -74
+            ],
+            [
+              16,
+              -35,
+              -57
+            ],
+            [
+              -61,
+              41,
+              -57
+            ],
+            [
+              -65,
+              71,
+              24
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L43",
+      "sql": "SELECT i + COALESCE(j, 0) AS k, COUNT(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/ARITH_ALIAS",
+      "source_query_ordinal": 43,
+      "family": "ARITH_ALIAS",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              14,
+              -19,
+              -1
+            ],
+            [
+              14,
+              -19,
+              -1
+            ],
+            [
+              null,
+              -17,
+              -77
+            ],
+            [
+              -16,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              null,
+              -40,
+              47
+            ],
+            [
+              74,
+              53,
+              -42
+            ],
+            [
+              -44,
+              -32,
+              -9
+            ],
+            [
+              -6,
+              27,
+              2
+            ],
+            [
+              -36,
+              57,
+              -7
+            ],
+            [
+              22,
+              -12,
+              52
+            ],
+            [
+              -11,
+              -89,
+              -74
+            ],
+            [
+              -77,
+              18,
+              0
+            ],
+            [
+              -24,
+              34,
+              null
+            ],
+            [
+              27,
+              -72,
+              -56
+            ],
+            [
+              41,
+              66,
+              -14
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L44",
+      "sql": "SELECT i + COALESCE(j, 0) AS k, COUNT(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/ARITH_ALIAS",
+      "source_query_ordinal": 44,
+      "family": "ARITH_ALIAS",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              28,
+              24,
+              1
+            ],
+            [
+              28,
+              24,
+              1
+            ],
+            [
+              null,
+              -14,
+              -44
+            ],
+            [
+              39,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              10,
+              66,
+              43
+            ],
+            [
+              74,
+              42,
+              -5
+            ],
+            [
+              -71,
+              -57,
+              87
+            ],
+            [
+              -61,
+              -9,
+              34
+            ],
+            [
+              -57,
+              26,
+              74
+            ],
+            [
+              -57,
+              25,
+              59
+            ],
+            [
+              84,
+              null,
+              null
+            ],
+            [
+              42,
+              67,
+              -88
+            ],
+            [
+              4,
+              5,
+              10
+            ],
+            [
+              89,
+              -75,
+              29
+            ],
+            [
+              -20,
+              null,
+              68
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L45",
+      "sql": "SELECT i + COALESCE(j, 0) AS k, COUNT(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/ARITH_ALIAS",
+      "source_query_ordinal": 45,
+      "family": "ARITH_ALIAS",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              29,
+              27,
+              88
+            ],
+            [
+              29,
+              27,
+              88
+            ],
+            [
+              null,
+              -8,
+              52
+            ],
+            [
+              -36,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -48,
+              -28,
+              null
+            ],
+            [
+              24,
+              68,
+              15
+            ],
+            [
+              null,
+              -59,
+              -10
+            ],
+            [
+              88,
+              -38,
+              68
+            ],
+            [
+              85,
+              null,
+              18
+            ],
+            [
+              -82,
+              -18,
+              78
+            ],
+            [
+              40,
+              1,
+              80
+            ],
+            [
+              -48,
+              -22,
+              null
+            ],
+            [
+              null,
+              -38,
+              38
+            ],
+            [
+              -42,
+              -20,
+              53
+            ],
+            [
+              54,
+              39,
+              81
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L46",
+      "sql": "SELECT i + COALESCE(j, 0) AS k, COUNT(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/ARITH_ALIAS",
+      "source_query_ordinal": 46,
+      "family": "ARITH_ALIAS",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              59,
+              57,
+              -22
+            ],
+            [
+              59,
+              57,
+              -22
+            ],
+            [
+              null,
+              -45,
+              -13
+            ],
+            [
+              -34,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -52,
+              33,
+              -33
+            ],
+            [
+              -52,
+              62,
+              -50
+            ],
+            [
+              40,
+              54,
+              -35
+            ],
+            [
+              59,
+              null,
+              55
+            ],
+            [
+              -42,
+              51,
+              -79
+            ],
+            [
+              -79,
+              -58,
+              25
+            ],
+            [
+              14,
+              29,
+              78
+            ],
+            [
+              33,
+              18,
+              -9
+            ],
+            [
+              null,
+              51,
+              -36
+            ],
+            [
+              -26,
+              -50,
+              1
+            ],
+            [
+              -63,
+              -86,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L47",
+      "sql": "SELECT i + COALESCE(j, 0) AS k, COUNT(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/ARITH_ALIAS",
+      "source_query_ordinal": 47,
+      "family": "ARITH_ALIAS",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              25,
+              50,
+              18
+            ],
+            [
+              25,
+              50,
+              18
+            ],
+            [
+              null,
+              -12,
+              -9
+            ],
+            [
+              -24,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              47,
+              null,
+              26
+            ],
+            [
+              7,
+              46,
+              -60
+            ],
+            [
+              null,
+              -66,
+              79
+            ],
+            [
+              null,
+              81,
+              -62
+            ],
+            [
+              null,
+              -76,
+              -79
+            ],
+            [
+              -30,
+              null,
+              -4
+            ],
+            [
+              -84,
+              null,
+              60
+            ],
+            [
+              36,
+              54,
+              42
+            ],
+            [
+              -11,
+              -22,
+              89
+            ],
+            [
+              -15,
+              11,
+              -58
+            ],
+            [
+              -72,
+              -61,
+              47
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "L48",
+      "sql": "SELECT i + COALESCE(j, 0) AS k, COUNT(extra) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "independent/l20261020/ARITH_ALIAS",
+      "source_query_ordinal": 48,
+      "family": "ARITH_ALIAS",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -87,
+              -36,
+              -89
+            ],
+            [
+              -87,
+              -36,
+              -89
+            ],
+            [
+              null,
+              -37,
+              44
+            ],
+            [
+              -50,
+              null,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -12,
+              null,
+              12
+            ],
+            [
+              -80,
+              61,
+              43
+            ],
+            [
+              24,
+              -47,
+              -17
+            ],
+            [
+              -40,
+              58,
+              -1
+            ],
+            [
+              -21,
+              57,
+              -64
+            ],
+            [
+              -47,
+              32,
+              19
+            ],
+            [
+              57,
+              -42,
+              -37
+            ],
+            [
+              -51,
+              4,
+              -79
+            ],
+            [
+              52,
+              73,
+              69
+            ],
+            [
+              -33,
+              30,
+              18
+            ],
+            [
+              null,
+              73,
+              null
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}
