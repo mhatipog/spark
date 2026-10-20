@@ -1,0 +1,71 @@
+name: QueryProof grouping-key real Catalyst AST diagnostic
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_grouping_repetition_20261020/run_retrospective.py
+      - .github/workflows/queryproof-grouping-retrospective.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retrospective-real-ast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_metamorphic_liveness_20261020
+            tools/queryproof_grouping_repetition_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official PySpark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument Spark's actual Catalyst rule transitions
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Replay old 60 cases with new checker in diagnostic mode only
+        run: python -u tools/queryproof_grouping_repetition_20261020/run_retrospective.py
+      - name: Print complete retrospective named-rule denominator
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          f = Path("artifacts/queryproof_grouping_repetition_retrospective_20261020.json")
+          if not f.exists():
+              raise SystemExit("Missing diagnostic report")
+          r = json.loads(f.read_text())
+          p = r["grouping_repetition"]
+          print("GROUPING_RETROSPECTIVE", json.dumps(p, sort_keys=True))
+          print("EVENTS", r["trace"]["trace_events"])
+          print("CASES", r["executed_cases"])
+          print("MISMATCHES", r["row_oracle_mismatch_cases"])
+          print("ERRORS", r["error_cases"])
+          if r["executed_cases"] != 60 or r["worker_exit_code"] != 0:
+              raise SystemExit("Incomplete diagnostic replay")
+          if r["trace"]["decode_failures"] or r["trace"]["instrumentation_failures"]:
+              raise SystemExit("Invalid trace")
+          if r["row_oracle_mismatch_cases"] or r["error_cases"] or r["missing_cases"]:
+              raise SystemExit("Oracle mismatch")
+          if p["named_grouping_repetition_events"] <= 0:
+              raise SystemExit("No grouping repetition events seen")
+          '
+      - name: Save sanitized grouping-key diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-grouping-key-retrospective
+          path: artifacts/queryproof_grouping_repetition_retrospective_20261020.json
+          if-no-files-found: warn
+          retention-days: 14
