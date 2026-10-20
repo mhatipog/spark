@@ -32,8 +32,11 @@ def _group_key(expression, scope):
         if node.get("class") == EXPR + "AttributeReference":
             required = {"class", "num-children", "name", "dataType", "exprId"}
             optional = {"qualifier", "metadata", "nullable"}
+            qualifier = node.get("qualifier", [])
             require(required <= set(node) <= required | optional and
-                    node.get("qualifier", []) == [] and
+                    (qualifier == [] or
+                     (isinstance(qualifier, str) and
+                      len(qualifier) <= 512)) and
                     ("nullable" not in node or
                      type(node["nullable"]) is bool) and
                     ("metadata" not in node or
