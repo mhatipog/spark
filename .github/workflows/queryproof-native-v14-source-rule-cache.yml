@@ -1,0 +1,76 @@
+name: QueryProof V14 native Spark rule-pruning cache witness
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_posthoc_v14_20261020/**
+      - .github/workflows/queryproof-native-v14-source-rule-cache.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  v14-native-source-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_posthoc_v14_20261020
+            tools/queryproof_posthoc_v11_20261020
+            tools/queryproof_posthoc_v10_20261020
+            tools/queryproof_posthoc_v9_20261020
+            tools/queryproof_posthoc_v8_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Verify pinned official source and instrument disposable TreeNode and RuleExecutor
+        run: |
+          mkdir -p artifacts/queryproof_v10_source
+          curl --retry 3 -fsSL \
+            https://raw.githubusercontent.com/apache/spark/v4.2.0/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/trees/TreeNode.scala \
+            -o artifacts/queryproof_v10_source/TreeNode.scala
+          python -B tools/queryproof_posthoc_v10_20261020/instrument_official_treenode.py
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_posthoc_v8_20261020/instrument_v8_trace.py
+          python -B tools/queryproof_posthoc_v9_20261020/instrument_v9_prerule_tag.py
+          python -B tools/queryproof_posthoc_v11_20261020/instrument_rule_scope.py
+          python -B tools/queryproof_posthoc_v14_20261020/instrument_rule_pruning.py
+      - name: Compile pinned TreeNode with actual rule-cache hooks
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_v14_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*" \
+            -d artifacts/queryproof_v14_classes \
+            artifacts/queryproof_v10_source/TreeNode.scala
+          test -f artifacts/queryproof_v14_classes/org/apache/spark/sql/catalyst/trees/TreeNode.class
+          test -f artifacts/queryproof_v14_classes/org/apache/spark/sql/catalyst/trees/QueryProofRulePruningEffectsV14.class
+          CATALYST=$(find "$JARS" -maxdepth 1 -name 'spark-catalyst_2.13-*.jar' | head -n 1)
+          test -n "$CATALYST"
+          jar uf "$CATALYST" -C artifacts/queryproof_v14_classes .
+          echo QUERYPROOF_V14_OFFICIAL_TREENODE_RULE_CACHE_COMPILED
+      - name: Compile actual native RuleExecutor
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Compile independent V14 cache witness
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_v14_native_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "artifacts/queryproof_classes:artifacts/queryproof_v14_classes:$JARS/*" \
+            -d artifacts/queryproof_v14_native_classes \
+            tools/queryproof_posthoc_v14_20261020/QueryProofNativeV14RulePruningCacheWitness.scala
+      - name: Match real reused-tree rule MARK and SKIP against fresh-tree outcome
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          java -Xmx3g -cp "artifacts/queryproof_v14_native_classes:artifacts/queryproof_classes:artifacts/queryproof_v14_classes:$JARS/*" \
+            org.apache.spark.sql.catalyst.optimizer.QueryProofNativeV14RulePruningCacheWitness
