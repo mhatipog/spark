@@ -1,0 +1,14 @@
+{
+  "schema_version": 4,
+  "benchmark_id": "queryproof-round-n-posthoc-M-four-case-diagnostic-20261020",
+  "required_case_count": 4,
+  "frozen_verifier_commit": "40bf2fbab64c717c72ec630566bb5c8cf705c2a4",
+  "status": "RETROSPECTIVE_DEVELOPMENT_REPLAY_ONLY",
+  "preregistered_prospective": false,
+  "modified_M_manifest": false,
+  "limits": [
+    "Four previously observed failures are posthoc, not an independent holdout",
+    "Original M score remains 20/48, even if development coverage improves",
+    "No general rowbag correctness claim from these executions"
+  ]
+}
