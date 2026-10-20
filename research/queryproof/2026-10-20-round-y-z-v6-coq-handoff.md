@@ -544,8 +544,10 @@ semantics, or prove the native extractor matches a Coq interpretation.
 A second, explicitly POSTHOC Coq development commit
 `736e0e0c0cbaf7bdd9b247838e4cd306cb6ec571` extends the
 impossibility file with an abstract ordered source-frame injectivity
-and metadata-swap countermodel. Record independent Coq CI outcome
-once verified; do not credit as kernel-proven until successful.
+and metadata-swap countermodel. Independent Coq CI **\`39462918891\` SUCCEEDED** under official
+Coq 8.18, without `Admitted` or axioms. This kernel-checks a narrow
+ordered-source-frame injectivity lemma and a metadata-swap model, not
+the actual Scala emitter.
 
 **Exact impact on old scores: NONE.** W32 prospective first run stays
 16/32 structural; X stays 0/16 strict; V6/V7 posthoc stay 20/32
