@@ -211,3 +211,30 @@ assumption*, not a Spark optimizer bug. The all-rule observer is observational
 and still uses a lossy tag-frame digest. Its absence-of-drift result, even if
 confirmed over H, cannot prove semantic noninterference of tags or exclude
 transient mutation followed by restoration inside a single rule call.
+
+### All-rule H measurement: 26,112 actual calls, 0 observed silent deltas
+
+The disposable pre/post rule observer has also been replayed on frozen H01-H48
+in free CI https://github.com/mhatipog/spark/actions/runs/39408853888 .
+
+- **26,112** total actual logical-plan `RuleExecutor` invocations, independently
+  counted before the existing effective-rule event emitter.
+- **438** effective rule calls, equal to all 438 existing captured AST events.
+- **25,674** `fastEquals` no-op calls previously omitted from the AST trace.
+- **0** observational pre/post hidden-state mismatches on those no-op calls,
+  and **0** observed silent backing-input reference substitutions.
+- In the **post-FinishAnalysis** window specifically: 11,904 rule calls,
+  120 effective changes, 11,784 no-ops, **0 observed silent drift**.
+- All 48 normalization cuts accounted for. The original 30/48 conditional
+  suffix candidates survive this additional **necessary** trace-completeness
+  check, independently of the earlier 30/30 live input gate.
+
+The separately executed deliberately mutating no-op is *detected* by this
+same observer, ruling out the trivial explanation that it never notices any
+hidden changes. The outcome improves empirical credibility of the historical
+H traces but **does not** make zero-drift a mathematical theorem. The tag-frame
+observer is still noninjective (documented collision), and pre/post snapshots
+cannot see transient intra-rule mutations that restore state before return.
+The strict tag quarantine therefore remains 30 -> 0 for unconditional
+certificates. Future work must separate denotational tag noninterference
+from observational trace fidelity.
