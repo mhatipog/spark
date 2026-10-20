@@ -22,6 +22,7 @@ MANIFEST = HERE / "CASES.json"
 PROTOCOL = HERE / "FROZEN_PROTOCOL.json"
 OUTPUT = ROOT / "artifacts" / "queryproof_external_postgresql_join_20261019.json"
 DIAGNOSTIC_GENERALIZED = False
+DIAGNOSTIC_GROUPING_REPETITION = False
 
 
 def worker(manifest_path, output_path):
@@ -519,6 +520,43 @@ def retrospective_aggregate_identity(private_trace_path):
             "certificates": results,
             "unknown_reasons": dict(reasons)}
 
+
+def score_grouping_repetition(private_trace_path):
+    """Every actual named repetition rule event, with no label-based proof."""
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_instrumented"))
+    from rank_ast import decode
+    from grouping_repetition_certificate import certify_grouping_repetition_event
+    accepted, unknowns, named = [], Counter(), 0
+    for line in private_trace_path.read_text(errors="replace").splitlines():
+        if not line.startswith("QUERYPROOF_AST\t"):
+            continue
+        event = decode(line)
+        if _rule_basename(event.get("rule")) != (
+                "RemoveRepetitionFromGroupExpressions"):
+            continue
+        named += 1
+        result = certify_grouping_repetition_event(event)
+        if result["status"] == "EQUIVALENT_IN_FRAGMENT":
+            accepted.append({
+                "case": event.get("case"),
+                "grouping_keys_before": result["grouping_keys_before"],
+                "grouping_keys_after": result["grouping_keys_after"],
+                "removed_duplicates": result["removed_duplicates"],
+                "sort_frames": result["sort_frames"],
+            })
+        else:
+            unknowns[result.get("reason", "UNKNOWN")] += 1
+    return {
+        "status": "RETROSPECTIVE_DEVELOPMENT_ONLY_NO_HOLDOUT_CREDIT",
+        "named_grouping_repetition_events": named,
+        "certified": len(accepted),
+        "certificates": accepted,
+        "unknown_reasons": dict(unknowns),
+        "semantic_scope": "local pure grouping-key partition equivalence only",
+    }
+
+
 def parent():
     manifest_bytes = MANIFEST.read_bytes()
     protocol_bytes = PROTOCOL.read_bytes()
@@ -549,6 +587,34 @@ def parent():
             score_generalized_column_liveness(raw_stderr)
             if (protocol.get("prospective_generalized_liveness") or
                 DIAGNOSTIC_GENERALIZED) else None)
+        grouping_repetition = (
+            score_grouping_repetition(raw_stderr)
+            if (protocol.get("prospective_grouping_repetition") or
+                DIAGNOSTIC_GROUPING_REPETITION) else None)
+        if grouping_repetition is not None and protocol.get(
+                "prospective_grouping_repetition"):
+            pin = json.loads((MANIFEST.parent / "VERIFIER_PIN.json").read_text())
+            assert pin["benchmark_id"] == manifest["benchmark_id"]
+            assert pin["frozen_verifier_commit"] == protocol["frozen_verifier_commit"]
+            assert pin["verifier_module"] == (
+                "tools/queryproof_context_validator/"
+                "grouping_repetition_certificate.py")
+            current = subprocess.run(
+                ["git", "hash-object", pin["verifier_module"]],
+                cwd=ROOT, check=True, capture_output=True, text=True).stdout.strip()
+            expected = pin["frozen_verifier_git_blob_sha"]
+            assert len(expected) == len(current) == 40
+            matches = current == expected
+            grouping_repetition["status"] = (
+                "PROSPECTIVE_FROZEN_TARGETED_GENERATED_REPETITION"
+                if matches and protocol.get("generated_targeted") else
+                "PROSPECTIVE_FROZEN_EXTERNAL_REPETITION"
+                if matches else "RETROSPECTIVE_VERIFIER_CHANGED_AFTER_FREEZE")
+            grouping_repetition["verifier_provenance"] = {
+                "frozen_verifier_git_blob_sha": expected,
+                "current_verifier_git_blob_sha": current,
+                "matches_frozen_checker": matches,
+            }
         if generalized is not None and protocol.get(
                 "prospective_generalized_liveness"):
             pin = json.loads((MANIFEST.parent / "VERIFIER_PIN.json").read_text())
@@ -660,6 +726,7 @@ def parent():
         "column_pruning_diagnostic": pruning_diagnostic,
         "retrospective_column_liveness": column_liveness,
         "generalized_column_liveness": generalized,
+        "grouping_repetition": grouping_repetition,
         "trace": scored,
         "limitations": [
             "Third-party source provenance is specified by each frozen protocol; "
@@ -681,6 +748,12 @@ def parent():
         "retrospective_collapse_project": collapsed["certified"],
         "retrospective_aggregate_identity": aggregate_identity["certified"],
         "counterexamples": len(coverage["counterexample_events"]),
+        "grouping_repetition_events": (
+            grouping_repetition["named_grouping_repetition_events"]
+            if grouping_repetition is not None else None),
+        "grouping_repetition_certified": (
+            grouping_repetition["certified"]
+            if grouping_repetition is not None else None),
         "decode_failures": len(scored["decode_failures"]),
         "instrumentation_failures": len(scored["instrumentation_failures"])}), flush=True)
     complete = (child.returncode == 0 and
