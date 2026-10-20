@@ -1,0 +1,66 @@
+name: QueryProof actual Catalyst input identity attestation
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_adversarial_20261020/instrument_input_identity.py
+      - tools/queryproof_adversarial_20261020/identity_trace_guard.py
+      - tools/queryproof_adversarial_20261020/QueryProofActualRuleInputControl.scala
+      - .github/workflows/queryproof-live-input-attestation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-rule-input-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_instrumented
+            tools/queryproof_scopes_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_adversarial_20261020
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official PySpark
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument only disposable checkout and Spark jars
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Run actual RuleExecutor negative and positive rules
+        run: |
+          JARS="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "jars"))')"
+          SUBMIT="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "bin", "spark-submit"))')"
+          mkdir -p artifacts/queryproof_actual_rule_classes
+          java -Xmx2g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*" \
+            -d artifacts/queryproof_actual_rule_classes \
+            tools/queryproof_adversarial_20261020/QueryProofActualRuleInputControl.scala
+          jar cf artifacts/queryproof-actual-rule-input-control.jar -C artifacts/queryproof_actual_rule_classes .
+          "$SUBMIT" --master 'local[1]' --conf spark.ui.enabled=false \
+            --class org.apache.spark.sql.catalyst.rules.QueryProofActualRuleInputControl \
+            artifacts/queryproof-actual-rule-input-control.jar \
+            2> artifacts/queryproof_actual_rule_stderr.log
+      - name: Validate context-bound witnesses and both rule controls
+        run: |
+          python -B tools/queryproof_adversarial_20261020/identity_trace_guard.py \
+            artifacts/queryproof_actual_rule_stderr.log
+      - name: Keep no private plans
+        if: always()
+        run: |
+          if test -f artifacts/queryproof_actual_rule_stderr.log; then
+            python -c 'from pathlib import Path; p=Path("artifacts/queryproof_actual_rule_stderr.log"); print("QUERYPROOF_PRIVATE_LOG_BYTES",p.stat().st_size)'
+          fi
