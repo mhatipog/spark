@@ -1,0 +1,45 @@
+name: QueryProof immutable W32 artifact-only challenge diagnostics
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - .github/workflows/queryproof-w32-artifact-diagnostics.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  frozen-artifact-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download original frozen first-run artifact, never re-run W SQL
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p w32_original
+          gh run download 39435756545 -R mhatipog/spark \
+            -n queryproof-prospective-w32-first-run -D w32_original
+      - name: Print unsupported families and actual rule classes from immutable W report
+        run: |
+          python3 -B -c '
+          import json
+          from pathlib import Path
+          reports=list(Path("w32_original").rglob("*.json"))
+          assert len(reports)==1, reports
+          r=json.loads(reports[0].read_text())
+          w=r["union_coverage"]["w32_full_suffix_first_run"]
+          print("QUERYPROOF_FROZEN_W32_ARTIFACT_DIGEST_EXPECTED",
+              "024da3af1ea90616b1364cbc5f2ba0d75e10202e38003ba4837a0373bdf3ac01")
+          print("QUERYPROOF_W32_UNKNOWN_RULE_TYPES",
+              json.dumps(w["unknown_rule_types"],sort_keys=True))
+          print("QUERYPROOF_W32_CHANGED_RULE_CLASSES",
+              json.dumps(w["observed_changed_rule_classes"],sort_keys=True))
+          print("QUERYPROOF_W32_CHALLENGES",
+              json.dumps([x for x in w["cases"] if x["group"]=="JOIN_CHALLENGE"],sort_keys=True))
+          assert w["v5_certified_complete_changed_suffixes"]==16
+          assert w["changed_optimizer_suffixes"]==32
+          assert all(x["v5_suffix_reason"]=="UNKNOWN_RULE" for x in
+              w["cases"] if x["group"]=="JOIN_CHALLENGE")
+          '
