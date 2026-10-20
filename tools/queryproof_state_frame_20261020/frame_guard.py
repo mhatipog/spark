@@ -144,10 +144,10 @@ def audit_frame_records(records, parse_errors, scope_summary):
                     event_failures[reason] += 1
             stack[-1]["events"].append(reasons)
             continue
-        _typ, _case, executor, batch, uid, phase = core
+        _case, scope_kind, executor, batch, uid, phase = core
         if phase == "BEGIN":
             stack.append({
-                "kind": _typ, "case": case, "executor": executor,
+                "kind": scope_kind, "case": case, "executor": executor,
                 "batch": batch, "uid": uid, "start": r, "children": [],
                 "events": [], "has_finish": False, "finish_frame": None,
             })
@@ -157,7 +157,7 @@ def audit_frame_records(records, parse_errors, scope_summary):
             break
         current = stack.pop()
         if any(current[k] != value for k, value in (
-                ("kind", _typ), ("case", case), ("executor", executor),
+                ("kind", scope_kind), ("case", case), ("executor", executor),
                 ("batch", batch), ("uid", uid))):
             errors.append("END_MISMATCH")
             break
