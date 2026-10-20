@@ -1,0 +1,27 @@
+name: QueryProof generalized projection liveness proof checks
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_context_validator/generalized_projection_liveness_certificate.py
+      - tools/queryproof_context_validator/test_generalized_projection_liveness.py
+      - .github/workflows/queryproof-generalized-liveness.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generalized-project-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_context_validator
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check nested Project liveness and all adversarial guards
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_generalized_projection_liveness.py' -v
+      - name: Ensure original frozen liveness checker remains valid
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_column_pruning_liveness.py' -v
