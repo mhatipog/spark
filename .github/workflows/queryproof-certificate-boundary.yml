@@ -296,6 +296,7 @@ jobs:
             tools/queryproof_external_duckdb_adversarial_20261019
             tools/queryproof_external_duckdb_subquery_20261019
             tools/queryproof_external_duckdb_aggregate_20261019
+            tools/queryproof_external_duckdb_column_liveness_20261019
             tools/queryproof_instrumented
       - uses: actions/setup-java@v4
         with:
