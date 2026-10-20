@@ -1,4 +1,5 @@
-"""V7 DEVELOPMENT strict event-chain ledger. No identity shortcut over executed steps.\n\nDerived from V6; never changes frozen W32 or original V6.\n"""\n"""Round V6 posthoc DEVELOPMENT boundary ledger (derived from frozen V5) (v5, join grouping + filters) for recorded Catalyst rule executions.
+"""V7 strict chain ledger. Every recorded effective rule step must be certified.\nThis is retrospective structural accounting, not a semantic correctness proof.\n"""
+"""Round V6 posthoc DEVELOPMENT boundary ledger (derived from frozen V5) (v5, join grouping + filters) for recorded Catalyst rule executions.
 
 A batch is accepted only if its exact entry/exit states are connected by
 individually certified, contiguous changed-rule steps, or identical by syntax.
@@ -227,7 +228,8 @@ def summarize_scope_stream(stream):
             "Experimental trace only, not a guarantee for all Spark programs",
             "Scope start/end are emitted by a disposable instrumented RuleExecutor",
             "Changed rule records are complete only if no cap or trace errors",
-            "Equal AST endpoints certify identity, even if intermediate rules are unknown",
+            "Equal AST endpoints are allowed only when zero effective events are recorded",
+            "A zero-event record is trustworthy only when event-capture completeness is established",
             "Nested executor changes must be covered by the enclosing parent rule",
             "No Spark order sensitivity, side effects, or non-Catalyst stages proved",
             "Optimizer suffix begins AFTER FinishAnalysis semantic normalization",
