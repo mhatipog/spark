@@ -21,6 +21,7 @@ from run_holdout import canonical_bag, analyze_trace, _rule_basename
 MANIFEST = HERE / "CASES.json"
 PROTOCOL = HERE / "FROZEN_PROTOCOL.json"
 OUTPUT = ROOT / "artifacts" / "queryproof_external_postgresql_join_20261019.json"
+DIAGNOSTIC_GENERALIZED = False
 
 
 def worker(manifest_path, output_path):
@@ -496,8 +497,10 @@ def parent():
         column_liveness = retrospective_column_pruning_liveness(raw_stderr)
         generalized = (
             score_generalized_column_liveness(raw_stderr)
-            if protocol.get("prospective_generalized_liveness") else None)
-        if generalized is not None:
+            if (protocol.get("prospective_generalized_liveness") or
+                DIAGNOSTIC_GENERALIZED) else None)
+        if generalized is not None and protocol.get(
+                "prospective_generalized_liveness"):
             pin = json.loads((MANIFEST.parent / "VERIFIER_PIN.json").read_text())
             assert pin["benchmark_id"] == manifest["benchmark_id"]
             assert pin["frozen_verifier_commit"] == protocol["frozen_verifier_commit"]
