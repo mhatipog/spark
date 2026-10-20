@@ -1,0 +1,29 @@
+name: QueryProof independently falsify lossy frame observations
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_posthoc_y_20261020/test_frame_observer_aliasing.py
+      - .github/workflows/queryproof-frame-aliasing-independent.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-pinned-frame-injectivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_posthoc_y_20261020
+            tools/queryproof_state_frame_20261020
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Source-pin actual Scala observer generation, then falsify its injectivity
+        run: |
+          test "$(git hash-object tools/queryproof_state_frame_20261020/instrument_frame.py)" = "3d2f64d6b91e5a09830a43f066f6690af91abdbb"
+          python -B -m unittest discover -s tools/queryproof_posthoc_y_20261020 -p 'test_frame_observer_aliasing.py' -v
+          echo QUERYPROOF_FRAME_OBSERVER_NONINJECTIVE_IN_TWO_INDEPENDENT_WAYS
