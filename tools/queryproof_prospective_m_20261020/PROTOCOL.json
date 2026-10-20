@@ -1,0 +1,28 @@
+{
+  "schema_version": 4,
+  "benchmark_id": "queryproof-prospective-m-adversarial-20261020",
+  "required_case_count": 48,
+  "frozen_verifier_commit": "40bf2fbab64c717c72ec630566bb5c8cf705c2a4",
+  "prospectively_frozen_before_first_M_run": true,
+  "primary_metric": "Number of changed post-FinishAnalysis optimizer suffixes with complete local proof chains and independently passing input, all-rule drift, and narrowly whitelisted tag-shape necessary gates. Report each gate separately; combined count only if case-level intersection is established.",
+  "data_oracle": "Finite Spark 4.2.0 vs SQLite unordered row-multiset equality",
+  "cohort_strata": {
+    "TARGET_ENRICHED": 24,
+    "GENERALIZATION_CHALLENGE": 24
+  },
+  "certificate_code_frozen": true,
+  "unknown_policy": "UNKNOWN: unsupported rule, opaque input, malformed/unknown tag, changed input reference, missing scope/event, unmodelled expression, instrumentation or rule-audit fault",
+  "zero_certificates_is_valid_result": true,
+  "no_postrun_threshold_tuning": true,
+  "prior_art_caveat": "No implied advantage over SQLSolver or other SQL verification approaches",
+  "exclusions": [
+    "Spark physical runtime side effects",
+    "nondeterministic/UDF effects",
+    "unbounded SQL equivalence proof",
+    "future Analyzer activity",
+    "different Spark versions"
+  ],
+  "negative_controls": [
+    "Earlier real LogicalRDD swap and silent mutation controls are separate, not part of M's SQL corpus"
+  ]
+}
