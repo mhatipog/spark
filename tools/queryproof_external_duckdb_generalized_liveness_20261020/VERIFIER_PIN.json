@@ -1,0 +1,7 @@
+{
+  "benchmark_id": "queryproof-duckdb-generalized-liveness-unused-20261020",
+  "frozen_verifier_commit": "c569e347739c432bd9189e51a16cd1353f9d5bee",
+  "verifier_module": "tools/queryproof_context_validator/generalized_projection_liveness_certificate.py",
+  "frozen_verifier_git_blob_sha": "4b854bbfa5b00cacba84dd01dea5de39f2aade95",
+  "freeze_isolation": "New 16-case corpus and checker were committed before any Catalyst trace replay for this cohort. Subsequent checker changes void prospective classification."
+}
