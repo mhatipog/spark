@@ -1,0 +1,13 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-grouping-repetition-fresh-round2-20261020",
+  "required_case_count": 48,
+  "frozen_verifier_commit": "369200a21d3923f0fb2364f12c356e2a606bfcaf",
+  "retrospective": true,
+  "prospective_generalized_liveness": false,
+  "prospective_grouping_repetition": false,
+  "limitations": [
+    "Posthoc union diagnostic on an already-executed cohort; never relabel as new prospective",
+    "Different local rules in one case do not demonstrate that their snapshots compose into an entire optimizer proof."
+  ]
+}
