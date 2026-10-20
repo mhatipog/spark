@@ -119,3 +119,63 @@ confirmation**:
 
 The 15-case result may be used for research diagnosis, never counted again
 as a fresh holdout for a checker changed in response to it.
+
+## Subsequent post-hoc abstention anatomy (not additional holdout credit)
+
+After preserving the first successful prospective score, a **workflow-only**
+diagnostic replay at
+[run 39373501726](https://github.com/mhatipog/spark/actions/runs/39373501726)
+printed pre-existing sanitized shape diagnostics. All three jobs passed.
+It did not modify the checker, input SQL, frozen protocol or the already
+recorded 5/8 prospective result.
+
+The three UNKNOWN events are now identified:
+
+| Case | Captured structural difference | Why the frozen checker abstained |
+| --- | --- | --- |
+| A05 | `Aggregate` with `Alias(Upper(Cast(Literal)))`, new zero-column Project under Aggregate | `Upper` not in the strict expression grammar |
+| A06 | `Aggregate` with `Alias(Lower(Cast(Literal)))`, new zero-column Project under Aggregate | `Lower` not in the strict expression grammar |
+| A10 | `Sort(Aggregate(Project(... Remainder ...)))` becomes `Sort(Aggregate(Project(..., Project(... Remainder ...))))` | Actual Project-stack restructuring, not one inserted direct Project |
+
+The first two are narrow syntax limitations, not evidence of unsafe
+transformations. The third demands a different structural theorem; it is
+not safe to declare equivalence merely because `ColumnPruning` was the rule
+name or because the visible aggregate was unchanged.
+
+### Generalizable next lemma: observational projection liveness
+
+Let `R` be any finite bag; let `F(R)` and `G(R)` be deterministic,
+total, one-output-row-per-input projections of the **same** unchanged base
+relation, with explicit resolved output identities. Let `K` be the exact
+set of downstream live attributes read by a whitelisted, unchanged,
+deterministic relation context `C` (including its grouping/aggregate
+expressions, but only bag-observed `Sort` frames).
+
+A sufficient condition for
+
+`C(F(R)) ≡bag C(G(R))`
+
+is that, for **every possible input row**, the values exposed by `F`
+and `G` at all identities in `K` agree, and both preserve one row for
+each input occurrence. Columns outside `K` may be computed, retained,
+removed or rearranged but cannot influence `C`. The proof follows by
+pairing each input occurrence through the two projections; the resulting
+bags agree after restriction to `K`, and the unchanged pure context
+cannot distinguish them.
+
+This subsumes the simple inserted Project case and could cover nested
+project stacks such as A10. However, implementing it soundly requires:
+
+1. Exact compositional output-identity / expression normalization across
+   Project stacks, with explicit avoidance of alias collisions, duplicate
+   IDs and unresolved scopes.
+2. A conservative data-dependency/purity grammar; effects, side queries,
+   runtime errors, volatile expressions and unrecognized references abstain.
+3. A whitelist of contexts with a written bag-congruence lemma, and an
+   explicit statement that Sort does not certify ordered result sequences.
+4. Counterexample-oriented mutations and a **new untouched independent
+   SQL cohort** frozen before any new checker receives prospective credit.
+
+This is a proof-design hypothesis, **not a newly implemented or validated
+certificate**. It should be evaluated for coverage and complexity against
+smaller, case-specific extensions before code is written.
