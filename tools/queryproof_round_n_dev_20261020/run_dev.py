@@ -30,7 +30,7 @@ def diagnostic(path):
     per_case = defaultdict(Counter)
     safe_shape = defaultdict(list)
     for line in path.read_text(errors="replace").splitlines():
-        if not line.startswith("QUERYPROOF_AST\\t"):
+        if not line.startswith("QUERYPROOF_AST" + chr(9)):
             continue
         event = decode(line)
         name = _rule_basename(event["rule"])
