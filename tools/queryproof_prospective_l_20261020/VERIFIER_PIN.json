@@ -1,0 +1,23 @@
+{
+  "benchmark_id": "queryproof-preserved-jvm-frame-prospective-l-20261020",
+  "frozen_before_first_l_execution": true,
+  "baseline_experimental_verifier_commit": "93305ffcfbfbb75c067715a134f31e99c33f900e",
+  "pinned_git_blob_sha": {
+    "tools/queryproof_state_frame_20261020/frame_guard.py": "3b66d103e11db0b9adbbace0e0b6977df0266f6f",
+    "tools/queryproof_state_frame_20261020/instrument_frame.py": "3d2f64d6b91e5a09830a43f066f6690af91abdbb",
+    "tools/queryproof_scopes_20261020/scope_ledger.py": "0fe25f61ff4ef971762d4102051f76b7e8f628eb",
+    "tools/queryproof_scopes_20261020/instrument_scopes.py": "d6c058623c7b2c92232df6d68d5cc750c07b5d56",
+    "tools/queryproof_state_witness_20261020/instrument_state.py": "5123c34cca582185515987864309974b4413254e",
+    "tools/queryproof_context_validator/grouping_repetition_certificate.py": "092bb0ecdf8e459a0c1cd3c712959a9d243a191f",
+    "tools/queryproof_context_validator/generalized_projection_liveness_certificate.py": "c1a8c81fa10d94d191e7c930254d78e9de7c3258",
+    "tools/queryproof_context_validator/aggregate_framed_identity_certificate.py": "0c5d9a3f188db5588217c89edfca922161fe2bf9",
+    "tools/queryproof_external_postgresql_join_20261019/run_external.py": "06428852dc1cc0e3e8c546a537b2775dd47db66b",
+    "tools/queryproof_instrumented/RuleExecutor.scala": "a4ac5ba5f280164d9b0276703c06a288bc4309b5",
+    "tools/queryproof_state_frame_20261020/run_frame.py": "5377e3f68d0e950c8db59b90ca4f05a28f13c3fd",
+    "tools/queryproof_prospective_l_20261020/CASES.json": "1e260c70d814c1a2f5a456ba4a2c24a44c6f761d",
+    "tools/queryproof_prospective_l_20261020/PROTOCOL.json": "23ac97e99a0f807e85280dbe19c717b9885ac06a",
+    "tools/queryproof_instrumented/build_overlay.sh": "14c632ad4d4a9d95c4800501dbd1dc6a39095e38",
+    "tools/queryproof_prospective_l_20261020/run_l.py": "0dd8f0c37e0553791b25984edd120a56902acc98"
+  },
+  "claim": "The source/trace/verifier modules, xorshift32 L cases, and protocol were pinned before the first L SQL invocation. No post-result editing may be counted as prospective."
+}
