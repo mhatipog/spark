@@ -1,0 +1,99 @@
+name: QueryProof localized hidden state in Catalyst optimizer
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_state_details_20261020/**
+      - .github/workflows/queryproof-state-details.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_details_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run locality and fail-closed audit tests
+        run: |
+          PYTHONPATH=tools/queryproof_state_details_20261020:tools/queryproof_state_witness_20261020 \
+            python -B -m unittest discover \
+              -s tools/queryproof_state_details_20261020 \
+              -p 'test_scope_sensitive.py' -v
+          python -B -m unittest discover -s tools/queryproof_state_witness_20261020 \
+            -p 'test_state_guard.py' -q
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned PySpark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Build disposable Catalyst scopes, state witness and class profiler
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_details_20261020/instrument_details.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Retrospective H with localized diagnostic
+        run: python -u tools/queryproof_state_details_20261020/run_details.py --cohort H
+      - name: Retrospective K with localized diagnostic
+        run: python -u tools/queryproof_state_details_20261020/run_details.py --cohort K
+      - name: Confirm complete labelled results and print only JVM classes
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          for cohort in ("H", "K"):
+              path = Path("artifacts/queryproof_state_details_" + cohort + ".json")
+              if not path.exists():
+                  raise SystemExit("No retrospective " + cohort + " detail report")
+              report = json.loads(path.read_text())
+              scope = report["union_coverage"]["hierarchical_scope_ledger"]
+              detail = report["union_coverage"]["posthoc_suffix_class_details"]
+              keys = ("status", "errors", "cases_with_finish_analysis",
+                      "observed_class_markers", "suffix_states",
+                      "suffix_tagged_states", "suffix_metadata_states",
+                      "suffix_opaque_states", "top_global_hidden_classes",
+                      "top_suffix_hidden_classes",
+                      "previously_certified_suffix_count", "clean_suffix_count",
+                      "suffix_guard_blockers_by_case")
+              print("QUERYPROOF_CLASS_DETAIL_" + cohort, json.dumps({
+                  key: detail.get(key) for key in keys}, sort_keys=True))
+              print("QUERYPROOF_ORACLE_" + cohort, json.dumps({
+                  "cases": report["executed_cases"],
+                  "errors": report["error_cases"],
+                  "mismatches": report["row_oracle_mismatch_cases"],
+                  "previous_proofs": scope["certified_changed_optimizer_suffixes"],
+              }, sort_keys=True))
+              if report["worker_exit_code"] != 0 or report["executed_cases"] != 48:
+                  raise SystemExit("Incomplete replay " + cohort)
+              if report["error_cases"] or report["row_oracle_mismatch_cases"]:
+                  raise SystemExit("Row-oracle mismatch in " + cohort)
+              if detail["status"] != "COMPLETE_CLASSIFIED_JVM_TRACE":
+                  raise SystemExit("Incomplete class-profiler trace in " + cohort)
+          '
+      - name: Save only sanitized class-level H/K analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-posthoc-jvm-state-classes-hk
+          path: artifacts/queryproof_state_details_*.json
+          retention-days: 14
+          if-no-files-found: warn
