@@ -1,0 +1,107 @@
+name: QueryProof V7 posthoc strict effective-rule completeness audit
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_posthoc_v7_20261020/**
+      - .github/workflows/queryproof-v7-strict-interior.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-posthoc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_posthoc_v7_20261020
+            tools/queryproof_posthoc_v6_20261020
+            tools/queryproof_posthoc_y_20261020
+            tools/queryproof_posthoc_x_20261020
+            tools/queryproof_prospective_w_20261020
+            tools/queryproof_join_filters_u_dev_20261020
+            tools/queryproof_join_suffix_s_dev_20261020
+            tools/queryproof_join_pruning_q_dev_20261020
+            tools/queryproof_round_n_dev_20261020
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify historical W32 input and v5 sources are still frozen
+        run: |
+          python -B -c '
+          import json,subprocess
+          from pathlib import Path
+          root=Path("tools/queryproof_prospective_w_20261020")
+          protocol=json.loads((root/"PROTOCOL.json").read_text())
+          for p,expected in protocol["frozen_git_blob_shas"].items():
+              actual=subprocess.run(["git","hash-object",p],capture_output=True,
+                  text=True,check=True).stdout.strip()
+              assert actual==expected, f"FROZEN_W_COMPONENT_MODIFIED {p}"
+          assert subprocess.run(["git","hash-object",
+              "tools/queryproof_posthoc_v6_20261020/scope_ledger_v6.py"],
+              capture_output=True,text=True,check=True).stdout.strip()=="9ca27603cdc36de30a779e307eac87d131a61d24"
+          compile(Path("tools/queryproof_posthoc_v7_20261020/run_v7.py").read_text(),
+                  "round_v7","exec")
+          print("QUERYPROOF_V7_FROZEN_W_AND_V6_SOURCE_CHECK_OK")
+          '
+      - name: Falsify identity bypass with independent synthetic trace controls BEFORE replay
+        run: python -B -m unittest discover -s tools/queryproof_posthoc_v7_20261020 -p 'test_strict_interior.py' -v
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Restore disposable provenance and state sensors
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          python -B tools/queryproof_adversarial_20261020/instrument_silent_rules.py
+          python -B tools/queryproof_adversarial_20261020/instrument_tag_taxonomy.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: First V7 strict interior source-pinned W32 posthoc run (negative allowed)
+        run: python -u tools/queryproof_posthoc_v7_20261020/run_v7.py
+      - name: Report the strict rule-complete subset and identity-bypass losses
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          p=Path("artifacts/queryproof_v7_w32_posthoc_strict_interiors.json")
+          if not p.is_file(): raise SystemExit("POSTHOC_V7_REPORT_MISSING")
+          r=json.loads(p.read_text())
+          d=r["union_coverage"]["v7_posthoc_strict_interior_rule_audit"]
+          v6=r["union_coverage"]["v6_posthoc_predicate_dependency"]
+          x=r["union_coverage"]["round_x_posthoc"]
+          assert x["state_guard_count"]==0, "ORIGINAL_X_DISCREPANCY_LOST"
+          assert len(d["v6_observational_structural_cases"])==20
+          assert set(d["strict_event_complete_cases"]) <= set(v6["v6_structural_case_ids"])
+          print("QUERYPROOF_V7_STRICT_RESULT",json.dumps(d,sort_keys=True))
+          assert r["executed_cases"]==32 and r["worker_exit_code"]==0
+          assert not r["error_cases"] and not r["row_oracle_mismatch_cases"]
+          print("QUERYPROOF_V7_WITHHELD_PROSPECTIVE_STATUS=DEVELOPMENT_ONLY")
+          '
+      - name: Preserve separately labelled posthoc V7 strict audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v7-w32-strict-interior-posthoc-only
+          path: artifacts/queryproof_v7_w32_posthoc_strict_interiors.json
+          retention-days: 14
+          if-no-files-found: warn
