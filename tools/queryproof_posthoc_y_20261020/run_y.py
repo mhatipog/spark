@@ -43,7 +43,7 @@ def _opaque_counter_mutant(original_path, scope_summary, scope_phase):
         if fields[0] != "W01":
             continue
         if scope_phase == "pre" and not (
-                fields[1] == "SCOPE" and fields[3] == "Resolution"):
+                fields[1] == "SCOPE" and fields[4] == "Resolution"):
             continue
         if scope_phase == "post" and not (
                 fields[1] == "EVENT" and fields[3] == "Infer Filters"):
