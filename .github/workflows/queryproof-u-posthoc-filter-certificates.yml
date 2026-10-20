@@ -44,6 +44,8 @@ jobs:
           python -m py_compile tools/queryproof_join_filters_u_dev_20261020/filter_steps_v1.py
           python -m py_compile tools/queryproof_join_filters_u_dev_20261020/scope_ledger_v4.py
           python -m py_compile tools/queryproof_join_filters_u_dev_20261020/run_u.py
+      - name: Independently enumerate SQL NULL and bag filter laws with unsound controls
+        run: python -B tools/queryproof_join_filters_u_dev_20261020/test_join_filter_semantics.py
       - name: Install official Spark 4.2.0
         run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
       - name: Attach disposable scope and independent hidden-state observers
