@@ -1,0 +1,23 @@
+{
+  "study": "queryproof-verieql-mini-five-first-development-comparator-20261020",
+  "preregistered_before_verieql_first_execution": true,
+  "verieql_commit": "493cbb81000205e33b0623cfd1c39106fa035fae",
+  "input_git_blob_sha": "c63d2a8d0f9017dbf72c38082df02ea81588703e",
+  "input_path": "tools/queryproof_verieql_controls_20261020/mini_pairs.jsonlines",
+  "bound_size": 3,
+  "timeout_seconds_per_case_per_bound": 25,
+  "expected_semantics": [
+    "NEQ",
+    "EQ",
+    "EQ",
+    "EQ",
+    "NEQ"
+  ],
+  "unknown_is_valid": true,
+  "limitations": [
+    "Development comparator, not W32 prospective or whole Catalyst certificate",
+    "Bounded equivalence only; no unbounded proof inference",
+    "No primary key, duplicate and NULL input rows allowed",
+    "Dialect/parser/support failures are explicit outcomes, not QueryProof victories"
+  ]
+}
