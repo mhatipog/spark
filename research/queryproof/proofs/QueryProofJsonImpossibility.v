@@ -104,7 +104,7 @@ Proof.
   pose proof (H native_analogue_a) as Ha.
   pose proof (H native_analogue_b) as Hb.
   cbn in Ha, Hb.
-  rewrite <- Ha in Hb.
+  rewrite Ha in Hb.
   discriminate.
 Qed.
 
