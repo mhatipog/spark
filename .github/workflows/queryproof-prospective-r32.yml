@@ -1,0 +1,129 @@
+name: QueryProof first prospective R32 local join-step holdout
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_prospective_r_20261020/**
+      - .github/workflows/queryproof-prospective-r32.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  frozen-r32:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_prospective_r_20261020
+            tools/queryproof_join_pruning_q_dev_20261020
+            tools/queryproof_round_n_dev_20261020
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify frozen R data protocol field dependencies and exact Git blob pins BEFORE SQL
+        run: |
+          python -B -c '
+          import ast, json, subprocess
+          from pathlib import Path
+          from collections import Counter
+          folder=Path("tools/queryproof_prospective_r_20261020")
+          m=json.loads((folder/"CASES.json").read_text())
+          p=json.loads((folder/"PROTOCOL.json").read_text())
+          assert m["benchmark_id"]==p["benchmark_id"]
+          assert len(m["cases"])==p["required_case_count"]==32
+          assert len({c["id"] for c in m["cases"]})==32
+          assert Counter(c["group"] for c in m["cases"])==p["cohort_strata"]
+          assert len({(c["source_file"],c["source_query_ordinal"]) for c in m["cases"]})==32
+          assert len(Counter(c["family"] for c in m["cases"]))==p["cohort_family_count"]==8
+          assert set(Counter(c["family"] for c in m["cases"]).values())=={4}
+          assert p["prospectively_frozen_before_first_r_execution"]
+          assert m["source"]["frozen_before_first_r_execution"]
+          parent_ast=ast.parse(Path("tools/queryproof_external_postgresql_join_20261019/run_external.py").read_text())
+          required={node.slice.value for node in ast.walk(parent_ast)
+              if isinstance(node,ast.Subscript) and isinstance(node.value,ast.Name)
+              and node.value.id=="protocol" and isinstance(node.slice,ast.Constant)
+              and isinstance(node.slice.value,str)}
+          assert required <= set(p),f"REQUIRED_PROTOCOL_FIELDS_MISSING {sorted(required-set(p))}"
+          assert len(p["frozen_verifier_commit"])==40
+          assert len(p["frozen_git_blob_shas"])>=10
+          for path,expected in p["frozen_git_blob_shas"].items():
+              actual=subprocess.run(["git","hash-object",path],
+                  capture_output=True,text=True,check=True).stdout.strip()
+              assert actual==expected, f"PINNED_CODE_CHANGED {path}"
+              if path.endswith(".py"): compile(Path(path).read_text(),path,"exec")
+          print("QUERYPROOF_R32_FROZEN",len(m["cases"]),len(p["frozen_git_blob_shas"]),sorted(required))
+          '
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Install disposable Spark trace and all necessary witness layers
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          python -B tools/queryproof_adversarial_20261020/instrument_silent_rules.py
+          python -B tools/queryproof_adversarial_20261020/instrument_tag_taxonomy.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: First untouched R32 SQL execution
+        run: python -u tools/queryproof_prospective_r_20261020/run_r.py
+      - name: Read first-run report without changing thresholds
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          f=Path("artifacts/queryproof_prospective_r32.json")
+          if not f.exists(): raise SystemExit("R32_REPORT_MISSING")
+          r=json.loads(f.read_text())
+          u=r["union_coverage"]
+          p=u["r32_primary_local_join_steps"]
+          q=u["r32_unchanged_v2_suffix_and_guards"]
+          print("QUERYPROOF_R32_FIRST_RUN",json.dumps({
+              "executed":r["executed_cases"],
+              "errors":r["error_cases"],
+              "finite_rowbag_mismatches":r["row_oracle_mismatch_cases"],
+              "primary":{
+                  "changed_columnpruning_events":p["changed_columnpruning_events"],
+                  "certified_local_join_events":p["certified_local_join_events"],
+                  "cases_with_observed_changed_columnpruning":p["cases_with_observed_changed_columnpruning"],
+                  "fully_local_pruning_certified_cases":p["all_changed_columnpruning_events_certified_cases"],
+                  "families":p["family_counts"],
+              },
+              "secondary_full_suffix":q,
+              "first_run_case_verdicts":[{"case":v["case"],"family":v["family"],"changed":v["changed_pruning_events"],"proved":v["certified_local_events"],"reasons":[x["reason"] for x in v["verdicts"]]} for v in p["case_verdicts"]],
+          },sort_keys=True))
+          if r["executed_cases"]!=32 or r["worker_exit_code"]!=0:
+              raise SystemExit("R32_INCOMPLETE_EXECUTION")
+          if r["missing_cases"] or r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("R32_FINITE_ORACLE_OR_EXECUTION_ERROR")
+          if q["status"]!="COMPLETE_ALL_GATES":
+              raise SystemExit("R32_OBSERVER_INTEGRITY_FAILED")
+          if q["changed_suffixes"]!=32:
+              raise SystemExit("R32_MISSING_CHANGED_OPTIMIZER_SUFFIXES")
+          '
+      - name: Preserve sanitized untouched R32 first-run artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-prospective-r32-first-run
+          path: artifacts/queryproof_prospective_r32.json
+          retention-days: 30
+          if-no-files-found: warn
