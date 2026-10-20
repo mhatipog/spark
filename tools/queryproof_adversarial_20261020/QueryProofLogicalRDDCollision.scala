@@ -21,7 +21,7 @@ object QueryProofLogicalRDDCollision {
       .appName("queryproof-logical-rdd-collision")
       .master("local[1]")
       .config("spark.ui.enabled", "false")
-      .getOrCreate()
+      .getOrCreate().asInstanceOf[org.apache.spark.sql.classic.SparkSession]
     try {
       val a = AttributeReference("v0", IntegerType, true, Metadata.empty)()
       val b = AttributeReference("v1", IntegerType, true, Metadata.empty)()
