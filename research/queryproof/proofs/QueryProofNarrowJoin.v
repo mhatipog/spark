@@ -149,10 +149,10 @@ Section DuplicateGroupingKey.
   Variables f g : row -> key.
 
   Definition same_group_fg (x y : row) : Prop :=
-    f x = f y /\\ g x = g y.
+    f x = f y /\ g x = g y.
 
   Definition same_group_ffg (x y : row) : Prop :=
-    f x = f y /\\ f x = f y /\\ g x = g y.
+    f x = f y /\ f x = f y /\ g x = g y.
 
   Theorem duplicate_total_key_partition :
     forall x y, same_group_ffg x y <-> same_group_fg x y.
