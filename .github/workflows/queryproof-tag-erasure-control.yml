@@ -1,0 +1,70 @@
+name: QueryProof real Spark dataset-id vs optimizer tag controls
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_adversarial_20261020/QueryProofTagErasureControl.scala
+      - .github/workflows/queryproof-tag-erasure-control.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tag-erasure-positive-negative:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_adversarial_20261020
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official Spark 4.2.0 and matching Scala compiler
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          JARS="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "jars"))')"
+          LIB="$(find "$JARS" -maxdepth 1 -name 'scala-library-2.13.*.jar' -print -quit)"
+          test -n "$LIB"
+          VERSION="$(basename "$LIB" | sed -e 's/^scala-library-//' -e 's/\.jar$//')"
+          for lib in scala-reflect scala-compiler; do
+            if test ! -f "$JARS/$lib-$VERSION.jar"; then
+              curl --retry 3 -fsSL "https://repo.maven.apache.org/maven2/org/scala-lang/$lib/$VERSION/$lib-$VERSION.jar" -o "$JARS/$lib-$VERSION.jar"
+            fi
+          done
+      - name: Compile independent tag perturbation controls against actual Spark
+        run: |
+          JARS="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "jars"))')"
+          mkdir -p artifacts/queryproof_tag_classes
+          java -Xmx2g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*" \
+            -d artifacts/queryproof_tag_classes \
+            tools/queryproof_adversarial_20261020/QueryProofTagErasureControl.scala
+          jar cf artifacts/queryproof-tag-control.jar -C artifacts/queryproof_tag_classes .
+      - name: Execute positive and negative controls in local Spark JVM
+        run: |
+          SUBMIT="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "bin", "spark-submit"))')"
+          "$SUBMIT" --master 'local[1]' --conf spark.ui.enabled=false \
+            --class org.apache.spark.sql.catalyst.rules.QueryProofTagErasureControl \
+            artifacts/queryproof-tag-control.jar 2> artifacts/queryproof_tag_stderr.log \
+            | tee artifacts/queryproof_tag_stdout.log
+      - name: Fail closed on missing controls
+        run: |
+          python -B -c '
+          from pathlib import Path
+          log=Path("artifacts/queryproof_tag_stdout.log").read_text()
+          required=[
+            "QUERYPROOF_DATASET_ID_OPTIMIZER_STRUCTURE_SAME=CONFIRMED",
+            "QUERYPROOF_DATASET_ID_EXECUTED_ROWBAGS_SAME=CONFIRMED",
+            "QUERYPROOF_PROCESSED_JOIN_TAG_RULE_BEHAVIOR_DIFFERS=CONFIRMED",
+            "QUERYPROOF_GENERIC_TAG_ERASURE=FALSIFIED",
+          ]
+          if any(line not in log.splitlines() for line in required):
+              raise SystemExit("TAG_ERASURE_CONTROL_INCOMPLETE")
+          print("QUERYPROOF_BOTH_REAL_SPARK_TAG_CONTROLS=PASS")
+          '
