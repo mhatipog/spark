@@ -1,0 +1,75 @@
+name: QueryProof V15 native production-only ROOT_REPARTITION state replay
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_posthoc_v15_20261020/**
+      - .github/workflows/queryproof-native-v15-production-repartition.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  v15-production-hidden-tag-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_posthoc_v15_20261020
+            tools/queryproof_posthoc_v14_20261020
+            tools/queryproof_posthoc_v11_20261020
+            tools/queryproof_posthoc_v10_20261020
+            tools/queryproof_posthoc_v9_20261020
+            tools/queryproof_posthoc_v8_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Pin official Spark sources and create disposable tag/cache hooks
+        run: |
+          mkdir -p artifacts/queryproof_v10_source
+          curl --retry 3 -fsSL \
+            https://raw.githubusercontent.com/apache/spark/v4.2.0/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/trees/TreeNode.scala \
+            -o artifacts/queryproof_v10_source/TreeNode.scala
+          python -B tools/queryproof_posthoc_v10_20261020/instrument_official_treenode.py
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_posthoc_v8_20261020/instrument_v8_trace.py
+          python -B tools/queryproof_posthoc_v9_20261020/instrument_v9_prerule_tag.py
+          python -B tools/queryproof_posthoc_v11_20261020/instrument_rule_scope.py
+          python -B tools/queryproof_posthoc_v14_20261020/instrument_rule_pruning.py
+      - name: Compile original-source-pinned TreeNode with cache and tag observations
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_v15_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*" \
+            -d artifacts/queryproof_v15_classes \
+            artifacts/queryproof_v10_source/TreeNode.scala
+          test -f artifacts/queryproof_v15_classes/org/apache/spark/sql/catalyst/trees/QueryProofRulePruningEffectsV14.class
+          CATALYST=$(find "$JARS" -maxdepth 1 -name 'spark-catalyst_2.13-*.jar' | head -n 1)
+          test -n "$CATALYST"
+          jar uf "$CATALYST" -C artifacts/queryproof_v15_classes .
+      - name: Compile disposable actual RuleExecutor
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Compile independent native production-only V15 witness
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_v15_native_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "artifacts/queryproof_classes:artifacts/queryproof_v15_classes:$JARS/*" \
+            -d artifacts/queryproof_v15_native_classes \
+            tools/queryproof_posthoc_v15_20261020/QueryProofNativeV15ProductionRepartitionWitness.scala
+      - name: Compare consecutive genuine production-rule passes with hidden-state effects
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          java -Xmx3g -cp "artifacts/queryproof_v15_native_classes:artifacts/queryproof_classes:artifacts/queryproof_v15_classes:$JARS/*" \
+            org.apache.spark.sql.catalyst.optimizer.QueryProofNativeV15ProductionRepartitionWitness
