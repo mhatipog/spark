@@ -316,3 +316,41 @@ tag access and generic mutable state), then freeze a fresh adversarial cohort
 M that stresses input identity, plan annotation semantics and all-rule trace
 completeness. Only then evaluate end-to-end proof coverage and comparisons.
 No paid infrastructure or upstream PR was used.
+
+
+### End-to-end live shape-gate falsifiers (completed)
+
+The in-parser synthetic negative controls were insufficient by themselves:
+they could not show that the JVM emitter, base64 record binding and parser
+agree when a live plan actually contains a misleading or malformed tag.
+A separately constructed real Spark 4.2.0 experiment addressed this
+with four `RuleExecutor` identity-rule plans, each with a different tag
+condition. The scope/context-bound observer classified all **16 expected
+JVM scope snapshots** without printing actual tag values. Exact outcomes:
+
+- `dataset_id:HashSet[Long]` **accepted**.
+- Same tag name but forged `HashSet[String]` **rejected**.
+- Recognized but not eligible `processedJoinCondition` **rejected**.
+- Completely unknown key name **rejected** (key name remains redacted).
+
+All 4 live fixtures executed, with no missing or crossed scope/observer
+records and with source-pinned type/shape matching. Free CI:
+https://github.com/mhatipog/spark/actions/runs/39414926580 .
+This is an integrated negative gate test, not a certificate for the rule's
+semantic behavior or exhaustive proof of tag discovery.
+
+The targeted source query
+`DATASET_ID_TAG repo:apache/spark` currently returns only the
+`Dataset.scala` setter/definition, `DetectAmbiguousSelfJoin.scala`
+consumer and one test. In the Spark Catalyst optimizer source path,
+`dataset_id` has **zero** direct-string hits, while `getTagValue`
+has a hit for `PushExtraPredicateThroughJoin` and `TreeNodeTag` has
+three rule-file hits. This is useful narrowing evidence but **not an
+exhaustive whole-program proof**: external/extended optimizer rules,
+dynamic tags, inherited helpers, framework callbacks, alternative
+planner paths and subsequent Analyzer calls still require boundaries.
+
+We now have a plausible, version-pinned denotational tag-erasure exception
+rather than a generic annotation assumption. Keep H figures labeled
+**retrospective conditional** until a fresh prospective cohort and a
+source-reviewed supported phase give independent evidence.
