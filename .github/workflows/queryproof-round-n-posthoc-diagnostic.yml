@@ -64,6 +64,7 @@ jobs:
           assert r["worker_exit_code"]==0
           assert d["status"]=="POSTHOC_DEVELOPMENT_ONLY_NO_PROSPECTIVE_CREDIT"
           assert d["total_negative_rejections"]==8
+          assert d["total_liveness_negative_rejections"]==8
           assert all(v.get("CollapseProjectV2:CERTIFIED")==1 for k,v in d["checker_reasons"].items() if k in ("M17","M21"))
           '
       - name: Store sanitized posthoc diagnosis
