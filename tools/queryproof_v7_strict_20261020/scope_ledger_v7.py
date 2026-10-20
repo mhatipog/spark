@@ -132,6 +132,7 @@ def summarize_scope_stream(stream):
     batches = defaultdict(lambda: Counter())
     by_reason = Counter()
     unknown_rules = Counter()
+    unknown_rules_by_case = Counter()
     removed_shapes = Counter()
     added_shapes = Counter()
     by_case = defaultdict(lambda: Counter())
@@ -145,6 +146,7 @@ def summarize_scope_stream(stream):
                 if not step["certified"]:
                     key_rule = (scope["executor"], scope["batch"], step["rule"])
                     unknown_rules[key_rule] += 1
+                    unknown_rules_by_case[(scope["case"], *key_rule)] += 1
                     before = Counter(n.get("class", "").split(".")[-1]
                                      for n in step["old"] if isinstance(n, dict))
                     after = Counter(n.get("class", "").split(".")[-1]
@@ -214,6 +216,10 @@ def summarize_scope_stream(stream):
         "unknown_rules": [
             {"executor": key[0], "batch": key[1], "rule": key[2], "count": count}
             for key, count in sorted(unknown_rules.items())],
+        "unknown_rule_case_inventory": [
+            {"case": key[0], "executor": key[1], "batch": key[2],
+             "rule": key[3], "count": count}
+            for key, count in sorted(unknown_rules_by_case.items())],
         "unknown_rule_shape_changes": {
             direction: [
                 {"batch": key[0], "rule": key[1], "node_class": key[2],
