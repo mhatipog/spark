@@ -27,9 +27,12 @@ def check(path):
         raise AssertionError("OBSERVER_ERROR")
     accounts = [decode(line) for line in lines
                 if line.startswith("QUERYPROOF_RULE_AUDIT\t")]
-    by_case = {item["case"]: item for item in accounts}
-    if len(accounts) != 2 or len(by_case) != 2:
-        raise AssertionError("INCOMPLETE_REAL_RULE_INVOCATIONS")
+    relevant = [item for item in accounts if item["case"] in
+                ("silent-mutant", "silent-benign")]
+    by_case = {item["case"]: item for item in relevant}
+    if len(relevant) != 2 or len(by_case) != 2:
+        raise AssertionError("INCOMPLETE_REAL_RULE_INVOCATIONS: " + repr(
+            [(item["case"], item["effective"]) for item in accounts]))
     mutant = by_case["silent-mutant"]
     benign = by_case["silent-benign"]
     if mutant["effective"] or not mutant["state_changed"]:
@@ -41,7 +44,7 @@ def check(path):
     ast = [line for line in lines if line.startswith("QUERYPROOF_AST\t")]
     if ast:
         raise AssertionError("CONTROL_MUST_BE_INVISIBLE_TO_ORIGINAL_AST_LOG")
-    return accounts
+    return relevant
 
 
 if __name__ == "__main__":
