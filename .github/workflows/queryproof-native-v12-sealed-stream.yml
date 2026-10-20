@@ -1,0 +1,87 @@
+name: QueryProof V12 sealed source-event stream adversarial replay
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_posthoc_v12_20261020/**
+      - .github/workflows/queryproof-native-v12-sealed-stream.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  v12-native-sealed-stream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_posthoc_v12_20261020
+            tools/queryproof_posthoc_v11_20261020
+            tools/queryproof_posthoc_v10_20261020
+            tools/queryproof_posthoc_v9_20261020
+            tools/queryproof_posthoc_v8_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Pin upstream source and build disposable V12 hooks
+        run: |
+          mkdir -p artifacts/queryproof_v10_source
+          curl --retry 3 -fsSL \
+            https://raw.githubusercontent.com/apache/spark/v4.2.0/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/trees/TreeNode.scala \
+            -o artifacts/queryproof_v10_source/TreeNode.scala
+          python -B tools/queryproof_posthoc_v10_20261020/instrument_official_treenode.py
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_posthoc_v8_20261020/instrument_v8_trace.py
+          python -B tools/queryproof_posthoc_v9_20261020/instrument_v9_prerule_tag.py
+          python -B tools/queryproof_posthoc_v11_20261020/instrument_rule_scope.py
+          python -B tools/queryproof_posthoc_v12_20261020/instrument_seal.py
+      - name: Compile source-pinned ephemeral TreeNode
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_v12_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*" \
+            -d artifacts/queryproof_v12_classes \
+            artifacts/queryproof_v10_source/TreeNode.scala
+          test -f artifacts/queryproof_v12_classes/org/apache/spark/sql/catalyst/trees/TreeNode.class
+          test -f artifacts/queryproof_v12_classes/org/apache/spark/sql/catalyst/trees/QueryProofTreeNodeTagEffects.class
+          CATALYST=$(find "$JARS" -maxdepth 1 -name 'spark-catalyst_2.13-*.jar' | head -n 1)
+          test -n "$CATALYST"
+          jar uf "$CATALYST" -C artifacts/queryproof_v12_classes .
+          echo QUERYPROOF_V12_OFFICIAL_TREENODE_SOURCE_BLOB_COMPILED
+      - name: Compile disposable V11-scoped RuleExecutor overlay
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Compile independent V12 production and nested Scala witness
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_v12_native_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "artifacts/queryproof_classes:artifacts/queryproof_v12_classes:$JARS/*" \
+            -d artifacts/queryproof_v12_native_classes \
+            tools/queryproof_posthoc_v12_20261020/QueryProofNativeV12SealedStreamWitness.scala
+      - name: Execute Spark, verify sealed trace, reject adversarial alterations
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          java -Xmx3g -cp "artifacts/queryproof_v12_native_classes:artifacts/queryproof_classes:artifacts/queryproof_v12_classes:$JARS/*" \
+            org.apache.spark.sql.catalyst.optimizer.QueryProofNativeV12SealedStreamWitness \
+            > artifacts/queryproof_v12_native_stdout.log
+          python -B tools/queryproof_posthoc_v12_20261020/verify_v12_stream.py \
+            artifacts/queryproof_v12_native_stdout.log
+      - name: Archive the first native transcript and rejection outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v12-native-sealed-stream
+          path: |
+            artifacts/queryproof_v12_native_stdout.log
+          if-no-files-found: warn
