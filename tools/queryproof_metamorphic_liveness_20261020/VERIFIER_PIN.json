@@ -1,0 +1,7 @@
+{
+  "benchmark_id": "queryproof-metamorphic-projection-liveness-targeted-20261020",
+  "frozen_verifier_commit": "ddc10e64b69b3182eee2908d9d9ed999757e7272",
+  "verifier_module": "tools/queryproof_context_validator/generalized_projection_liveness_certificate.py",
+  "frozen_verifier_git_blob_sha": "c1a8c81fa10d94d191e7c930254d78e9de7c3258",
+  "claim": "Generated design-informed sample, prospective only to these previously unexecuted 60 frozen SQL instances and fixture bags; never an independently authored corpus."
+}
