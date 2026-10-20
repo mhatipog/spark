@@ -247,6 +247,27 @@ class GeneralizedLivenessTests(unittest.TestCase):
         e["old"][1]["projectList"][2][1]["evalContext"] = "Z" * 600
         self.no(e)
 
+    def test_catalyst_string_encoded_integer_divisor(self):
+        e = example()
+        e["old"][1]["projectList"][2][-1]["value"] = "2"
+        e["new"][2]["projectList"][2][-1]["value"] = "2"
+        self.yes(e)
+
+    def test_string_zero_divisor_rejected(self):
+        e = example()
+        e["old"][1]["projectList"][2][-1]["value"] = "0"
+        self.no(e)
+
+    def test_noncanonical_decimal_divisor_rejected(self):
+        e = example()
+        e["old"][1]["projectList"][2][-1]["value"] = "02"
+        self.no(e)
+
+    def test_out_of_integral_range_divisor_rejected(self):
+        e = example()
+        e["old"][1]["projectList"][2][-1]["value"] = "2147483648"
+        self.no(e)
+
     def test_same_tree_is_not_a_transition(self):
         e = example()
         e["new"] = copy.deepcopy(e["old"])
