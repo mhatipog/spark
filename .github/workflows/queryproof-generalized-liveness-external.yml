@@ -53,8 +53,8 @@ jobs:
           print("GENERALIZED_PROOF", p)
           print("GENERALIZED_ERRORS", r["error_cases"])
           print("GENERALIZED_MISMATCHES", r["row_oracle_mismatch_cases"])
-          if p["status"] != "PROSPECTIVE_FROZEN_THIRD_PARTY_GENERALIZED_LIVENESS":
-              raise SystemExit("Verifier was modified after preregistration")
+          if p["status"] != "RETROSPECTIVE_FIXTURE_REPAIR_DIAGNOSTIC":
+              raise SystemExit("Repaired fixture must be labeled non-prospective")
           if not p["verifier_provenance"]["matches_frozen_checker"]:
               raise SystemExit("Verifier git blob differs from frozen pin")
           if r["worker_exit_code"] != 0 or r["executed_cases"] != 16:
@@ -70,7 +70,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: queryproof-generalized-liveness-prospective
+          name: queryproof-generalized-liveness-repaired-diagnostic
           path: artifacts/queryproof_duckdb_generalized_liveness_20261020.json
           if-no-files-found: warn
           retention-days: 14
