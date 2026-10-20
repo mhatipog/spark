@@ -512,6 +512,8 @@ def parent():
             assert len(expected) == len(current) == 40
             matches = current == expected
             generalized["status"] = (
+                "RETROSPECTIVE_FIXTURE_REPAIR_DIAGNOSTIC"
+                if protocol.get("fixture_repair_after_first_run") else
                 "PROSPECTIVE_FROZEN_THIRD_PARTY_GENERALIZED_LIVENESS"
                 if matches else "RETROSPECTIVE_VERIFIER_CHANGED_AFTER_FREEZE")
             generalized["verifier_provenance"] = {
