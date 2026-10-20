@@ -385,3 +385,81 @@ a trustworthy Spark/semantics bridge and comparable benchmarks.
    an EXACT same-case intersection of whole-suffix proof and all independent
    guards. The original W32 remains 16/32 prospective forever.
 
+
+
+## Follow-up: causal production ConstantFolding tag decision and narrow Coq law
+
+**Native causal result:** new `QueryProofNativeConstantFoldingDecisionWitness.scala`
+introduced in commit `e8944ef7df05947701c0d909367c91c7e2096597`.
+Independent workflow `.github/workflows/queryproof-native-constantfolding-decision.yml`
+introduced in commit `d3027284346c8239ac5bcc4da5b376bafbfb8267`.
+Pinned pip `pyspark==4.2.0`, Scala 2.13.18, Java 17, genuine
+production `ConstantFolding`, instrumented disposable `RuleExecutor`.
+**First native run `39457131853`, job `118746827610`, succeeded.**
+Logs print initial failed compile-time evaluation attempts `1`;
+subsequent invocation on a FRESH Project tree with the SAME tagged expression
+retained `1`; clearing exactly `FAILED_TO_EVALUATE` and invoking again on
+another fresh Project produced `2`; unrelated untagged expression separately
+confirmed another attempt. Every resulting serialized AST remained unchanged,
+and every execution emitted NO `QUERYPROOF_AST` structural event.
+
+The `CountingFailure` expression is DELIBERATELY test-only and is not a
+normal Spark SQL expression. The mutating, reading, and conditional folding
+logic is the actual production rule. This is a causal demonstration that the
+production `FAILED_TO_EVALUATE` tag affects a later optimizer decision,
+not a wrong-result case. Fresh root plans explicitly control for the
+separate private `_ineffectiveRules` memoization effect.
+
+**Independent upstream intended-behavior confirmation:** official Apache
+Spark v4.2.0 source `optimizer/expressions.scala` pinned blob
+`929ffdef2b52ff1aabdc6f38501dc131e7938fd2` writes the tag in
+`tryFold` and reads it before the `e.foldable` branch. Official
+`ConstantFoldingSuite.scala` blob
+`0489308a1ab24f26a4124529b00fea6a5fde6525` includes
+`SPARK-39106: Correct conditional expression constant folding`: it
+asserts the failure tag exists for nonfoldable conditional inputs with
+arithmetic errors under ANSI, and that optimized versus analyzed plans
+compare equal. This supports **intentional planning behavior**, not any
+Spark defect or occurrence within the W32 suffixes.
+
+**New conditional mechanization:** `QueryProofConstantFoldingFailureTag.v`
+introduced at `23d6ae4d76134c51dc16ffe804428f9c0f7ac04f`.
+Initial Coq CI `39457747597` FAILED because `fold_step` was not
+explicitly reduced; correction `94e61bbcc1f42eb3950b59a17a5ccc458363a0a1`
+ran as `39457953332` and FAILED on equality direction; final correction
+`e9a310231d9ec3683bc1d90752c77b2f4a3c9976` passed **official
+Coq 8.18 kernel**, CI `39458103376` (no admitted/axiomatic shortcuts).
+The proved model distinguishes SQL NULL (`None` runtime value) from
+compile-time failure (`None` outer optional result), and proves
+failure-tag denotational inertness, folding preservation under an explicit
+`statically_sound` assumption, sound double application, and a
+reproducible tag-driven decision difference. It contains a counterexample
+to an unsound compile-time evaluator and a separate hidden-sensitive
+runtime-evaluator counterexample. It intentionally excludes runtime
+exceptions, SQL joins/aggregation, environment changes, and verification
+that actual Scala code refines the Coq model. Its premises must NOT be
+mistaken for discharged obligations about arbitrary Catalyst expressions.
+
+**New refined hypothesis:** A real optimizer tag may be **control-relevant**
+without being **value-relevant**. Enforcing bytewise identity of the
+complete mutable state is therefore unnecessarily restrictive for some
+local rewriting claims. Conversely, silently omitting mutable state is
+UNSOUND absent source-linked proof that the relevant expression evaluator
+and all possible later rewrite paths preserve denotation regardless of
+that state. An adequate certificate must have a typed effect classification
+and per-rule source-backed semantic noninterference proof; a plan JSON
+checksum or restored tag snapshot supplies neither.
+
+**Historical scoring UNCHANGED:** frozen prospective W=16/32 structural,
+X=0/16 strict; Y=16/16 phase-local observational, V6/V7 posthoc=20/32
+structural and 0/20 strict. The new causal native test and Coq theorem
+add no W32 structural certifications, no newly accepted strict cases,
+and no proven SQL answer discrepancy.
+
+**Next decisive experiment:** build a source-pinned, fail-closed effect
+dependency inventory (per rule: emitted expression classes, external SQLConf,
+tag/memo/metadata writes, later readers and runtime evaluator reads);
+try to instantiate the effect-indexed Coq trace theorem with an actual
+Spark 4.2.0 expression-extractor soundness bridge, or report UNKNOWN.
+Then return to the 12 unsupported W32 cases with a separate prospective
+corpus and blind negative controls. Preserve all failed CI runs.
