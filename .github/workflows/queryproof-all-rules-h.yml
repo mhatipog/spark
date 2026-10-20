@@ -5,6 +5,7 @@ on:
       - research/queryproof-adversarial-tag-frame-20261020
     paths:
       - tools/queryproof_adversarial_20261020/replay_silent_h.py
+      - tools/queryproof_adversarial_20261020/instrument_silent_rules.py
       - .github/workflows/queryproof-all-rules-h.yml
   workflow_dispatch:
 permissions:
