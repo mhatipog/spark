@@ -58,7 +58,7 @@ object QueryProofNativeV15ProductionRepartitionWitness {
     System.setProperty("queryproof.rule.pruning.v14.enabled", "true")
     System.setProperty("queryproof.query.id", "V15_PRODUCTION_ROOT_REPARTITION")
 
-    val root = Repartition(2, shuffle = true, LocalRelation(Nil))
+    val root = Repartition(2, shuffle = true, child = LocalRelation(Nil))
     val plan: LogicalPlan = root
     val structuralJSON = plan.toJSON
     assert(!root.containsTag(PropagateEmptyRelation.ROOT_REPARTITION))
