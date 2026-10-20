@@ -95,6 +95,10 @@ def patch_treenode(source: str) -> str:
         raise ValueError("V11 TreeNode already patched")
     for i, (before, after) in enumerate(REPLACEMENTS_TREE):
         source = replace_once(source, before, after, "TreeNode patch " + str(i))
+    if source.count("QUERYPROOF_TAG_MUTATION_V10") != 4:
+        raise ValueError("V10 marker count mismatch; refuse V11 protocol migration")
+    source = source.replace("QUERYPROOF_TAG_MUTATION_V10",
+                            "QUERYPROOF_TAG_MUTATION_V11")
     return source
 
 
