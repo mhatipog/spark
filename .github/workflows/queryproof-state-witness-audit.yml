@@ -1,0 +1,112 @@
+name: QueryProof JVM state witness retrospective H and K
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_state_witness_20261020/**
+      - .github/workflows/queryproof-state-witness-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  state-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reject forged, missing and malformed JVM witnesses
+        run: |
+          python -B -m unittest discover -s tools/queryproof_state_witness_20261020 \
+            -p 'test_state_guard.py' -v
+          python -B -m unittest discover -s tools/queryproof_scopes_20261020 \
+            -p 'test_scope_ledger.py' -q
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned official PySpark binary
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Add ephemeral scopes and state witnesses, then compile
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Prove real Catalyst tag and metadata JSON collisions
+        run: |
+          JARS="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "jars"))')"
+          java -Xmx2g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*:artifacts/queryproof_classes" \
+            -d artifacts/queryproof_classes \
+            tools/queryproof_state_witness_20261020/QueryProofStateCollision.scala
+          java -Xmx2g -cp "$JARS/*:artifacts/queryproof_classes" \
+            org.apache.spark.sql.catalyst.rules.QueryProofStateCollision
+      - name: Retrospective H01-H48 trace with stronger observer
+        run: python -u tools/queryproof_state_witness_20261020/run_state.py --cohort H
+      - name: Retrospective K01-K48 trace with stronger observer
+        run: python -u tools/queryproof_state_witness_20261020/run_state.py --cohort K
+      - name: Audit both executions without printing private plans
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          for cohort in ("h", "k"):
+              path = Path("artifacts/queryproof_state_audit_" + cohort + ".json")
+              if not path.exists():
+                  raise SystemExit("Missing retrospective " + cohort + " report")
+              report = json.loads(path.read_text())
+              coverage = report["union_coverage"]
+              scopes = coverage["hierarchical_scope_ledger"]
+              witness = coverage["posthoc_jvm_state_audit"]
+              fields = ("status", "scope_witnesses", "event_witnesses",
+                        "observed_cases", "observed_plan_states",
+                        "tagged_plan_states", "metadata_plan_states",
+                        "opaque_collection_plan_states", "cases_blocked",
+                        "previously_certified_changed_suffixes",
+                        "state_guarded_changed_suffix_count", "errors")
+              compact = {key: witness.get(key) for key in fields}
+              print("QUERYPROOF_JVM_STATE_" + cohort.upper(), json.dumps(
+                  compact, sort_keys=True))
+              print("QUERYPROOF_PREVIOUS_SCOPE_" + cohort.upper(), json.dumps({
+                  "status": scopes["status"],
+                  "certified_changed_batches": scopes["certified_changed_batches"],
+                  "certified_changed_optimizer_suffixes":
+                      scopes["certified_changed_optimizer_suffixes"],
+              }, sort_keys=True))
+              print("QUERYPROOF_ORACLE_" + cohort.upper(), json.dumps({
+                  "completed": report["executed_cases"],
+                  "errors": report["error_cases"],
+                  "mismatches": report["row_oracle_mismatch_cases"],
+              }, sort_keys=True))
+              if report["worker_exit_code"] != 0 or report["executed_cases"] != 48:
+                  raise SystemExit("Incomplete retrospective cohort " + cohort)
+              if report["error_cases"] or report["row_oracle_mismatch_cases"]:
+                  raise SystemExit("Spark/SQLite mismatch in cohort " + cohort)
+              if scopes["status"] != "RETROSPECTIVE_EXACT_CATALYST_SCOPE_LEDGER":
+                  raise SystemExit("Malformed scope ledger " + cohort)
+              if witness["status"] != "COMPLETE_JVM_WITNESSES":
+                  raise SystemExit("Missing, forged or invalid JVM state markers " + cohort)
+          '
+      - name: Save sanitized posthoc H/K reports only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-posthoc-jvm-state-audit-hk
+          path: artifacts/queryproof_state_audit_*.json
+          retention-days: 14
+          if-no-files-found: warn
