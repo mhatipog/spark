@@ -1,0 +1,12 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-grouping-repetition-targeted-20261020",
+  "required_case_count": 48,
+  "frozen_verifier_commit": "b0c440fefae83d0935f006675d18dfa4cdc86014",
+  "prospective_grouping_repetition": false,
+  "retrospective_after_first_evaluation": true,
+  "limitations": [
+    "Diagnostic re-evaluation of already-seen 48 cases only. No prospective holdout status.",
+    "Preserve the original frozen protocol, verifier pin, and first-run results without rewriting evidence."
+  ]
+}
