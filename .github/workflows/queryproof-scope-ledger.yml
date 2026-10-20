@@ -1,0 +1,87 @@
+name: QueryProof hierarchical Catalyst scope ledger
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_scopes_20261020/**
+      - .github/workflows/queryproof-scope-ledger.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scope-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prove scope-ledger fail-closed controls
+        run: |
+          python -B -m unittest discover -s tools/queryproof_scopes_20261020 \
+            -p 'test_scope_ledger.py' -v
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official PySpark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Add disposable scope boundaries and compile traced Catalyst
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Run frozen 48-case cohort with a private scope-aware trace
+        run: python -u tools/queryproof_scopes_20261020/run_scopes.py
+      - name: Validate result without exposing raw plans
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          report_path = Path("artifacts/queryproof_hierarchical_scopes.json")
+          if not report_path.exists():
+              raise SystemExit("Scope report missing")
+          report = json.loads(report_path.read_text())
+          scopes = report["union_coverage"]["hierarchical_scope_ledger"]
+          compact = {
+              key: value for key, value in scopes.items()
+              if key not in ("case_counts", "by_batch")
+          }
+          print("QUERYPROOF_HIERARCHICAL_SCOPE_LEDGER", json.dumps(
+              compact, sort_keys=True))
+          print("QUERYPROOF_SCOPE_BATCH_DETAIL", json.dumps(
+              scopes.get("by_batch", []), sort_keys=True))
+          print("QUERYPROOF_SCOPE_TRACE_EVENTS", report["trace"]["trace_events"])
+          print("QUERYPROOF_SCOPE_CASES", report["executed_cases"])
+          print("QUERYPROOF_SCOPE_ERRORS", report["error_cases"])
+          print("QUERYPROOF_SCOPE_MISMATCHES", report["row_oracle_mismatch_cases"])
+          if report["worker_exit_code"] != 0 or report["executed_cases"] != 48:
+              raise SystemExit("Incomplete frozen H cohort")
+          if report["error_cases"] or report["row_oracle_mismatch_cases"]:
+              raise SystemExit("Reference oracle failure")
+          if report["trace"]["trace_events"] != scopes.get("recorded_rule_events"):
+              raise SystemExit("Named rule event stream lost or changed")
+          if scopes.get("status") != "RETROSPECTIVE_EXACT_CATALYST_SCOPE_LEDGER":
+              raise SystemExit("Scope markers were incomplete, malformed, or unbalanced")
+          if not scopes["batch_scopes"] or not scopes["executor_scopes"]:
+              raise SystemExit("Scope instrumentation did not run")
+          '
+      - name: Save only sanitized boundary analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-hierarchical-scope-ledger
+          path: artifacts/queryproof_hierarchical_scopes.json
+          retention-days: 14
+          if-no-files-found: warn
