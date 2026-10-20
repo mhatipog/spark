@@ -1,0 +1,76 @@
+name: QueryProof generalized liveness independent DuckDB replay
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_external_duckdb_generalized_liveness_20261020/**
+      - tools/queryproof_external_postgresql_join_20261019/run_external.py
+      - .github/workflows/queryproof-generalized-liveness-external.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  new-independent-sql-cohort:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_external_duckdb_generalized_liveness_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official Apache Spark Python release
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument disposable Catalyst wheel
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Execute prospectively frozen unused DuckDB SQL cases
+        run: python -u tools/queryproof_external_duckdb_generalized_liveness_20261020/run_generalized.py
+      - name: Validate complete frozen provenance and audit proof abstentions
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          file = Path("artifacts/queryproof_duckdb_generalized_liveness_20261020.json")
+          if not file.exists():
+              raise SystemExit("Missing frozen generalized cohort report")
+          r = json.loads(file.read_text())
+          p = r["generalized_column_liveness"]
+          print("GENERALIZED_CASES", r["executed_cases"])
+          print("GENERALIZED_TRACE_EVENTS", r["trace"]["trace_events"])
+          print("GENERALIZED_RULE_EVENTS", p["named_column_pruning_events"])
+          print("GENERALIZED_PROOF", p)
+          print("GENERALIZED_ERRORS", r["error_cases"])
+          print("GENERALIZED_MISMATCHES", r["row_oracle_mismatch_cases"])
+          if p["status"] != "PROSPECTIVE_FROZEN_THIRD_PARTY_GENERALIZED_LIVENESS":
+              raise SystemExit("Verifier was modified after preregistration")
+          if not p["verifier_provenance"]["matches_frozen_checker"]:
+              raise SystemExit("Verifier git blob differs from frozen pin")
+          if r["worker_exit_code"] != 0 or r["executed_cases"] != 16:
+              raise SystemExit("Incomplete external SQL cohort")
+          if r["missing_cases"] or r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("Cross-engine correctness failure")
+          if r["trace"]["decode_failures"] or r["trace"]["instrumentation_failures"]:
+              raise SystemExit("Catalyst trace failure")
+          if r["trace"]["trace_events"] <= 0:
+              raise SystemExit("No optimizer events recorded")
+          '
+      - name: Archive sanitized independent-protocol scores
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-generalized-liveness-prospective
+          path: artifacts/queryproof_duckdb_generalized_liveness_20261020.json
+          if-no-files-found: warn
+          retention-days: 14
