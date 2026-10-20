@@ -1,0 +1,49 @@
+{
+  "schema_version": 5,
+  "benchmark_id": "queryproof-prospective-w32-full-suffix-20261020",
+  "required_case_count": 32,
+  "frozen_verifier_commit": "601aa466e0679345f34d48317c36f18d2326c80d",
+  "source_policy": "Before any W SQL, hash all verifier modules, witnesses, runner and W data manifest against the 15 preregistered Git blob SHA pins",
+  "primary_metric": "Exact actual changed post-FinishAnalysis optimizer suffix chains proved under frozen v5, by family and group; unsupported cases count UNKNOWN; finite Spark/SQLite bag oracle and independent necessary JVM gates reported separately",
+  "secondary_metric": "Observed local changed ColumnPruning steps under untouched Q checker; V5 local and suffix not conflated",
+  "cohort_strata": {
+    "JOIN_TARGET": 16,
+    "JOIN_CHALLENGE": 16
+  },
+  "cohort_family_count": 8,
+  "instances_per_family": 4,
+  "data_oracle": "Official PySpark 4.2.0 versus SQLite unordered rowbags; no mismatches required",
+  "frozen_git_blob_shas": {
+    "tools/queryproof_prospective_w_20261020/CASES.json": "9d7bda1d6ac453125f57edf03dd4842bc287acad",
+    "tools/queryproof_prospective_w_20261020/run_w.py": "4f519c45ee0c65909cf925e3b25111324560ad6c",
+    "tools/queryproof_join_filters_u_dev_20261020/scope_ledger_v5.py": "76e4e65cd934607ca62abbbcd596d19b65cea2ce",
+    "tools/queryproof_join_filters_u_dev_20261020/join_grouping_v1.py": "6d0db4b57c1044b4a157722a95797915ed084e37",
+    "tools/queryproof_join_filters_u_dev_20261020/filter_steps_v1.py": "d8cbe5e9dac6edea1078b7915eed9f2b053adaac",
+    "tools/queryproof_join_pruning_q_dev_20261020/join_project_v1.py": "0440ff7841573ce5fd17c8dbb64de91b3a59a49b",
+    "tools/queryproof_context_validator/grouping_repetition_certificate.py": "092bb0ecdf8e459a0c1cd3c712959a9d243a191f",
+    "tools/queryproof_round_n_dev_20261020/generalized_liveness_v2.py": "12bfb44e682cae059869f245eff7e3c1ec18ce12",
+    "tools/queryproof_round_n_dev_20261020/aggregate_identity_v2.py": "f0c579cfd422e56c6017f04a9900784c1fdbcfdf",
+    "tools/queryproof_state_witness_20261020/state_guard.py": "9c73e9d09e405d8ffad4d52702a810029a603b59",
+    "tools/queryproof_state_frame_20261020/frame_guard.py": "3b66d103e11db0b9adbbace0e0b6977df0266f6f",
+    "tools/queryproof_adversarial_20261020/replay_input_h.py": "9a06dd33c61d014a4a986c1a05c6cfb5c37e1060",
+    "tools/queryproof_adversarial_20261020/replay_silent_h.py": "351c175f57ad8ecf99dd52d04517187dd9bc4886",
+    "tools/queryproof_adversarial_20261020/tag_taxonomy_h.py": "2f320c9c9632b5336927febf68a5b27cf2ce5dde",
+    "tools/queryproof_external_postgresql_join_20261019/run_external.py": "06428852dc1cc0e3e8c546a537b2775dd47db66b"
+  },
+  "unknown_policy": "Only exact changed full suffixes with all certified contiguous batch/rule links count. UNKNOWN remains UNKNOWN. No tuning after seeing W result.",
+  "zero_certificates_is_valid_result": true,
+  "no_postrun_threshold_tuning": true,
+  "preflight_required_protocol_fields": [
+    "benchmark_id",
+    "required_case_count",
+    "frozen_verifier_commit"
+  ],
+  "limitations": [
+    "32 newly seeded purposive cases, 8 families x4; 2 preselected SQL variants per family, some skeleton reuse from R but all data distinct",
+    "v5 code and all input cases pinned BEFORE any W SQL execution",
+    "Source, frame, input and all-rule/tag gates are necessary; aggregated counts alone do not prove same-case intersection",
+    "Proof scoped to deterministic total checked row-bag Catalyst fragment, no runtime errors, physical order, UDF/side effects",
+    "M48 O32 R32 first-run outcomes frozen unchanged"
+  ],
+  "prospectively_frozen_before_first_w_execution": true
+}
