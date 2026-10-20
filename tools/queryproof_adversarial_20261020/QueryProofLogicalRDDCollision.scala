@@ -16,6 +16,18 @@ import org.apache.spark.sql.execution.LogicalRDD
 import org.apache.spark.sql.types.{IntegerType, Metadata}
 
 object QueryProofLogicalRDDCollision {
+  private val ids = new java.util.IdentityHashMap[AnyRef, java.lang.Long]()
+  private var nextId = 0L
+  private def stableIdentityToken(value: AnyRef): Long = synchronized {
+    val prior = ids.get(value)
+    if (prior != null) prior.longValue()
+    else {
+      nextId += 1L
+      ids.put(value, java.lang.Long.valueOf(nextId))
+      nextId
+    }
+  }
+
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
       .appName("queryproof-logical-rdd-collision")
@@ -44,15 +56,22 @@ object QueryProofLogicalRDDCollision {
       require(left.isTagsEmpty && right.isTagsEmpty,
         "This control must work independently of TreeNode tags")
 
+      val oldToken = stableIdentityToken(left.rdd)
+      val newToken = stableIdentityToken(right.rdd)
+      require(oldToken != newToken, "Distinct RDDs require distinct minted identity tokens")
+      require(stableIdentityToken(left.rdd) == oldToken,
+        "A stable backing RDD must retain its minted identity token")
+
       val w = new PrintWriter("artifacts/queryproof_logical_rdd_collision.json")
       try {
-        w.println(s"""{"left":${left.toJSON},"right":${right.toJSON}}""")
+        w.println(s"""{"left":${left.toJSON},"right":${right.toJSON},"left_rdd_token":$oldToken,"right_rdd_token":$newToken}""")
       } finally {
         w.close()
       }
       println("QUERYPROOF_REAL_LOGICAL_RDD_JSON_COLLISION=CONFIRMED")
       println("QUERYPROOF_DIFFERENT_BACKING_ROWBAGS=CONFIRMED")
       println("QUERYPROOF_TAGS_EMPTY_IN_BOTH_RELATIONS=CONFIRMED")
+      println("QUERYPROOF_JVM_IDENTITY_TOKENS_DIFFER=CONFIRMED")
       println("QUERYPROOF_SPARK_OPTIMIZER_BUG=NOT_CLAIMED")
     } finally {
       spark.stop()
