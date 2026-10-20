@@ -238,3 +238,81 @@ cannot see transient intra-rule mutations that restore state before return.
 The strict tag quarantine therefore remains 30 -> 0 for unconditional
 certificates. Future work must separate denotational tag noninterference
 from observational trace fidelity.
+
+
+### H tag-key census, adversarial semantics controls and shape gate
+
+New evidence collected after the all-rule H audit, pinned to **official Apache Spark
+v4.2.0** (not a generic claim about all Catalyst versions):
+
+1. A disposable RuleExecutor tag-key/type census was installed *after* scope,
+   state, frame and input observers. A complete frozen H01-H48 retrospective
+   execution recorded **438 changed-rule records**, **5,856 complete scope
+   markers** and **48 post-FinishAnalysis suffixes**. All observed suffix tags
+   were the exact name **dataset_id**, backed by JVM
+   `scala.collection.mutable.HashSet`; there were **zero unknown tag-key
+   names**. **8,064** tag occurrences count repeated captured snapshots, not
+   independent tag instances. First complete audit:
+   https://github.com/mhatipog/spark/actions/runs/39412775975 .
+2. Real **independent positive and negative Spark JVM perturbation controls**
+   were compiled against Spark 4.2.0. Two otherwise identical plans sharing
+   the exact LogicalRDD backing reference, but holding different
+   `dataset_id` sets, yielded the same optimized tag-erased AST and same
+   *actually collected* row bag. Conversely, identical `Join` ASTs with
+   vs. without a matching `processedJoinCondition` tag produced different
+   outcomes under Spark's actual `PushExtraPredicateThroughJoin` rule
+   (extra pushed `Filter` vs skipped), proving **blanket tag erasure unsafe**.
+   These are *control cases*, not exhaustive proof over all plans:
+   https://github.com/mhatipog/spark/actions/runs/39413743147 .
+3. Strengthened the JVM observer to classify `dataset_id` collection
+   **element type without printing its values**. Frozen H01-H48 replay found
+   all **8,064** post-FinishAnalysis tag appearances were
+   `dataset_id:HashSet[Long]` as observed at captured states. New
+   fail-closed phase-local gate refuses unknown tag names,
+   `processedJoinCondition`, malformed HashSets and non-Long members;
+   its adversarial unit falsifiers passed. All **30/30** historical
+   conditional H candidates pass this *additional necessary tag-shape
+   obligation*, **0 rejected**, but no unconditional general soundness is
+   asserted. Successful CI:
+   https://github.com/mhatipog/spark/actions/runs/39414066476 .
+4. Source audit via exact v4.2.0 implementation found
+   `Dataset.DATASET_ID_TAG` defined/set in classic `Dataset.scala` and
+   read by `DetectAmbiguousSelfJoin.scala`, an **analyzer** rule.
+   GitHub's full-repo code search returns just three files for the token
+   `DATASET_ID_TAG` (those two and a test), no optimizer consumer.
+   `PushExtraPredicateThroughJoin.scala`, `PropagateEmptyRelation.scala`
+   and `ConstantFolding` are counterexamples for treating *other* tags
+   as inert. This is a **source-pinned bounded consumer search**, not a
+   machine-checked closed-world call graph.
+   Reference sources:
+   https://github.com/apache/spark/blob/v4.2.0/sql/core/src/main/scala/org/apache/spark/sql/classic/Dataset.scala ;
+   https://github.com/apache/spark/blob/v4.2.0/sql/core/src/main/scala/org/apache/spark/sql/execution/analysis/DetectAmbiguousSelfJoin.scala ;
+   https://github.com/apache/spark/blob/v4.2.0/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/PushExtraPredicateThroughJoin.scala .
+
+**Narrow mathematical obligation.** Let `erase_D` remove only the
+`dataset_id` annotation, preserving the exact full supported logical AST,
+expression identities, schema/metadata, leaf relations and live backing-RDD
+reference identities. For any supported, well-typed resolved relational plan
+`P` with total deterministic expressions, assume the abstract logical
+denotation interprets only those constructor fields and never `dataset_id`.
+Then `[[P]]_rho = [[erase_D(P)]]_rho` follows by structural induction on
+the admitted plan grammar. This is a **conditional model lemma**, not a
+universal theorem about Spark's runtime. To lift the lemma to actual captured
+rewrites, one must *also* establish source-version phase noninterference of
+`dataset_id` for **every invoked optimizer rule**, complete and untampered
+rule-boundary observations, stable underlying inputs, exhaustive supported
+constructor semantics and valid local certificates. The phase restriction
+matters: future Analyzer use and ambiguous self-join checking are excluded.
+A rule's intermediate behavior may depend on other tags even if its ultimate
+row-bag semantics is preserved.
+
+**Status:** We have substantially reduced the tag-based obstacle from
+uninterpreted metadata in every H suffix to one precisely recognized,
+element-validated tag class, while proving a broad relaxation invalid.
+The 30/30 number is **retrospective conditional eligibility**, not a newly
+prospective 30/48 theorem and not yet an upstream-worthy validation claim.
+Next: independently validate optimizer consumer coverage (including dynamic
+tag access and generic mutable state), then freeze a fresh adversarial cohort
+M that stresses input identity, plan annotation semantics and all-rule trace
+completeness. Only then evaluate end-to-end proof coverage and comparisons.
+No paid infrastructure or upstream PR was used.
