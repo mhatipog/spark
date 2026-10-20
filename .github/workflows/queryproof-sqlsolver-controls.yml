@@ -1,0 +1,58 @@
+name: QueryProof SQLSolver preregistered boundary controls
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_adversarial_20261020/**
+      - .github/workflows/queryproof-sqlsolver-controls.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sqlsolver-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_adversarial_20261020
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '7.3.3'
+      - name: Retrieve the preregistered SQLSolver source revision
+        run: |
+          git clone --depth 1 https://github.com/SJTU-IPADS/SQLSolver.git sqlsolver
+          git -C sqlsolver fetch --depth 1 origin dcc2a91d8971a4c4d30b055f99d7d8428a1b754b
+          git -C sqlsolver checkout --detach dcc2a91d8971a4c4d30b055f99d7d8428a1b754b
+          git -C sqlsolver rev-parse HEAD
+      - name: Build published SQLSolver with bundled Z3
+        run: |
+          cd sqlsolver
+          gradle fatJar --no-daemon --stacktrace
+      - name: Run all three frozen SQL-level control pairs
+        run: |
+          cd sqlsolver
+          JAR="$(find build/libs -name '*.jar' -type f -print -quit)"
+          test -n "$JAR"
+          echo "QUERYPROOF_SQLSOLVER_CONTROL_SOURCE=dcc2a91d8971a4c4d30b055f99d7d8428a1b754b"
+          export LD_LIBRARY_PATH="$PWD/lib:${LD_LIBRARY_PATH:-}"
+          java -Djava.library.path="$PWD/lib" -jar "$JAR" \
+            -sql1="$GITHUB_WORKSPACE/tools/queryproof_adversarial_20261020/sqlsolver_old.sql" \
+            -sql2="$GITHUB_WORKSPACE/tools/queryproof_adversarial_20261020/sqlsolver_new.sql" \
+            -schema="$GITHUB_WORKSPACE/tools/queryproof_adversarial_20261020/sqlsolver_schema.sql" \
+            -output="$GITHUB_WORKSPACE/sqlsolver_controls_result.txt"
+          cd "$GITHUB_WORKSPACE"
+          python -c '
+          from pathlib import Path
+          results = Path("sqlsolver_controls_result.txt").read_text().splitlines()
+          print("QUERYPROOF_SQLSOLVER_THREE_CONTROL_RESULTS", results)
+          if len(results) != 3:
+              raise SystemExit("SQLSOLVER_RESULT_COUNT_MISMATCH")
+          if any(v.strip() not in ("EQ", "NEQ", "UNKNOWN", "TIMEOUT") for v in results):
+              raise SystemExit("SQLSOLVER_UNRECOGNIZED_OUTCOME")
+          '
