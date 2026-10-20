@@ -82,9 +82,22 @@ def _is_not_null(filter_header, retained):
             set(operator).issubset({"class", "num-children", "child", "evalContext"}),
             "FILTER_NOT_IS_NOT_NULL")
     key, dtype, name = _attribute(reference)
-    require(key in retained and (dtype, name) == retained[key][:2] and
-            [reference] == retained[key][2],
-            "FILTER_ATTRIBUTE_NOT_EXACT_RETAINED_IDENTITY")
+    # In Spark 4.2.0 AttributeReference.sameRef uses exprId; qualifier is an
+    # optional name-resolution prefix (namedExpressions.scala). Its
+    # canonicalized form excludes qualifier. Preserve all other AST fields
+    # including type, nullability, exprId, metadata, class, and child count.
+    # This relaxation is POSTHOC after the redacted Round U identity audit.
+    require(key in retained and (dtype, name) == retained[key][:2],
+            "FILTER_ATTRIBUTE_RESOLVED_ID_OR_VALUE_CHANGED")
+    expected, = retained[key][2]
+    require(set(reference) == set(expected) and
+            all(reference[field] == expected[field] for field in expected
+                if field != "qualifier") and
+            isinstance(reference.get("qualifier"), list) and
+            all(isinstance(q, str) for q in reference["qualifier"]) and
+            isinstance(expected.get("qualifier"), list) and
+            all(isinstance(q, str) for q in expected["qualifier"]),
+            "FILTER_ATTRIBUTE_RESOLVED_ID_OR_VALUE_METADATA_CHANGED")
     return key
 
 
