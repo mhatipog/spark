@@ -25,7 +25,8 @@ OUTPUT = ROOT / "artifacts" / "queryproof_external_postgresql_join_20261019.json
 
 def worker(manifest_path, output_path):
     from pyspark.sql import SparkSession
-    from pyspark.sql.types import IntegerType, StringType, StructField, StructType
+    from pyspark.sql.types import (ByteType, IntegerType, LongType,
+        ShortType, StringType, StructField, StructType)
 
     manifest = json.loads(manifest_path.read_text())
     spark = (SparkSession.builder.master("local[2]")
@@ -44,22 +45,40 @@ def worker(manifest_path, output_path):
             for name, definition in definitions.items():
                 assert name.isidentifier() and name[0].isalpha()
                 columns = definition["columns"]
-                assert all(column["type"] in ("integer", "string")
+                data_types = {
+                    "integer": IntegerType, "string": StringType,
+                    "tinyint": ByteType, "smallint": ShortType,
+                    "long": LongType}
+                assert all(column["type"] in data_types
                            for column in columns)
                 spark_schema = StructType([
                     StructField(column["name"],
-                                IntegerType() if column["type"] == "integer"
-                                else StringType(), True)
+                                data_types[column["type"]](), True)
                     for column in columns])
-                sqlite_types = {"integer": "INTEGER", "string": "TEXT"}
+                sqlite_types = {
+                    "integer": "INTEGER", "string": "TEXT",
+                    "tinyint": "INTEGER", "smallint": "INTEGER",
+                    "long": "INTEGER"}
                 ddl = ", ".join('"' + c["name"] + '" ' + sqlite_types[c["type"]]
                                 for c in columns)
                 reference.execute('CREATE TABLE "' + name + '" (' + ddl + ')')
                 placeholders = ",".join("?" for _ in columns)
+                # Preserve exact signed BIGINT values across JSON's limited
+                # JavaScript number precision: the frozen manifest encodes
+                # those two source integers as decimal strings.
+                rows = []
+                for row in definition["rows"]:
+                    assert len(row) == len(columns)
+                    converted = []
+                    for value, column in zip(row, columns):
+                        if column["type"] == "long" and isinstance(value, str):
+                            value = int(value)
+                        converted.append(value)
+                    rows.append(tuple(converted))
                 reference.executemany(
                     'INSERT INTO "' + name + '" VALUES (' + placeholders + ')',
-                    definition["rows"])
-                (spark.createDataFrame(definition["rows"], spark_schema)
+                    rows)
+                (spark.createDataFrame(rows, spark_schema)
                  .createOrReplaceTempView(name))
             return set(definitions)
 
@@ -312,6 +331,45 @@ def retrospective_column_pruning_liveness(private_trace_path):
             "unknown_reasons": dict(unknowns)}
 
 
+def score_generalized_column_liveness(private_trace_path):
+    """Score every actual named rule event; never use rule identity as proof."""
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
+    sys.path.insert(0, str(ROOT / "tools" / "queryproof_instrumented"))
+    from rank_ast import decode
+    from generalized_projection_liveness_certificate import (
+        certify_generalized_projection_liveness_event,
+    )
+    certificates, unknowns, events = [], Counter(), 0
+    for line in private_trace_path.read_text(errors="replace").splitlines():
+        if not line.startswith("QUERYPROOF_AST\t"):
+            continue
+        event = decode(line)
+        if _rule_basename(event.get("rule")) != "ColumnPruning":
+            continue
+        events += 1
+        result = certify_generalized_projection_liveness_event(event)
+        if result["status"] == "EQUIVALENT_IN_FRAGMENT":
+            certificates.append({
+                "case": event.get("case"),
+                "live_attributes": result["live_attributes"],
+                "old_project_depth": result["old_project_depth"],
+                "new_project_depth": result["new_project_depth"],
+                "old_output_width": result["old_output_width"],
+                "new_output_width": result["new_output_width"],
+                "sort_frames": result["sort_frames"],
+            })
+        else:
+            unknowns[result.get("reason", "UNKNOWN")] += 1
+    return {
+        "status": "RETROSPECTIVE_UNPINNED",
+        "named_column_pruning_events": events,
+        "certified": len(certificates),
+        "certificates": certificates,
+        "unknown_reasons": dict(unknowns),
+        "certificate_scope": "pure_nested_project_observational_liveness",
+    }
+
+
 def diagnose_column_pruning(private_trace_path):
     """Structural triage only: no certificates or private values exported."""
     sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
@@ -436,6 +494,31 @@ def parent():
         aggregate_identity = retrospective_aggregate_identity(raw_stderr)
         pruning_diagnostic = diagnose_column_pruning(raw_stderr)
         column_liveness = retrospective_column_pruning_liveness(raw_stderr)
+        generalized = (
+            score_generalized_column_liveness(raw_stderr)
+            if protocol.get("prospective_generalized_liveness") else None)
+        if generalized is not None:
+            pin = json.loads((MANIFEST.parent / "VERIFIER_PIN.json").read_text())
+            assert pin["benchmark_id"] == manifest["benchmark_id"]
+            assert pin["frozen_verifier_commit"] == protocol["frozen_verifier_commit"]
+            assert pin["verifier_module"] == (
+                "tools/queryproof_context_validator/"
+                "generalized_projection_liveness_certificate.py")
+            current = subprocess.run(
+                ["git", "hash-object", pin["verifier_module"]],
+                cwd=ROOT, check=True, capture_output=True,
+                text=True).stdout.strip()
+            expected = pin["frozen_verifier_git_blob_sha"]
+            assert len(expected) == len(current) == 40
+            matches = current == expected
+            generalized["status"] = (
+                "PROSPECTIVE_FROZEN_THIRD_PARTY_GENERALIZED_LIVENESS"
+                if matches else "RETROSPECTIVE_VERIFIER_CHANGED_AFTER_FREEZE")
+            generalized["verifier_provenance"] = {
+                "frozen_verifier_git_blob_sha": expected,
+                "current_verifier_git_blob_sha": current,
+                "matches_frozen_checker": matches,
+            }
         if protocol.get("prospective_aggregate_identity"):
             pin_path = MANIFEST.parent / "VERIFIER_PIN.json"
             if pin_path.exists():
@@ -519,6 +602,7 @@ def parent():
         "posthoc_aggregate_identity": aggregate_identity,
         "column_pruning_diagnostic": pruning_diagnostic,
         "retrospective_column_liveness": column_liveness,
+        "generalized_column_liveness": generalized,
         "trace": scored,
         "limitations": [
             "Third-party source provenance is specified by each frozen protocol; "
