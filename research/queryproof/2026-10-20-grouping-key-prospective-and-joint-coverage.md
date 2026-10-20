@@ -185,3 +185,68 @@ Primary related literature:
 
 Do not mutate or merge unrelated upstream Apache Spark PRs based on these
 research results. The current work remains on Metin's personal research fork.
+
+## Later round: actual same-executor proof-chain composition
+
+We went beyond mere co-occurrence. A new fail-closed connectivity checker
+at tools/queryproof_composition_20261020/chain_connectivity.py requires:
+
+- Two or more *consecutive captured* changed-rule events in the same case.
+- Each event independently accepted by its existing immutable local checker.
+- Complete structural equality of the preceding new AST and the following
+  old AST (including ExprIds and node metadata).
+- The same actual Catalyst RuleExecutor on both edges.
+- No intervening UNKNOWN event in that executor-local observed sequence.
+- It admits transitions between different *sequential batches* of the same
+  executor but does not jump between executors or assume an unrecorded rewrite.
+
+For a chain P0 -> P1 -> ... -> Pk satisfying those obligations, each local
+checker establishes observational equivalence Pi ~ Pi+1 as row bags. Exact
+AST identity makes the intermediate relation the same object of discourse,
+so transitivity yields P0 ~ Pk for that recorded subchain. This is a sound
+compositional theorem in the same restricted pure logical fragment.
+
+The actual H01-H48 retrospective instrumented run found:
+
+| Measure | Result |
+| --- | ---: |
+| Recorded changed events | 438 |
+| Independently locally certified | 90 |
+| Exact consecutive certified pairs, same executor | 42 |
+| Within one optimizer batch | 12 |
+| Between two sequential batches of the same executor | 30 |
+| Across distinct executors | 0 |
+| Cases containing a verified >=2-edge chain | 36/48 |
+| Cases containing a verified 3-edge chain | 6/48 |
+| Maximum verified chain length | 3 |
+| Fully certified optimizer/query traces | **0** |
+| Adversarial chain-connectivity unit tests | 15 passed |
+
+The six three-edge chains (H13-H18) follow the exact sequence:
+RemoveRepetitionFromGroupExpressions -> ColumnPruning -> CollapseProject.
+The two-step links across batches run from the same executor's Aggregate
+batch to its Operator Optimization before Inferring Filters batch.
+The same-batch links connect ColumnPruning to CollapseProject.
+
+We explicitly investigated a stricter same-executor/**same-batch** rule:
+it retained 12 two-edge chains and discarded the 30 cross-batch links.
+A separate sanitized provenance audit showed that *all* 30 excluded links
+were between sequential batches of the **same executor**, and none crossed
+executors; allowing those sequential boundaries is therefore justified
+for exact contiguous snapshots. No raw Catalyst ASTs are published.
+
+Green strict-scope-chain run:
+https://github.com/mhatipog/spark/actions/runs/39382685038
+
+**Do not call this full-query validation.** All 48 query traces still contain
+unproved Analyzer/Optimizer wrappers and potentially unobserved hierarchical
+changes, so the first and last plans of a whole query are not connected by
+one fully proved path. The key next advance is a hierarchical translation
+validator that can show an outer Executor/Optimizer summary edge is exactly
+the composition of all nested, explicitly accounted-for rule transitions,
+with gaps never silently omitted. After that, address the remaining literal,
+filter-inference, and aggregate-class certificates.
+
+This experiment is retrospective on H. The separate 42/42 H grouping
+certificate remains prospectively pinned and unchanged. No modifications
+to its checker, scorer, manifest, or protocol were made for chain diagnostics.
