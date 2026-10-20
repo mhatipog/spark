@@ -1,0 +1,104 @@
+name: QueryProof V8 W32 strict all-steps replay
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_v7_strict_20261020/**
+      - .github/workflows/queryproof-v8-w32-strict-replay.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-posthoc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_v7_strict_20261020
+            tools/queryproof_posthoc_v6_20261020
+            tools/queryproof_posthoc_y_20261020
+            tools/queryproof_posthoc_x_20261020
+            tools/queryproof_prospective_w_20261020
+            tools/queryproof_join_filters_u_dev_20261020
+            tools/queryproof_join_suffix_s_dev_20261020
+            tools/queryproof_join_pruning_q_dev_20261020
+            tools/queryproof_round_n_dev_20261020
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify historical W32 input and v5 sources are still frozen
+        run: |
+          python -B -c '
+          import json,subprocess
+          from pathlib import Path
+          root=Path("tools/queryproof_prospective_w_20261020")
+          protocol=json.loads((root/"PROTOCOL.json").read_text())
+          for p,expected in protocol["frozen_git_blob_shas"].items():
+              actual=subprocess.run(["git","hash-object",p],capture_output=True,
+                  text=True,check=True).stdout.strip()
+              assert actual==expected, f"FROZEN_W_COMPONENT_MODIFIED {p}"
+          compile(Path("tools/queryproof_posthoc_v6_20261020/run_v6.py").read_text(),
+                  "round_v6","exec")
+          print("QUERYPROOF_V6_FROZEN_W_SOURCE_CHECK_OK")
+          '
+      - name: Run independent synthetic phase-cut and tag-encoding falsifiers BEFORE replay
+        run: python -B -m unittest discover -s tools/queryproof_posthoc_y_20261020 -p 'test_phase_guard_independent.py' -v
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Restore disposable provenance and state sensors
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          python -B tools/queryproof_adversarial_20261020/instrument_silent_rules.py
+          python -B tools/queryproof_adversarial_20261020/instrument_tag_taxonomy.py
+          python -B tools/queryproof_v7_strict_20261020/instrument_overflow.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Validate strict unit controls before Spark replay
+        run: python -B -m unittest discover -v -s tools/queryproof_v7_strict_20261020 -p 'test_*.py'
+      - name: Replay original W32 once under V6 and V8 accounting
+        run: python -u tools/queryproof_v7_strict_20261020/run_v8.py
+      - name: Enforce paired structural scores and original oracle invariants
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          p=Path("artifacts/queryproof_v8_w32_strict_all_steps.json")
+          assert p.is_file(), "V8_REPLAY_REPORT_MISSING"
+          r=json.loads(p.read_text())
+          assert r["executed_cases"]==32 and r["worker_exit_code"]==0
+          assert not r["error_cases"] and not r["row_oracle_mismatch_cases"]
+          d=r["union_coverage"]["v8_strict_all_steps_replay"]
+          assert d["v6_reference_count"]==20
+          assert 0 <= d["v8_strict_count"] <= 20
+          assert not d["impossible_extra_acceptances"]
+          print("QUERYPROOF_V8_STRICT_W32", json.dumps(d,sort_keys=True))
+          '
+      - name: Preserve posthoc V8 paired strict replay score
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v8-w32-strict-all-steps-posthoc
+          path: artifacts/queryproof_v8_w32_strict_all_steps.json
+          retention-days: 14
+          if-no-files-found: warn
