@@ -23,7 +23,22 @@ def summarize_event_chain(events):
         by_case[event["case"]].append(event)
     segments, by_rule, case_summaries = [], Counter(), []
     linked_pairs, adjacent_all, certified_total = 0, 0, 0
+    cross_scope = Counter()
     for case, sequence in by_case.items():
+        for left, right in zip(sequence, sequence[1:]):
+            if (left["certified"] and right["certified"] and
+                    left["new"] == right["old"]):
+                if left.get("executor") != right.get("executor"):
+                    scope = "different_executor"
+                elif left.get("batch") != right.get("batch"):
+                    scope = "same_executor_different_batch"
+                else:
+                    scope = "same_executor_same_batch"
+                cross_scope[(left["rule"], right["rule"], scope,
+                             str(left.get("executor")),
+                             str(left.get("batch")),
+                             str(right.get("executor")),
+                             str(right.get("batch")))] += 1
         current = []
         all_certified = all(item["certified"] for item in sequence)
         all_connected = all(
@@ -71,6 +86,14 @@ def summarize_event_chain(events):
         "locally_certified_by_rule": dict(sorted(by_rule.items())),
         "adjacent_exact_ast_pairs_all_rules": adjacent_all,
         "adjacent_certified_pairs": linked_pairs,
+        "exact_snapshot_certified_boundary_types": [
+            {"source_rule": key[0], "target_rule": key[1],
+             "scope_class": key[2],
+             "source_executor": key[3], "source_batch": key[4],
+             "target_executor": key[5], "target_batch": key[6],
+             "count": count}
+            for key, count in sorted(cross_scope.items())],
+        "exact_snapshot_certified_pairs_any_scope": sum(cross_scope.values()),
         "maximal_certified_segments_length_ge_2": strong,
         "multi_edge_segments": len(strong),
         "max_certified_segment_length": max(
