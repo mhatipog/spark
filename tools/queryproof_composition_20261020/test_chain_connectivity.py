@@ -97,6 +97,28 @@ class ChainConnectivityTests(unittest.TestCase):
         self.assertEqual(r["multi_edge_segments"], 2)
         self.assertEqual(r["adjacent_certified_pairs"], 3)
 
+    def test_cross_scope_snapshot_match_is_classified_but_not_claimed_as_chain(self):
+        a = transition("q1", 0, 1, "RemoveRepetitionFromGroupExpressions")
+        b = transition("q1", 1, 2, "ColumnPruning")
+        a.update({"executor": "Analyzer", "batch": "Cleanup"})
+        b.update({"executor": "Optimizer", "batch": "OperatorOpt"})
+        r = summarize_event_chain([a, b])
+        self.assertEqual(r["exact_snapshot_certified_pairs_any_scope"], 1)
+        self.assertEqual(r["adjacent_certified_pairs"], 0)
+        self.assertEqual(
+            r["exact_snapshot_certified_boundary_types"][0]["scope_class"],
+            "different_executor")
+
+    def test_same_executor_new_batch_distinguished(self):
+        a = transition("q1", 0, 1)
+        b = transition("q1", 1, 2)
+        a.update({"executor": "Optimizer", "batch": "A"})
+        b.update({"executor": "Optimizer", "batch": "B"})
+        r = summarize_event_chain([a, b])
+        self.assertEqual(
+            r["exact_snapshot_certified_boundary_types"][0]["scope_class"],
+            "same_executor_different_batch")
+
     def test_no_events_is_not_a_proof(self):
         r = summarize_event_chain([])
         self.assertEqual(r["recorded_events"], 0)
