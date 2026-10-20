@@ -1,0 +1,39 @@
+name: QueryProof Coq narrow NULL-bag laws (development)
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - research/queryproof/proofs/QueryProofNarrowJoin.v
+      - .github/workflows/queryproof-coq-local-laws.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  coq-kernel-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: research/queryproof/proofs
+      - name: Install upstream Ubuntu Coq package
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq coq
+          coqc --version
+      - name: Reject admitted or axiomatic shortcuts
+        run: |
+          python3 -B -c '
+          from pathlib import Path
+          p=Path("research/queryproof/proofs/QueryProofNarrowJoin.v")
+          source=p.read_text().lower()
+          assert "admitted." not in source and "admit." not in source
+          assert "\naxiom " not in source and "\nparameter " not in source
+          print("QUERYPROOF_COQ_NO_UNSAFE_AXIOMS=PASS")
+          '
+      - name: Compile all lemmas in Coq kernel
+        run: |
+          coqc -q research/queryproof/proofs/QueryProofNarrowJoin.v
+          test -f research/queryproof/proofs/QueryProofNarrowJoin.vo
+          echo "QUERYPROOF_COQ_NARROW_NULL_BAG_LAWS=KERNEL_CHECKED"
