@@ -628,7 +628,16 @@ def parent():
                 cwd=ROOT, check=True, capture_output=True, text=True).stdout.strip()
             expected = pin["frozen_verifier_git_blob_sha"]
             assert len(expected) == len(current) == 40
-            matches = current == expected
+            assert pin["scorer_module"] == (
+                "tools/queryproof_external_postgresql_join_20261019/"
+                "run_external.py")
+            current_scorer = subprocess.run(
+                ["git", "hash-object", pin["scorer_module"]],
+                cwd=ROOT, check=True, capture_output=True, text=True).stdout.strip()
+            expected_scorer = pin["frozen_scorer_git_blob_sha"]
+            assert len(expected_scorer) == len(current_scorer) == 40
+            matches = (current == expected and
+                       current_scorer == expected_scorer)
             grouping_repetition["status"] = (
                 "PROSPECTIVE_FROZEN_TARGETED_GENERATED_REPETITION"
                 if matches and protocol.get("generated_targeted") else
@@ -664,7 +673,9 @@ def parent():
             generalized["verifier_provenance"] = {
                 "frozen_verifier_git_blob_sha": expected,
                 "current_verifier_git_blob_sha": current,
-                "matches_frozen_checker": matches,
+                "frozen_scorer_git_blob_sha": expected_scorer,
+                "current_scorer_git_blob_sha": current_scorer,
+                "matches_frozen_checker_and_scorer": matches,
             }
         if protocol.get("prospective_aggregate_identity"):
             pin_path = MANIFEST.parent / "VERIFIER_PIN.json"
