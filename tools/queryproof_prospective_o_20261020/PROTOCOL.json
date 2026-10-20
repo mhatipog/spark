@@ -1,0 +1,47 @@
+{
+  "schema_version": 5,
+  "benchmark_id": "queryproof-prospective-o32-independent-20261020",
+  "required_case_count": 32,
+  "frozen_verifier_commit": "743bcf8c232373235438c7ba4b0939d6ce697646",
+  "prospectively_frozen_before_first_o_execution": true,
+  "predecessor_first_run": {
+    "cohort": "N32",
+    "run_id": 39421965245,
+    "status": "32_SQL_EXECUTED_BUT_REPORT_LOST_ADMINISTRATIVE_PROTOCOL_MISSING_FIELD",
+    "recovered_scoring": false,
+    "these_data_not_reused": true
+  },
+  "primary_metric": "Complete v2 changed post-FinishAnalysis optimizer suffix chains with every original independently pinned state/frame/RDD/all-rule/tag witness gate passing on the same candidates",
+  "cohort_strata": {
+    "TARGET_EXTREMA": 8,
+    "TARGET_NESTED": 8,
+    "GENERALIZATION_CHALLENGE": 16
+  },
+  "data_oracle": "Finite Spark 4.2.0 against SQLite unordered row-multiset",
+  "frozen_git_blob_shas": {
+    "tools/queryproof_round_n_dev_20261020/aggregate_identity_v2.py": "f0c579cfd422e56c6017f04a9900784c1fdbcfdf",
+    "tools/queryproof_round_n_dev_20261020/generalized_liveness_v2.py": "12bfb44e682cae059869f245eff7e3c1ec18ce12",
+    "tools/queryproof_round_n_dev_20261020/scope_ledger_v2.py": "d03f21c8fd6543d2d38456899c3f664a0fc5ed73",
+    "tools/queryproof_context_validator/grouping_repetition_certificate.py": "092bb0ecdf8e459a0c1cd3c712959a9d243a191f",
+    "tools/queryproof_adversarial_20261020/replay_input_h.py": "9a06dd33c61d014a4a986c1a05c6cfb5c37e1060",
+    "tools/queryproof_state_witness_20261020/state_guard.py": "9c73e9d09e405d8ffad4d52702a810029a603b59",
+    "tools/queryproof_state_frame_20261020/frame_guard.py": "3b66d103e11db0b9adbbace0e0b6977df0266f6f",
+    "tools/queryproof_adversarial_20261020/replay_silent_h.py": "351c175f57ad8ecf99dd52d04517187dd9bc4886",
+    "tools/queryproof_adversarial_20261020/tag_taxonomy_h.py": "2f320c9c9632b5336927febf68a5b27cf2ce5dde",
+    "tools/queryproof_prospective_o_20261020/run_o.py": "c7cadae311918c4726cf12009cbb59a99eb6098b"
+  },
+  "preflight_required_protocol_fields": [
+    "benchmark_id",
+    "required_case_count",
+    "frozen_verifier_commit"
+  ],
+  "unknown_policy": "Report UNKNOWN, never count unsupported rules as proved",
+  "zero_certificates_is_valid_result": true,
+  "no_postrun_threshold_tuning": true,
+  "limitations": [
+    "Purposive targeted SQL families, not representative probability sample",
+    "No error/ordering/UDF proofs",
+    "No end-to-end SQLSolver/Logos superiority comparison",
+    "N post-execution report failure was not repaired into a claimed pristine score"
+  ]
+}
