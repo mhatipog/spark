@@ -1,0 +1,81 @@
+name: QueryProof live input witness H retrospective audit
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_adversarial_20261020/replay_input_h.py
+      - tools/queryproof_adversarial_20261020/identity_trace_guard.py
+      - tools/queryproof_adversarial_20261020/instrument_input_identity.py
+      - .github/workflows/queryproof-live-input-h.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  input-identity-retrospective-h:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official Spark
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument disposable JVM event, scope, state, frame and input witnesses
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Retrospectively replay complete H01-H48 cohort
+        run: python -u tools/queryproof_adversarial_20261020/replay_input_h.py
+      - name: Validate denominators and sanitized counts
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          p = Path("artifacts/queryproof_frames_H.json")
+          if not p.exists():
+              raise SystemExit("INPUT_RETROSPECTIVE_NOT_EXECUTED")
+          report = json.loads(p.read_text())
+          audit = report["union_coverage"]["posthoc_frame_preservation"]["v4_live_input_attestation"]
+          scope = report["union_coverage"]["hierarchical_scope_ledger"]
+          print("QUERYPROOF_H_ACTUAL_INPUT_AUDIT", json.dumps(audit, sort_keys=True))
+          print("QUERYPROOF_H_ORIGINAL_CERTIFICATE_COUNT", scope["certified_changed_optimizer_suffixes"])
+          if report["executed_cases"] != 48 or report["worker_exit_code"] != 0:
+              raise SystemExit("INCOMPLETE_H_EXECUTION")
+          if report["error_cases"] or report["row_oracle_mismatch_cases"]:
+              raise SystemExit("ORACLE_MISMATCH")
+          if audit["status"] != "COMPLETE_INPUT_RETROSPECTIVE":
+              raise SystemExit("INVALID_H_INPUT_WITNESS")
+          if audit["original_conditional_certificates"] != scope["certified_changed_optimizer_suffixes"]:
+              raise SystemExit("UNEXPECTED_CERTIFICATE_DENOMINATOR")
+          '
+      - name: Preserve only sanitized retrospective counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-h-retrospective-jvm-input-identity
+          path: artifacts/queryproof_frames_H.json
+          retention-days: 14
+          if-no-files-found: warn
