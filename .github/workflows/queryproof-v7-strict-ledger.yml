@@ -1,0 +1,19 @@
+name: QueryProof V7 Strict Ledger Controls
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - 'tools/queryproof_v7_strict_20261020/**'
+      - '.github/workflows/queryproof-v7-strict-ledger.yml'
+  workflow_dispatch:
+jobs:
+  strict-ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Adversarial trace controls
+        run: python -m unittest discover -v -s tools/queryproof_v7_strict_20261020 -p 'test_*.py'
