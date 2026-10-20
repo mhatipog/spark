@@ -544,7 +544,7 @@ semantics, or prove the native extractor matches a Coq interpretation.
 A second, explicitly POSTHOC Coq development commit
 `736e0e0c0cbaf7bdd9b247838e4cd306cb6ec571` extends the
 impossibility file with an abstract ordered source-frame injectivity
-and metadata-swap countermodel. Independent Coq CI **\`39462918891\` SUCCEEDED** under official
+and metadata-swap countermodel. Independent Coq CI **`39462918891` SUCCEEDED** under official
 Coq 8.18, without `Admitted` or axioms. This kernel-checks a narrow
 ordered-source-frame injectivity lemma and a metadata-swap model, not
 the actual Scala emitter.
@@ -580,3 +580,39 @@ changed results. No historical first-run file or scoring definition changed.
 impossibility proof + narrow source-bound prototype. NOT production
 Spark correctness verification, no query-answer flaw, no upgraded
 W32 headline.
+
+### Native evidence-transport test: effective Spark rule, identical recorded AST endpoints
+
+Independent source `tools/queryproof_posthoc_v7_20261020/QueryProofNativeMetadataTraceCollisionWitness.scala`
+added in commit `a82a3f060e874ab590d71c20c3719dfac469f6eb`,
+workflow `.github/workflows/queryproof-native-metadata-event-collision.yml`
+added in `43862fd9fb01720b68266a8e65a7fdc41fb7e19e`.
+Native Spark 4.2.0 CI **`39463269639`**, job `118767864162`,
+SUCCESS. A deliberately constructed rule rewrote an empty
+`LocalRelation` by changing only an output `AttributeReference`'s
+metadata. Actual Spark `!before.fastEquals(after)` was true, so the
+already-existing QueryProof-instrumented `RuleExecutor` emitted one
+`QUERYPROOF_AST` event for an EFFECTIVE rule. The actual emitted
+seven-field base64 record decoded successfully, but the `old` and
+`new` Catalyst JSON fields were **exactly identical**, because
+`TreeNode.toJSON` erases the changed metadata. All checks passed.
+
+This directly falsifies the premise `effective rule event with equal
+serialized old/new plan -> no native structural change`. The crafted
+rule is ONLY a test fixture; the comparison, JSON serializer and
+event-logging route are actual production Spark/runtime and the
+already-deployed QueryProof research instrumentation. The result
+identifies loss of information IN AN ACTUAL QUERYPROOF EVENT PAYLOAD,
+not merely abstract node encoding. It demonstrates neither incorrect
+row bags nor an occurrence in W32. A conservative checker must return
+UNKNOWN if an effective event is not distinguishable or completely
+discharged by its source-bound fields and semantic effect policy.
+
+Follow-up idea: include a typed, position-indexed, full-source metadata
+sidecar in EACH effective event at exactly its captured before/after
+positions, and simultaneously classify tag/cache/other hidden effects
+with explicit rules. Test out-of-scope, oversized metadata, same numeric
+ExprId with differing JVM UUID, same-name attributes, and mutation
+reversal within a single rule; return UNKNOWN until each obligation has
+source-linked formal or adversarial coverage.
+
