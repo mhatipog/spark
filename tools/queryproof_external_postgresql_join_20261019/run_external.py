@@ -342,6 +342,7 @@ def score_generalized_column_liveness(private_trace_path):
     )
     certificates, unknowns, events = [], Counter(), 0
     safe_unknown_alias_shapes = []
+    safe_unknown_expression_shapes = []
     for line in private_trace_path.read_text(errors="replace").splitlines():
         if not line.startswith("QUERYPROOF_AST\t"):
             continue
@@ -387,6 +388,27 @@ def score_generalized_column_liveness(private_trace_path):
                                 })
                     shapes[side] = found
                 safe_unknown_alias_shapes.append(shapes)
+            if (result.get("reason") ==
+                    "UNSAFE_OR_UNKNOWN_PROJECT_EXPRESSION" and
+                    len(safe_unknown_expression_shapes) < 10):
+                shape = {"case": event.get("case")}
+                for side in ("old", "new"):
+                    expressions = []
+                    for plan in event[side]:
+                        if plan.get("class") != (
+                                "org.apache.spark.sql.catalyst.plans.logical."
+                                "Project"):
+                            continue
+                        for entry in plan.get("projectList", []):
+                            if not isinstance(entry, list):
+                                continue
+                            expressions.append([{
+                                "operator": node.get("class", "").rsplit(".", 1)[-1],
+                                "keys": sorted(node),
+                                "arity": node.get("num-children"),
+                            } for node in entry if isinstance(node, dict)])
+                    shape[side] = expressions[:12]
+                safe_unknown_expression_shapes.append(shape)
     return {
         "status": "RETROSPECTIVE_UNPINNED",
         "named_column_pruning_events": events,
@@ -394,6 +416,7 @@ def score_generalized_column_liveness(private_trace_path):
         "certificates": certificates,
         "unknown_reasons": dict(unknowns),
         "safe_unknown_alias_shapes": safe_unknown_alias_shapes,
+        "safe_unknown_expression_shapes": safe_unknown_expression_shapes,
         "certificate_scope": "pure_nested_project_observational_liveness",
     }
 
