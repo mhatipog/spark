@@ -31,7 +31,7 @@ from tag_taxonomy_h import score_taxonomy
 
 ORIGINAL_FIVE = run_external.union_coverage
 
-def score_n(private_path):
+def score_o(private_path):
     legacy = ORIGINAL_FIVE(private_path)
     scopes = score_scope_trace(private_path)
     state = score_state_witness(private_path, scopes)
@@ -89,7 +89,7 @@ def score_n(private_path):
     legacy["o32_tag_type_census"] = tags
     return legacy
 
-run_external.union_coverage = score_n
+run_external.union_coverage = score_o
 run_external.MANIFEST = HERE / "CASES.json"
 run_external.PROTOCOL = HERE / "PROTOCOL.json"
 run_external.OUTPUT = ROOT / "artifacts" / "queryproof_prospective_o32.json"
