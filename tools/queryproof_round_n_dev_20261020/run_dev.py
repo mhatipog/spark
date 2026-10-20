@@ -123,6 +123,10 @@ def diagnostic(path):
         "changed_suffixes": scope.get("changed_optimizer_suffixes"),
         "certified_changed_suffixes_under_ORIGINAL_M_checkers":
             scope.get("certified_changed_optimizer_suffixes"),
+        "dev_v2_certified_changed_suffixes":
+            scope_v2.get("certified_changed_optimizer_suffixes"),
+        "dev_v2_suffix_reasons": scope_v2.get("optimizer_suffix_reason_counts"),
+        "dev_v2_suffix_cases": scope_v2.get("optimizer_suffix_case_counts"),
         "unknown_rules": scope.get("unknown_rules"),
         "limits": ["No first-run claim", "No raw Catalyst AST or RDD contents emitted"],
     }
