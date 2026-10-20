@@ -201,6 +201,21 @@ class GroupRepetitionTests(unittest.TestCase):
         e["old"][0]["groupingExpressions"][0].append(att(1))
         self.no(e)
 
+    def test_real_spark_attribute_metadata_shape(self):
+        e = ex()
+        for plan, count in ((e["old"], 2), (e["new"], 1)):
+            for group in plan[0]["groupingExpressions"][:count]:
+                group[0].update({"metadata": {}, "nullable": True,
+                                 "qualifier": []})
+        self.yes(e)
+
+    def test_malformed_nullable_metadata_rejected(self):
+        e = ex()
+        for plan in (e["old"], e["new"]):
+            for group in plan[0]["groupingExpressions"]:
+                group[0]["nullable"] = "maybe"
+        self.no(e)
+
     def test_untrusted_group_attribute_metadata(self):
         e = ex()
         e["old"][0]["groupingExpressions"][0][0]["nondeterministic"] = True
