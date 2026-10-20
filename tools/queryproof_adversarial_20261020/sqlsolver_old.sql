@@ -1,0 +1,3 @@
+SELECT 1 AS x FROM t
+SELECT k AS x FROM t
+SELECT k, COUNT(*) AS n FROM t GROUP BY k, k
