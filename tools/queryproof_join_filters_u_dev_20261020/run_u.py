@@ -103,6 +103,18 @@ def _attribute_identity_diagnostics(event):
                 sorted(k for k in set(ref) | set(p) if ref.get(k) != p.get(k))
                 for p in same
             ],
+            "qualifier_serialization": {
+                "filter_type": type(ref.get("qualifier")).__name__,
+                "project_types": [type(p.get("qualifier")).__name__ for p in same],
+                "filter_dict_keys": (sorted(ref["qualifier"]) if
+                    isinstance(ref.get("qualifier"), dict) else []),
+                "project_dict_keys": [sorted(p["qualifier"]) if
+                    isinstance(p.get("qualifier"), dict) else [] for p in same],
+                "filter_list_length": (len(ref["qualifier"]) if
+                    isinstance(ref.get("qualifier"), list) else None),
+                "project_list_lengths": [len(p["qualifier"]) if
+                    isinstance(p.get("qualifier"), list) else None for p in same],
+            },
         })
     return observations
 
