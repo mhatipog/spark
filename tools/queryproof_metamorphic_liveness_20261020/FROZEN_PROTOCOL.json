@@ -1,0 +1,27 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-metamorphic-projection-liveness-targeted-20261020",
+  "required_case_count": 60,
+  "freeze_date_utc": "2026-10-20",
+  "frozen_verifier_commit": "ddc10e64b69b3182eee2908d9d9ed999757e7272",
+  "prospective_generalized_liveness": true,
+  "generated_targeted": true,
+  "primary": "On 60 previously unexecuted deterministic SQL cases, enumerate every changed Catalyst event labeled ColumnPruning and count structurally exact generalized projection-liveness certificates, with a complete UNKNOWN denominator. No minimum coverage requirement; 0 is valid.",
+  "secondary": [
+    "All 60 Spark and SQLite SQL results must agree as row bags or the entire run fails",
+    "Log full named-rule counts, trace integrity and verifier Git blob",
+    "Stratify generated family, including alias/constant/NULL and negative-control shapes, without removing zero-hit families",
+    "Do not relabel model-aware generated SQL as independently authored or optimizer-wide coverage"
+  ],
+  "source_selection": "Ten predeclared SQL templates, modulus/literal constants 2,3,5,7,11,13; eight rows per statement from seed 20261020 with duplicate, NULL and negative cases. Frozen before the first runner call. Families deliberately based on earlier observed Spark rewrites, so independence pertains to unseen data and SQL instances, not to design concepts.",
+  "invalidation": [
+    "Any modification to checker or cases after first run removes prospective status",
+    "Any query error, SQLite mismatch or instrumentation failure invalidates the complete cohort",
+    "No minimum successful certificate rate"
+  ],
+  "limitations": [
+    "Design-inspired 60-case metamorphic stress, not independent third-party queries, not random production workload",
+    "Repeated template families create correlations; nominal event counts are not independent statistical samples",
+    "Logical row-bag only; no physical performance, optimizer chain correctness or order proof"
+  ]
+}
