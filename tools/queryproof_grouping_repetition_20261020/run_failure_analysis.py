@@ -1,4 +1,6 @@
-"""Replay first 48 cases as development-only diagnostics after freeze failure."""
+"""Replay first 48 cases as development-only diagnostics after freeze failure.
+Check the narrowly extended extrema aggregate grammar on previously seen rows.
+"""
 from pathlib import Path
 import sys
 
