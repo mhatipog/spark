@@ -1,0 +1,61 @@
+name: QueryProof silent in-place mutation adversarial control
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_adversarial_20261020/instrument_silent_rules.py
+      - tools/queryproof_adversarial_20261020/QueryProofSilentMutationControl.scala
+      - tools/queryproof_adversarial_20261020/check_silent_rule_audit.py
+      - .github/workflows/queryproof-silent-rule-control.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  silent-mutation-negative-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_instrumented
+            tools/queryproof_scopes_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_adversarial_20261020
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Spark 4.2
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Disposable full all-rule audit instrumentation
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          python -B tools/queryproof_adversarial_20261020/instrument_silent_rules.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Trigger two actual fastEquals no-op Catalyst rules
+        run: |
+          JARS="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "jars"))')"
+          SUBMIT="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "bin", "spark-submit"))')"
+          mkdir -p artifacts/queryproof_silent_classes
+          java -Xmx2g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*" \
+            -d artifacts/queryproof_silent_classes \
+            tools/queryproof_adversarial_20261020/QueryProofSilentMutationControl.scala
+          jar cf artifacts/queryproof-silent-control.jar -C artifacts/queryproof_silent_classes .
+          "$SUBMIT" --master 'local[1]' --conf spark.ui.enabled=false \
+            --class org.apache.spark.sql.catalyst.rules.QueryProofSilentMutationControl \
+            artifacts/queryproof-silent-control.jar \
+            2> artifacts/queryproof_silent_stderr.log
+      - name: Fail if an unrecorded in-place tag mutation escapes
+        run: |
+          python -B tools/queryproof_adversarial_20261020/check_silent_rule_audit.py \
+            artifacts/queryproof_silent_stderr.log
