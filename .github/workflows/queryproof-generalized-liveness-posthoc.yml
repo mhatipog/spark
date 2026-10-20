@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/queryproof-generalized-liveness-posthoc.yml
       - tools/queryproof_context_validator/generalized_projection_liveness_certificate.py
+      - tools/queryproof_external_postgresql_join_20261019/run_external.py
       - tools/queryproof_external_duckdb_generalized_liveness_20261020/run_generalized_old_A_posthoc.py
   workflow_dispatch:
 permissions:
