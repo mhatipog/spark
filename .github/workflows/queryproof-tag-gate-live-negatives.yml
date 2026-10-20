@@ -1,0 +1,61 @@
+name: QueryProof live JVM tag shape gate falsifiers
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_adversarial_20261020/QueryProofTagGateLiveNegatives.scala
+      - tools/queryproof_adversarial_20261020/tag_gate_live_negative_check.py
+      - .github/workflows/queryproof-tag-gate-live-negatives.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tag-shape-live-falsifiers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_instrumented
+            tools/queryproof_scopes_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_adversarial_20261020
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official Spark and live hashed tag observer
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          python -B tools/queryproof_adversarial_20261020/instrument_tag_taxonomy.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Compile four real Spark tag fixtures
+        run: |
+          JARS="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "jars"))')"
+          mkdir -p artifacts/tag_gate_negative_classes
+          java -Xmx2g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*" \
+            -d artifacts/tag_gate_negative_classes \
+            tools/queryproof_adversarial_20261020/QueryProofTagGateLiveNegatives.scala
+          jar cf artifacts/tag-gate-negative.jar -C artifacts/tag_gate_negative_classes .
+      - name: Run actual Catalyst RuleExecutor tag fixtures
+        run: |
+          SUBMIT="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "bin", "spark-submit"))')"
+          "$SUBMIT" --master 'local[1]' --conf spark.ui.enabled=false \
+            --class org.apache.spark.sql.catalyst.rules.QueryProofTagGateLiveNegatives \
+            artifacts/tag-gate-negative.jar \
+            > artifacts/tag_gate_negative_stdout.log 2> artifacts/tag_gate_negative_stderr.log
+      - name: Enforce fail-closed live observation and negative controls
+        run: |
+          python -B tools/queryproof_adversarial_20261020/tag_gate_live_negative_check.py \
+            artifacts/tag_gate_negative_stderr.log artifacts/tag_gate_negative_stdout.log
