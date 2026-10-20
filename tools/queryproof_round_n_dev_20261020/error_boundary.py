@@ -41,7 +41,10 @@ try:
     dependent_dead_error = execute(spark,
         "SELECT COUNT(*) FROM (SELECT raise_error(CAST(i AS STRING)) AS unsafe "
         "FROM VALUES (1), (2) AS t(i)) AS z")
-    safe_dead = execute(spark,\n        "SELECT COUNT(*) FROM (SELECT i + 0 AS harmless "\n        "FROM VALUES (1), (2) AS t(i)) AS z")\n    result = {
+    safe_dead = execute(spark,
+        "SELECT COUNT(*) FROM (SELECT i + 0 AS harmless "
+        "FROM VALUES (1), (2) AS t(i)) AS z")
+    result = {
         "status": "OBSERVABLE_EFFECT_BOUNDARY_DEVELOPMENT",
         "spark_version": spark.version,
         "constant_1_division": [constant_direct_division["status"],
