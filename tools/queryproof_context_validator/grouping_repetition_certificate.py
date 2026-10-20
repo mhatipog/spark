@@ -14,9 +14,11 @@ import json
 from equality_orbits import Unsupported, require
 from join_prefilter_certificate import LOGICAL, EXPR, tree_from_preorder
 from generalized_projection_liveness_certificate import (
-    _aggregate_references, _expression, _projection_outputs,
-    _projection_stack,
+    _aggregate_references, _expression, _literal_value,
+    _projection_outputs, _projection_stack,
 )
+from column_pruning_liveness_certificate import EXACT_ARITIES
+from collapse_project_certificate import _attribute, _identity
 
 GROUP_METADATA = {
     "class", "num-children", "child",
@@ -47,6 +49,81 @@ def _group_key(expression, scope):
     # Exact syntax is a stronger, simpler condition than Catalyst's
     # semanticEquals: no normalizations or name-based bindings are assumed.
     return json.dumps(expression, sort_keys=True, separators=(",", ":"))
+
+
+def _checked_aggregate_references(node):
+    """Extend the previous aggregate grammar only with extrema of direct atoms."""
+    try:
+        return _aggregate_references(node)
+    except Unsupported:
+        pass
+    # Nothing beyond the narrow Max/Min fallback justifies widening the
+    # preexisting aggregate validator or altering its frozen implementation.
+    outputs = node.get("aggregateExpressions")
+    require(isinstance(outputs, list) and any(
+        isinstance(entry, list) and any(
+            part.get("class") in (EXPR + "aggregate.Max",
+                                  EXPR + "aggregate.Min")
+            for part in entry if isinstance(part, dict))
+        for entry in outputs), "NO_EXTREMUM_REQUIRING_EXTENSION")
+    require(node.get("class") == LOGICAL + "Aggregate" and
+            node.get("num-children") == 1 and node.get("child") == 0 and
+            set(node) == GROUP_METADATA, "INVALID_EXTREMA_AGGREGATE_METADATA")
+    groups = node["groupingExpressions"]
+    require(isinstance(groups, list) and bool(outputs),
+            "BAD_EXTREMA_AGGREGATE_ITEMS")
+    arities = dict(EXACT_ARITIES, Upper=1, Lower=1, Remainder=2,
+                   **{"aggregate.Max": 1, "aggregate.Min": 1})
+
+    def scan(nodes):
+        require(isinstance(nodes, list) and bool(nodes),
+                "EMPTY_EXTREMA_AGGREGATE_EXPRESSION")
+
+        def read(pos):
+            require(pos < len(nodes), "TRUNCATED_EXTREMA_EXPRESSION")
+            expr = nodes[pos]
+            require(isinstance(expr, dict) and
+                    isinstance(expr.get("class"), str) and
+                    expr["class"].startswith(EXPR),
+                    "UNKNOWN_EXTREMA_EXPRESSION_NAMESPACE")
+            op = expr["class"][len(EXPR):]
+            require(op in arities and
+                    expr.get("num-children") == arities[op],
+                    "UNKNOWN_EXTREMA_EXPRESSION")
+            if op == "AttributeReference":
+                key, dtype, _ = _attribute(expr)
+                return pos + 1, {(key, dtype)}
+            if op == "Literal":
+                _literal_value(expr)
+                return pos + 1, set()
+            if op in ("aggregate.Max", "aggregate.Min"):
+                require(pos + 1 < len(nodes) and
+                        nodes[pos + 1].get("class") in
+                        (EXPR + "AttributeReference", EXPR + "Literal"),
+                        "EXTREMUM_NONATOMIC_INPUT")
+            if op == "aggregate.AggregateExpression":
+                require(not any(k in expr for k in
+                                ("filter", "filterExpression", "filterOption")),
+                        "FILTERED_AGGREGATE_NOT_ADMITTED")
+            if op == "Alias":
+                _identity(expr)
+                require(expr.get("child") == 0 and
+                        isinstance(expr.get("name"), str),
+                        "INVALID_EXTREMA_ALIAS")
+            cursor, refs = pos + 1, set()
+            for _ in range(arities[op]):
+                cursor, subrefs = read(cursor)
+                refs.update(subrefs)
+            return cursor, refs
+
+        end, refs = read(0)
+        require(end == len(nodes), "TRAILING_EXTREMA_EXPRESSION")
+        return refs
+
+    refs = set()
+    for expression in [*groups, *outputs]:
+        refs.update(scan(expression))
+    return refs
 
 
 def _certify(event):
@@ -86,8 +163,8 @@ def _certify(event):
 
     # Both plans have identical resolved outputs and identical relational
     # inputs; only repeated grouping keys may disappear.
-    references = (_aggregate_references(before) |
-                  _aggregate_references(after))
+    references = (_checked_aggregate_references(before) |
+                  _checked_aggregate_references(after))
     stack, base = _projection_stack(old_children[0])
     scope = _projection_outputs(stack, base)
     for key, dtype in references:
