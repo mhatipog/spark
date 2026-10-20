@@ -11,13 +11,16 @@ import sys
 
 
 def _same_provenance_adjacent(left, right):
+    # RuleExecutor executes optimization batches sequentially: when the same
+    # executor emits consecutive transitions with an exactly shared plan,
+    # semantic equivalence composes even if the batch name changes.
+    # Crossing executors remains unproved without hierarchical provenance.
     return (left["new"] == right["old"] and
-            left.get("executor") == right.get("executor") and
-            left.get("batch") == right.get("batch"))
+            left.get("executor") == right.get("executor"))
 
 
 def summarize_event_chain(events):
-    """Same executor+batch, consecutive plan snapshots; no raw AST output."""
+    """Same executor, exact chronological plan continuity; no raw AST output."""
     by_case = defaultdict(list)
     for event in events:
         by_case[event["case"]].append(event)
@@ -103,7 +106,8 @@ def summarize_event_chain(events):
             c["whole_recorded_trace_certified"] for c in case_summaries),
         "per_case": case_summaries,
         "limits": [
-            "Consecutive exact ASTs must share Catalyst executor and optimization batch",
+            "Consecutive exact ASTs and the same Catalyst executor are required",
+            "Sequential batches may connect only with no intervening event and exact plans",
             "Every intervening transition must be certified; UNKNOWN breaks chain",
             "Only recorded local events, not unobserved optimizer/instrumentation steps",
             "Analyzer and Optimizer phase wrappers are currently unproved",
