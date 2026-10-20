@@ -128,6 +128,9 @@ def summarize_scope_stream(stream):
     executors = [s for s in completed if s["kind"] == "EXECUTOR"]
     batches = defaultdict(lambda: Counter())
     by_reason = Counter()
+    unknown_rules = Counter()
+    removed_shapes = Counter()
+    added_shapes = Counter()
     by_case = defaultdict(lambda: Counter())
     for scope in completed:
         by_reason[(scope["kind"], scope["reason"])] += 1
@@ -135,6 +138,18 @@ def summarize_scope_stream(stream):
         if scope["certified"] and scope["changed"]:
             by_case[scope["case"]][scope["kind"] + "_nontrivial_proved"] += 1
         if scope["kind"] == "BATCH":
+            for step in scope["direct_steps"]:
+                if not step["certified"]:
+                    key_rule = (scope["executor"], scope["batch"], step["rule"])
+                    unknown_rules[key_rule] += 1
+                    before = Counter(n.get("class", "").split(".")[-1]
+                                     for n in step["old"] if isinstance(n, dict))
+                    after = Counter(n.get("class", "").split(".")[-1]
+                                    for n in step["new"] if isinstance(n, dict))
+                    for name, count in (before - after).items():
+                        removed_shapes[(scope["batch"], step["rule"], name)] += count
+                    for name, count in (after - before).items():
+                        added_shapes[(scope["batch"], step["rule"], name)] += count
             key = (scope["executor"], scope["batch"])
             batches[key]["total"] += 1
             batches[key]["changed"] += scope["changed"]
@@ -158,6 +173,15 @@ def summarize_scope_stream(stream):
         "exact_identity_executors": sum(not s["changed"] for s in executors),
         "by_reason": {kind + ":" + reason: count
                       for (kind, reason), count in sorted(by_reason.items())},
+        "unknown_rules": [
+            {"executor": key[0], "batch": key[1], "rule": key[2], "count": count}
+            for key, count in sorted(unknown_rules.items())],
+        "unknown_rule_shape_changes": {
+            direction: [
+                {"batch": key[0], "rule": key[1], "node_class": key[2],
+                 "count": count} for key, count in sorted(counter.items())]
+            for direction, counter in (("removed", removed_shapes),
+                                       ("added", added_shapes))},
         "by_batch": [{
             "executor": key[0], "batch": key[1], **dict(value)
         } for key, value in sorted(batches.items())],
