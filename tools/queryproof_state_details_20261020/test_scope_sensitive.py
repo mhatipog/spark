@@ -49,6 +49,7 @@ def audit(lines):
     return audit_details(lines, {
         "scope_markers": 6,
         "recorded_rule_events": 1,
+        "post_finish_analysis_optimizer_suffixes": 1,
         "optimizer_suffix_case_counts": [{
             "case": "H01", "changed": True, "proved": True}],
     })
