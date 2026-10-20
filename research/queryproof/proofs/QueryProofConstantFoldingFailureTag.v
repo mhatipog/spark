@@ -97,10 +97,12 @@ Theorem folding_step_preserves_denotation :
   forall s r, meaning e (fold_step e s) r = meaning e s r.
 Proof.
   intros e Hsound [view tag attempts] r.
+  unfold fold_step.
   destruct tag; simpl; [reflexivity|].
   destruct view; simpl; [|reflexivity].
   destruct (compile_eval e) as [v|] eqn:Hcompile; simpl.
-  - apply Hsound; exact Hcompile.
+  - unfold meaning; simpl.
+    apply (Hsound v Hcompile r).
   - reflexivity.
 Qed.
 
