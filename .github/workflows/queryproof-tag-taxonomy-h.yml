@@ -46,6 +46,15 @@ jobs:
           python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
           python -B tools/queryproof_adversarial_20261020/instrument_tag_taxonomy.py
           bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Run fail-closed tag allowlist adversarial falsifiers
+        run: |
+          python -B -c '
+          import sys
+          sys.path.insert(0,"tools/queryproof_adversarial_20261020")
+          from tag_taxonomy_h import test_gate_falsifiers
+          assert test_gate_falsifiers()
+          print("QUERYPROOF_DATASET_ID_ALLOWLIST_NEGATIVE_CONTROLS=PASS")
+          '
       - name: Replay frozen H01-H48 for tag identity and type census only
         run: python -u tools/queryproof_adversarial_20261020/tag_taxonomy_h.py
       - name: Check complete trace and keep only sanitized taxonomy
@@ -68,6 +77,11 @@ jobs:
               raise SystemExit("ROW_ORACLE_MISMATCH")
           if audit["status"]!="COMPLETE_HASHED_TAG_CENSUS":
               raise SystemExit("INCOMPLETE_TAG_TAXONOMY")
+          if audit["candidate_cases_passing_tag_shape_necessary_gate"]!=30:
+              raise SystemExit("UNEXPECTED_DATASET_ID_SHAPE_REJECTION")
+          if audit["candidate_cases_rejected_or_missing_tag_shape"]!=0:
+              raise SystemExit("TAG_SHAPE_BLOCKED_CANDIDATE")
+
           if audit["rule_records"]!=scopes["recorded_rule_events"]:
               raise SystemExit("EFFECTIVE_RULE_DENOMINATOR")
           '
