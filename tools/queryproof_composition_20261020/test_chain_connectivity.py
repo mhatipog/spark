@@ -50,13 +50,14 @@ class ChainConnectivityTests(unittest.TestCase):
         r = summarize_event_chain([a, b])
         self.assertEqual(r["multi_edge_segments"], 0)
 
-    def test_equal_snapshot_different_batch_is_not_a_chain(self):
+    def test_equal_snapshot_same_executor_sequential_batches_compose(self):
         a = transition("q1", 0, 1)
         b = transition("q1", 1, 2)
         a.update({"executor": "Optimizer", "batch": "A"})
         b.update({"executor": "Optimizer", "batch": "B"})
         r = summarize_event_chain([a, b])
-        self.assertEqual(r["multi_edge_segments"], 0)
+        self.assertEqual(r["multi_edge_segments"], 1)
+        self.assertEqual(r["adjacent_certified_pairs"], 1)
 
     def test_same_executor_and_batch_allows_exact_chain(self):
         a = transition("q1", 0, 1)
@@ -118,6 +119,7 @@ class ChainConnectivityTests(unittest.TestCase):
         self.assertEqual(
             r["exact_snapshot_certified_boundary_types"][0]["scope_class"],
             "same_executor_different_batch")
+        self.assertEqual(r["multi_edge_segments"], 1)
 
     def test_no_events_is_not_a_proof(self):
         r = summarize_event_chain([])
