@@ -646,7 +646,9 @@ def parent():
             grouping_repetition["verifier_provenance"] = {
                 "frozen_verifier_git_blob_sha": expected,
                 "current_verifier_git_blob_sha": current,
-                "matches_frozen_checker": matches,
+                "frozen_scorer_git_blob_sha": expected_scorer,
+                "current_scorer_git_blob_sha": current_scorer,
+                "matches_frozen_checker_and_scorer": matches,
             }
         if generalized is not None and protocol.get(
                 "prospective_generalized_liveness"):
@@ -673,9 +675,7 @@ def parent():
             generalized["verifier_provenance"] = {
                 "frozen_verifier_git_blob_sha": expected,
                 "current_verifier_git_blob_sha": current,
-                "frozen_scorer_git_blob_sha": expected_scorer,
-                "current_scorer_git_blob_sha": current_scorer,
-                "matches_frozen_checker_and_scorer": matches,
+                "matches_frozen_checker": matches,
             }
         if protocol.get("prospective_aggregate_identity"):
             pin_path = MANIFEST.parent / "VERIFIER_PIN.json"
