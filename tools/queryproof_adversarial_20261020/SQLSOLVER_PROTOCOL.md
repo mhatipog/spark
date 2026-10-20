@@ -15,8 +15,8 @@ files are committed, before SQLSolver is first run in our CI.
 - Table: t(k INT PRIMARY KEY, v INT). S1 has a counterexample whenever t
   contains at least one row. S2/S3 follow direct SQL semantics. A primary key
   constraint simplifies the schema; no result depends on uniqueness.
-- SQLSolver clone: official public SJTU-IPADS/SQLSolver main HEAD at CI run,
-  printed in logs. Java 17, Gradle 7.3.3 and its bundled Z3 libraries.
+- SQLSolver clone: official public SJTU-IPADS/SQLSolver commit
+  dcc2a91d8971a4c4d30b055f99d7d8428a1b754b, pinned before first run. Java 17, Gradle 7.3.3 and its bundled Z3 libraries.
 - SQLSolver outcomes are recorded as EQ/NEQ/UNKNOWN/TIMEOUT without posthoc
   query changes. Wrong definite outcomes require further investigation.
 - This comparison tests SQL-level claims only. It does NOT translate arbitrary
