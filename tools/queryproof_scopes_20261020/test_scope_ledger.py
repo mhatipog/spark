@@ -19,7 +19,8 @@ def changed(before, after, yes=True, case="H01", executor="Optimizer",
             batch="Aggregate"):
     return {
         "type": "event", "case": case, "executor": executor, "batch": batch,
-        "old": [{"step": before}], "new": [{"step": after}], "certified": yes,
+        "old": [{"step": before}], "new": [{"step": after}],
+        "rule": "MockRule", "certified": yes,
     }
 
 
