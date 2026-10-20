@@ -4,7 +4,9 @@ on:
     branches:
       - research/queryproof-adversarial-tag-frame-20261020
     paths:
-      - tools/queryproof_adversarial_20261020/**
+      - tools/queryproof_adversarial_20261020/QueryProofTagFrameCollision.scala
+      - tools/queryproof_adversarial_20261020/QueryProofNativeValidationControl.scala
+      - tools/queryproof_adversarial_20261020/compare_native_controls.py
       - .github/workflows/queryproof-adversarial-tag-frame.yml
   workflow_dispatch:
 permissions:
