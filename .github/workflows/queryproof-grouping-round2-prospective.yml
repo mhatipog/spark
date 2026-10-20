@@ -1,0 +1,75 @@
+name: QueryProof fresh 48-case grouping key prospective replay
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_grouping_repetition_round2_20261020/**
+      - .github/workflows/queryproof-grouping-round2-prospective.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  genuine-fresh-cohort:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official PySpark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Build disposable Spark Catalyst overlay
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: First ever execution of frozen H01-H48 SQL cases
+        run: python -u tools/queryproof_grouping_repetition_round2_20261020/run_fresh.py
+      - name: Require full row oracle and frozen proof/scorer provenance
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          f = Path("artifacts/queryproof_grouping_repetition_round2_20261020.json")
+          if not f.exists():
+              raise SystemExit("Missing fresh-cohort scoreboard")
+          r = json.loads(f.read_text())
+          p = r["grouping_repetition"]
+          print("FRESH_GROUPING_PROOF", json.dumps(p, sort_keys=True))
+          print("FRESH_TOTAL_EVENTS", r["trace"]["trace_events"])
+          print("FRESH_CASES", r["executed_cases"])
+          print("FRESH_RULE_COUNTS", r["union_coverage"]["by_rule"])
+          print("FRESH_MISMATCHES", r["row_oracle_mismatch_cases"])
+          print("FRESH_ERRORS", r["error_cases"])
+          if p["status"] != "PROSPECTIVE_FROZEN_TARGETED_GENERATED_REPETITION":
+              raise SystemExit("Frozen checker/scorer identity changed")
+          if not p["verifier_provenance"]["matches_frozen_checker_and_scorer"]:
+              raise SystemExit("Checker or scorer blob no longer matches the freeze")
+          if r["worker_exit_code"] != 0 or r["executed_cases"] != 48:
+              raise SystemExit("Incomplete fresh-case replay")
+          if r["missing_cases"] or r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("Spark and SQLite row bags differ or case is incomplete")
+          if r["trace"]["trace_events"] <= 0:
+              raise SystemExit("No real changed Catalyst events")
+          if r["trace"]["decode_failures"] or r["trace"]["instrumentation_failures"]:
+              raise SystemExit("Corrupt or missing actual Spark trace")
+          '
+      - name: Save independent-instance sanitized evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-fresh-grouping-48-frozen
+          path: artifacts/queryproof_grouping_repetition_round2_20261020.json
+          if-no-files-found: warn
+          retention-days: 14
