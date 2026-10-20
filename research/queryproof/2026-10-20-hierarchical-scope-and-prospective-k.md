@@ -143,13 +143,53 @@ family-correlated generated tests**, not as a 62.5% general-purpose coverage
 estimate. Do not modify pinned H or K checkers or retroactively promote any
 repaired outcome to prospective status.
 
+
+## Post-run soundness audit: Catalyst JSON is a lossy observation
+
+Inspection of Spark 4.2.0's actual
+`sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/trees/TreeNode.scala`
+revealed an important limitation in the evidence envelope:
+
+- `TreeNode` stores mutable `_tags` separately from constructor product
+  fields; `toJSON` collects class, child count, and `jsonFields`, not tags.
+- `parseToJson` intentionally converts **every** `Metadata` value to
+  `Metadata.empty.jsonValue`, regardless of its original contents.
+- Certain other `Seq` and `Map` fields become `JNull`; not every
+  semantically relevant product field is necessarily faithfully represented.
+
+Consequently, equal JSON strings do **not** establish equal complete Catalyst
+state. The 30/48 H and 30/48 K optimizer-suffix findings are sound only as
+**conditional, JSON-observable-fragment certificates**: the underlying local
+pure-rowbag lemmas and the RuleExecutor's serial fold must be applicable,
+and omitted tags/metadata/opaque properties must not affect the considered
+relation. The SQL-reference matches are empirical observations and do not
+supply that missing universal premise. This source-level caveat was
+discovered **after** both locked runs; it is documented, not patched into
+their frozen results or silently omitted.
+
+Source evidence:
+https://github.com/mhatipog/spark/blob/research/queryproof-generalized-liveness-20261020/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/trees/TreeNode.scala
+
+For rigorous general-Catalyst claims the next version must explicitly:
+
+1. Record stronger JVM-side object/state continuity witnesses in batch and
+   executor boundaries, not rely on equality of serializations alone.
+2. Fail closed when any accepted plan or nested expression carries mutable
+   tags, nonempty Metadata, or an unqualified opaque field absent from JSON.
+3. Stress a controlled adversarial pair whose Metadata differs but whose
+   `toJSON` is identical; make the new gate reject that false identity.
+4. Rerun H/K **retrospectively**, then freeze a new verifier and execute a
+   genuinely fresh L cohort to establish new prospective coverage.
+
+This is a substantive limitation to solve, not evidence of a Spark bug.
+
 ## Highest-leverage next research
 
 1. Preserve the first-run K replication, its 18 UNKNOWN suffixes and all
    pin hashes. The fact that H and K share grammar families limits the
    generalization despite matched 30/48 suffix results.
-2. Repair the actual 18 suffix blockers only on a new **versioned** checker,
-   beginning with strict pure projection composition/identity for the
+2. Once the JSON state-witness gap is closed, repair the actual 18 suffix
+   blockers only on a new **versioned** checker, beginning with strict pure projection composition/identity for the
    `CollapseProject` cases. Six `ColumnPruning` MAX-type cases and
    six filter-inference events require independent treatment. Create a fresh
    L corpus after any checker changes; never rescore K as new prospective.
