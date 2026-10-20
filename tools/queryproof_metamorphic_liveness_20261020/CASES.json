@@ -1,0 +1,4114 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-metamorphic-projection-liveness-targeted-20261020",
+  "source": {
+    "repository": "QueryProof deterministic synthetic grammar (not an independent third-party SQL source)",
+    "design": "Preselected ten SQL shape families, six modulus/literal settings, eight-row bags per case, all selected and frozen before this checker processes any of the 60 generated statements. A10-derived families deliberately enrich actual ColumnPruning coverage, with comparator/noise families. No case selection based on CI results.",
+    "seed": 20261020,
+    "prng": "unsigned 32-bit LCG state=(1664525*state+1013904223) modulo 2^32; next signed small integer=(state modulo 61)-30",
+    "templates": [
+      "A10_REPEATED_ALIAS",
+      "SINGLE_ALIAS",
+      "REPEATED_COUNT",
+      "LIVE_PROJECTION",
+      "CONSTANT_GROUP",
+      "UPPER_NULL",
+      "LOWER_NULL",
+      "LENGTH_NULL",
+      "GROUPED_SUM",
+      "GROUPED_SUM_WITH_KEY"
+    ],
+    "denominators": [
+      2,
+      3,
+      5,
+      7,
+      11,
+      13
+    ],
+    "methodological_limit": "Targeted, design-inspired and repeated-family stress test, not independent authorship and not representative random production SQL."
+  },
+  "tables": {},
+  "cases": [
+    {
+      "id": "T01",
+      "sql": "SELECT i % 2 AS k, SUM(i) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/a10_repeated_alias",
+      "source_query_ordinal": 1,
+      "family": "A10_REPEATED_ALIAS",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -16,
+              -4,
+              29
+            ],
+            [
+              -16,
+              -4,
+              29
+            ],
+            [
+              null,
+              -27,
+              -26
+            ],
+            [
+              2,
+              null,
+              15
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              20,
+              -27,
+              19
+            ],
+            [
+              -19,
+              -7,
+              16
+            ],
+            [
+              -1,
+              23,
+              13
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T02",
+      "sql": "SELECT i % 3 AS k, SUM(i) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/a10_repeated_alias",
+      "source_query_ordinal": 2,
+      "family": "A10_REPEATED_ALIAS",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -16,
+              12,
+              12
+            ],
+            [
+              -16,
+              12,
+              12
+            ],
+            [
+              null,
+              -23,
+              17
+            ],
+            [
+              5,
+              null,
+              15
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              4,
+              -12,
+              17
+            ],
+            [
+              -2,
+              -22,
+              -22
+            ],
+            [
+              -18,
+              -11,
+              30
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T03",
+      "sql": "SELECT i % 5 AS k, SUM(i) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/a10_repeated_alias",
+      "source_query_ordinal": 3,
+      "family": "A10_REPEATED_ALIAS",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              11,
+              16,
+              5
+            ],
+            [
+              11,
+              16,
+              5
+            ],
+            [
+              null,
+              -15,
+              -6
+            ],
+            [
+              17,
+              null,
+              25
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              14,
+              -26,
+              6
+            ],
+            [
+              -23,
+              -15,
+              -1
+            ],
+            [
+              -27,
+              -9,
+              8
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T04",
+      "sql": "SELECT i % 7 AS k, SUM(i) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/a10_repeated_alias",
+      "source_query_ordinal": 4,
+      "family": "A10_REPEATED_ALIAS",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -17,
+              17,
+              2
+            ],
+            [
+              -17,
+              17,
+              2
+            ],
+            [
+              null,
+              3,
+              -15
+            ],
+            [
+              -15,
+              null,
+              -7
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -13,
+              20,
+              23
+            ],
+            [
+              30,
+              -7,
+              21
+            ],
+            [
+              9,
+              -19,
+              30
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T05",
+      "sql": "SELECT i % 11 AS k, SUM(i) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/a10_repeated_alias",
+      "source_query_ordinal": 5,
+      "family": "A10_REPEATED_ALIAS",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -1,
+              -24,
+              -18
+            ],
+            [
+              -1,
+              -24,
+              -18
+            ],
+            [
+              null,
+              7,
+              -2
+            ],
+            [
+              -16,
+              null,
+              -15
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              16,
+              -1,
+              -27
+            ],
+            [
+              -10,
+              25,
+              11
+            ],
+            [
+              23,
+              15,
+              -4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T06",
+      "sql": "SELECT i % 13 AS k, SUM(i) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/a10_repeated_alias",
+      "source_query_ordinal": 6,
+      "family": "A10_REPEATED_ALIAS",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -20,
+              29,
+              -21
+            ],
+            [
+              -20,
+              29,
+              -21
+            ],
+            [
+              null,
+              -27,
+              -16
+            ],
+            [
+              -15,
+              null,
+              -22
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              6,
+              26,
+              -25
+            ],
+            [
+              22,
+              -29,
+              -24
+            ],
+            [
+              27,
+              18,
+              -25
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T07",
+      "sql": "SELECT i % 2 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/single_alias",
+      "source_query_ordinal": 1,
+      "family": "SINGLE_ALIAS",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1,
+              -5,
+              -11
+            ],
+            [
+              1,
+              -5,
+              -11
+            ],
+            [
+              null,
+              -3,
+              -30
+            ],
+            [
+              -7,
+              null,
+              28
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -3,
+              -19,
+              -17
+            ],
+            [
+              -11,
+              -12,
+              -14
+            ],
+            [
+              10,
+              0,
+              7
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T08",
+      "sql": "SELECT i % 3 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/single_alias",
+      "source_query_ordinal": 2,
+      "family": "SINGLE_ALIAS",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              5,
+              14,
+              24
+            ],
+            [
+              5,
+              14,
+              24
+            ],
+            [
+              null,
+              20,
+              9
+            ],
+            [
+              -18,
+              null,
+              10
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -13,
+              -4,
+              22
+            ],
+            [
+              -2,
+              14,
+              -14
+            ],
+            [
+              19,
+              -16,
+              -29
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T09",
+      "sql": "SELECT i % 5 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/single_alias",
+      "source_query_ordinal": 3,
+      "family": "SINGLE_ALIAS",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -23,
+              6,
+              -30
+            ],
+            [
+              -23,
+              6,
+              -30
+            ],
+            [
+              null,
+              13,
+              24
+            ],
+            [
+              8,
+              null,
+              30
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              23,
+              6,
+              -24
+            ],
+            [
+              2,
+              30,
+              10
+            ],
+            [
+              -20,
+              -22,
+              -19
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T10",
+      "sql": "SELECT i % 7 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/single_alias",
+      "source_query_ordinal": 4,
+      "family": "SINGLE_ALIAS",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -9,
+              4,
+              11
+            ],
+            [
+              -9,
+              4,
+              11
+            ],
+            [
+              null,
+              -1,
+              2
+            ],
+            [
+              6,
+              null,
+              -18
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              16,
+              -12,
+              19
+            ],
+            [
+              -20,
+              17,
+              13
+            ],
+            [
+              -30,
+              -16,
+              -27
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T11",
+      "sql": "SELECT i % 11 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/single_alias",
+      "source_query_ordinal": 5,
+      "family": "SINGLE_ALIAS",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              18,
+              24,
+              -13
+            ],
+            [
+              18,
+              24,
+              -13
+            ],
+            [
+              null,
+              14,
+              1
+            ],
+            [
+              5,
+              null,
+              -28
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              15,
+              -12,
+              25
+            ],
+            [
+              -26,
+              -30,
+              -4
+            ],
+            [
+              -23,
+              19,
+              12
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T12",
+      "sql": "SELECT i % 13 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/single_alias",
+      "source_query_ordinal": 6,
+      "family": "SINGLE_ALIAS",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              18,
+              -21,
+              1
+            ],
+            [
+              18,
+              -21,
+              1
+            ],
+            [
+              null,
+              -17,
+              -6
+            ],
+            [
+              22,
+              null,
+              30
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              30,
+              14,
+              7
+            ],
+            [
+              29,
+              -27,
+              -20
+            ],
+            [
+              -7,
+              -2,
+              29
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T13",
+      "sql": "SELECT i % 2 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/repeated_count",
+      "source_query_ordinal": 1,
+      "family": "REPEATED_COUNT",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -4,
+              -8,
+              25
+            ],
+            [
+              -4,
+              -8,
+              25
+            ],
+            [
+              null,
+              2,
+              -2
+            ],
+            [
+              17,
+              null,
+              13
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -11,
+              -14,
+              15
+            ],
+            [
+              27,
+              30,
+              5
+            ],
+            [
+              2,
+              7,
+              -10
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T14",
+      "sql": "SELECT i % 3 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/repeated_count",
+      "source_query_ordinal": 2,
+      "family": "REPEATED_COUNT",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -12,
+              -19,
+              -30
+            ],
+            [
+              -12,
+              -19,
+              -30
+            ],
+            [
+              null,
+              23,
+              28
+            ],
+            [
+              19,
+              null,
+              -28
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              0,
+              -5,
+              26
+            ],
+            [
+              17,
+              26,
+              19
+            ],
+            [
+              20,
+              -5,
+              -9
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T15",
+      "sql": "SELECT i % 5 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/repeated_count",
+      "source_query_ordinal": 3,
+      "family": "REPEATED_COUNT",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -13,
+              -16,
+              0
+            ],
+            [
+              -13,
+              -16,
+              0
+            ],
+            [
+              null,
+              10,
+              6
+            ],
+            [
+              28,
+              null,
+              -2
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -9,
+              17,
+              21
+            ],
+            [
+              -28,
+              -23,
+              -18
+            ],
+            [
+              -19,
+              -14,
+              16
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T16",
+      "sql": "SELECT i % 7 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/repeated_count",
+      "source_query_ordinal": 4,
+      "family": "REPEATED_COUNT",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              23,
+              -8,
+              12
+            ],
+            [
+              23,
+              -8,
+              12
+            ],
+            [
+              null,
+              10,
+              -8
+            ],
+            [
+              -30,
+              null,
+              -25
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -12,
+              -11,
+              1
+            ],
+            [
+              -11,
+              -9,
+              -29
+            ],
+            [
+              -11,
+              -18,
+              -29
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T17",
+      "sql": "SELECT i % 11 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/repeated_count",
+      "source_query_ordinal": 5,
+      "family": "REPEATED_COUNT",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              15,
+              22,
+              3
+            ],
+            [
+              15,
+              22,
+              3
+            ],
+            [
+              null,
+              -16,
+              -17
+            ],
+            [
+              18,
+              null,
+              -9
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -13,
+              -5,
+              -1
+            ],
+            [
+              21,
+              -23,
+              -29
+            ],
+            [
+              -20,
+              5,
+              -17
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T18",
+      "sql": "SELECT i % 13 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/repeated_count",
+      "source_query_ordinal": 6,
+      "family": "REPEATED_COUNT",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              6,
+              7,
+              26
+            ],
+            [
+              6,
+              7,
+              26
+            ],
+            [
+              null,
+              4,
+              26
+            ],
+            [
+              -14,
+              null,
+              18
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -16,
+              4,
+              -18
+            ],
+            [
+              -24,
+              25,
+              0
+            ],
+            [
+              23,
+              28,
+              7
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T19",
+      "sql": "SELECT i, i + 2 FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/live_projection",
+      "source_query_ordinal": 1,
+      "family": "LIVE_PROJECTION",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              11,
+              3,
+              -25
+            ],
+            [
+              11,
+              3,
+              -25
+            ],
+            [
+              null,
+              27,
+              17
+            ],
+            [
+              -29,
+              null,
+              2
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -27,
+              -25,
+              -23
+            ],
+            [
+              18,
+              -7,
+              14
+            ],
+            [
+              -2,
+              29,
+              3
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T20",
+      "sql": "SELECT i, i + 3 FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/live_projection",
+      "source_query_ordinal": 2,
+      "family": "LIVE_PROJECTION",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              28,
+              10,
+              17
+            ],
+            [
+              28,
+              10,
+              17
+            ],
+            [
+              null,
+              -30,
+              -7
+            ],
+            [
+              -5,
+              null,
+              2
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -12,
+              18,
+              26
+            ],
+            [
+              3,
+              9,
+              -17
+            ],
+            [
+              7,
+              4,
+              -22
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T21",
+      "sql": "SELECT i, i + 5 FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/live_projection",
+      "source_query_ordinal": 3,
+      "family": "LIVE_PROJECTION",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -16,
+              8,
+              -9
+            ],
+            [
+              -16,
+              8,
+              -9
+            ],
+            [
+              null,
+              29,
+              -16
+            ],
+            [
+              9,
+              null,
+              16
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -25,
+              27,
+              -26
+            ],
+            [
+              -16,
+              13,
+              12
+            ],
+            [
+              -13,
+              8,
+              -20
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T22",
+      "sql": "SELECT i, i + 7 FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/live_projection",
+      "source_query_ordinal": 4,
+      "family": "LIVE_PROJECTION",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              14,
+              6,
+              -18
+            ],
+            [
+              14,
+              6,
+              -18
+            ],
+            [
+              null,
+              30,
+              16
+            ],
+            [
+              -10,
+              null,
+              2
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -3,
+              20,
+              6
+            ],
+            [
+              8,
+              -13,
+              6
+            ],
+            [
+              11,
+              14,
+              -6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T23",
+      "sql": "SELECT i, i + 11 FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/live_projection",
+      "source_query_ordinal": 5,
+      "family": "LIVE_PROJECTION",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              21,
+              9,
+              -24
+            ],
+            [
+              21,
+              9,
+              -24
+            ],
+            [
+              null,
+              -20,
+              12
+            ],
+            [
+              -2,
+              null,
+              13
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              0,
+              4,
+              20
+            ],
+            [
+              -17,
+              5,
+              -14
+            ],
+            [
+              11,
+              15,
+              29
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T24",
+      "sql": "SELECT i, i + 13 FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/live_projection",
+      "source_query_ordinal": 6,
+      "family": "LIVE_PROJECTION",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              28,
+              -15,
+              -29
+            ],
+            [
+              28,
+              -15,
+              -29
+            ],
+            [
+              null,
+              -25,
+              -14
+            ],
+            [
+              25,
+              null,
+              23
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              26,
+              18,
+              -15
+            ],
+            [
+              0,
+              -25,
+              -14
+            ],
+            [
+              -19,
+              25,
+              6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T25",
+      "sql": "SELECT 2 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 2;",
+      "source_file": "generated/queryproof/constant_group",
+      "source_query_ordinal": 1,
+      "family": "CONSTANT_GROUP",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -14,
+              -21,
+              30
+            ],
+            [
+              -14,
+              -21,
+              30
+            ],
+            [
+              null,
+              27,
+              5
+            ],
+            [
+              -1,
+              null,
+              17
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              28,
+              14,
+              30
+            ],
+            [
+              0,
+              -30,
+              -9
+            ],
+            [
+              -27,
+              -18,
+              4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T26",
+      "sql": "SELECT 3 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 2;",
+      "source_file": "generated/queryproof/constant_group",
+      "source_query_ordinal": 2,
+      "family": "CONSTANT_GROUP",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -20,
+              23,
+              14
+            ],
+            [
+              -20,
+              23,
+              14
+            ],
+            [
+              null,
+              5,
+              13
+            ],
+            [
+              -17,
+              null,
+              -4
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              10,
+              -14,
+              29
+            ],
+            [
+              15,
+              10,
+              -20
+            ],
+            [
+              3,
+              -3,
+              -3
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T27",
+      "sql": "SELECT 5 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 2;",
+      "source_file": "generated/queryproof/constant_group",
+      "source_query_ordinal": 3,
+      "family": "CONSTANT_GROUP",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              4,
+              14,
+              -3
+            ],
+            [
+              4,
+              14,
+              -3
+            ],
+            [
+              null,
+              -26,
+              21
+            ],
+            [
+              16,
+              null,
+              -14
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              0,
+              5,
+              -21
+            ],
+            [
+              18,
+              3,
+              -26
+            ],
+            [
+              2,
+              13,
+              27
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T28",
+      "sql": "SELECT 7 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 2;",
+      "source_file": "generated/queryproof/constant_group",
+      "source_query_ordinal": 4,
+      "family": "CONSTANT_GROUP",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              29,
+              -6,
+              15
+            ],
+            [
+              29,
+              -6,
+              15
+            ],
+            [
+              null,
+              30,
+              24
+            ],
+            [
+              -9,
+              null,
+              18
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -21,
+              -26,
+              20
+            ],
+            [
+              -23,
+              3,
+              6
+            ],
+            [
+              27,
+              -7,
+              -10
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T29",
+      "sql": "SELECT 11 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 2;",
+      "source_file": "generated/queryproof/constant_group",
+      "source_query_ordinal": 5,
+      "family": "CONSTANT_GROUP",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -27,
+              28,
+              26
+            ],
+            [
+              -27,
+              28,
+              26
+            ],
+            [
+              null,
+              -15,
+              -4
+            ],
+            [
+              -12,
+              null,
+              -13
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              29,
+              9,
+              28
+            ],
+            [
+              6,
+              -8,
+              14
+            ],
+            [
+              9,
+              14,
+              12
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T30",
+      "sql": "SELECT 13 AS k, SUM(i) FROM integers GROUP BY k ORDER BY 2;",
+      "source_file": "generated/queryproof/constant_group",
+      "source_query_ordinal": 6,
+      "family": "CONSTANT_GROUP",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -3,
+              -20,
+              -16
+            ],
+            [
+              -3,
+              -20,
+              -16
+            ],
+            [
+              null,
+              11,
+              -22
+            ],
+            [
+              -11,
+              null,
+              2
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -11,
+              -18,
+              -23
+            ],
+            [
+              24,
+              4,
+              -22
+            ],
+            [
+              29,
+              16,
+              -21
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T31",
+      "sql": "SELECT UPPER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/upper_null",
+      "source_query_ordinal": 1,
+      "family": "UPPER_NULL",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -1,
+              9,
+              -10
+            ],
+            [
+              -1,
+              9,
+              -10
+            ],
+            [
+              null,
+              -9,
+              20
+            ],
+            [
+              -4,
+              null,
+              9
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              10,
+              8,
+              -21
+            ],
+            [
+              -12,
+              -28,
+              -20
+            ],
+            [
+              17,
+              14,
+              -22
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T32",
+      "sql": "SELECT UPPER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/upper_null",
+      "source_query_ordinal": 2,
+      "family": "UPPER_NULL",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              28,
+              -9,
+              -16
+            ],
+            [
+              28,
+              -9,
+              -16
+            ],
+            [
+              null,
+              1,
+              -28
+            ],
+            [
+              -2,
+              null,
+              23
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              24,
+              -24,
+              -25
+            ],
+            [
+              -13,
+              -18,
+              11
+            ],
+            [
+              24,
+              -11,
+              2
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T33",
+      "sql": "SELECT UPPER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/upper_null",
+      "source_query_ordinal": 3,
+      "family": "UPPER_NULL",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              22,
+              3,
+              14
+            ],
+            [
+              22,
+              3,
+              14
+            ],
+            [
+              null,
+              -26,
+              20
+            ],
+            [
+              -13,
+              null,
+              -21
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -2,
+              7,
+              7
+            ],
+            [
+              23,
+              -30,
+              -1
+            ],
+            [
+              -10,
+              19,
+              29
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T34",
+      "sql": "SELECT UPPER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/upper_null",
+      "source_query_ordinal": 4,
+      "family": "UPPER_NULL",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -22,
+              -11,
+              5
+            ],
+            [
+              -22,
+              -11,
+              5
+            ],
+            [
+              null,
+              19,
+              -7
+            ],
+            [
+              -30,
+              null,
+              29
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              25,
+              6,
+              -26
+            ],
+            [
+              -4,
+              0,
+              -6
+            ],
+            [
+              -8,
+              3,
+              -13
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T35",
+      "sql": "SELECT UPPER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/upper_null",
+      "source_query_ordinal": 5,
+      "family": "UPPER_NULL",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -1,
+              0,
+              16
+            ],
+            [
+              -1,
+              0,
+              16
+            ],
+            [
+              null,
+              4,
+              -12
+            ],
+            [
+              -19,
+              null,
+              -18
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              17,
+              30,
+              -27
+            ],
+            [
+              -11,
+              26,
+              29
+            ],
+            [
+              28,
+              24,
+              4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T36",
+      "sql": "SELECT UPPER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/upper_null",
+      "source_query_ordinal": 6,
+      "family": "UPPER_NULL",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              29,
+              -6,
+              21
+            ],
+            [
+              29,
+              -6,
+              21
+            ],
+            [
+              null,
+              5,
+              3
+            ],
+            [
+              -21,
+              null,
+              12
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -21,
+              11,
+              -6
+            ],
+            [
+              -28,
+              -29,
+              25
+            ],
+            [
+              25,
+              20,
+              -17
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T37",
+      "sql": "SELECT LOWER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/lower_null",
+      "source_query_ordinal": 1,
+      "family": "LOWER_NULL",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              26,
+              -5,
+              28
+            ],
+            [
+              26,
+              -5,
+              28
+            ],
+            [
+              null,
+              3,
+              17
+            ],
+            [
+              -6,
+              null,
+              -16
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              11,
+              -2,
+              1
+            ],
+            [
+              -6,
+              -19,
+              -11
+            ],
+            [
+              -15,
+              21,
+              14
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T38",
+      "sql": "SELECT LOWER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/lower_null",
+      "source_query_ordinal": 2,
+      "family": "LOWER_NULL",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              14,
+              -30,
+              -2
+            ],
+            [
+              14,
+              -30,
+              -2
+            ],
+            [
+              null,
+              -13,
+              21
+            ],
+            [
+              -3,
+              null,
+              20
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              25,
+              14,
+              5
+            ],
+            [
+              21,
+              28,
+              -28
+            ],
+            [
+              -15,
+              -5,
+              -6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T39",
+      "sql": "SELECT LOWER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/lower_null",
+      "source_query_ordinal": 3,
+      "family": "LOWER_NULL",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -16,
+              -12,
+              17
+            ],
+            [
+              -16,
+              -12,
+              17
+            ],
+            [
+              null,
+              -3,
+              21
+            ],
+            [
+              -3,
+              null,
+              -13
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              7,
+              -23,
+              27
+            ],
+            [
+              10,
+              22,
+              3
+            ],
+            [
+              22,
+              -17,
+              27
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T40",
+      "sql": "SELECT LOWER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/lower_null",
+      "source_query_ordinal": 4,
+      "family": "LOWER_NULL",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -30,
+              12,
+              16
+            ],
+            [
+              -30,
+              12,
+              16
+            ],
+            [
+              null,
+              -25,
+              -16
+            ],
+            [
+              -16,
+              null,
+              27
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              27,
+              -4,
+              -24
+            ],
+            [
+              -13,
+              -29,
+              22
+            ],
+            [
+              29,
+              -14,
+              3
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T41",
+      "sql": "SELECT LOWER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/lower_null",
+      "source_query_ordinal": 5,
+      "family": "LOWER_NULL",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              7,
+              -24,
+              -17
+            ],
+            [
+              7,
+              -24,
+              -17
+            ],
+            [
+              null,
+              27,
+              -5
+            ],
+            [
+              14,
+              null,
+              -8
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              17,
+              -17,
+              -10
+            ],
+            [
+              -5,
+              -13,
+              30
+            ],
+            [
+              5,
+              -6,
+              -14
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T42",
+      "sql": "SELECT LOWER(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/lower_null",
+      "source_query_ordinal": 6,
+      "family": "LOWER_NULL",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              16,
+              -28,
+              17
+            ],
+            [
+              16,
+              -28,
+              17
+            ],
+            [
+              null,
+              6,
+              16
+            ],
+            [
+              -27,
+              null,
+              -10
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              13,
+              14,
+              5
+            ],
+            [
+              5,
+              -1,
+              22
+            ],
+            [
+              -30,
+              -21,
+              -28
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T43",
+      "sql": "SELECT NULL, LENGTH(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/length_null",
+      "source_query_ordinal": 1,
+      "family": "LENGTH_NULL",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              6,
+              30,
+              -9
+            ],
+            [
+              6,
+              30,
+              -9
+            ],
+            [
+              null,
+              6,
+              27
+            ],
+            [
+              20,
+              null,
+              -17
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              18,
+              -6,
+              23
+            ],
+            [
+              27,
+              11,
+              -18
+            ],
+            [
+              -19,
+              5,
+              -16
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T44",
+      "sql": "SELECT NULL, LENGTH(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/length_null",
+      "source_query_ordinal": 2,
+      "family": "LENGTH_NULL",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -21,
+              8,
+              -8
+            ],
+            [
+              -21,
+              8,
+              -8
+            ],
+            [
+              null,
+              30,
+              29
+            ],
+            [
+              1,
+              null,
+              -21
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -16,
+              26,
+              10
+            ],
+            [
+              21,
+              -14,
+              24
+            ],
+            [
+              -27,
+              18,
+              9
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T45",
+      "sql": "SELECT NULL, LENGTH(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/length_null",
+      "source_query_ordinal": 3,
+      "family": "LENGTH_NULL",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -22,
+              -26,
+              29
+            ],
+            [
+              -22,
+              -26,
+              29
+            ],
+            [
+              null,
+              -12,
+              22
+            ],
+            [
+              -10,
+              null,
+              -4
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              29,
+              7,
+              14
+            ],
+            [
+              -25,
+              2,
+              -20
+            ],
+            [
+              3,
+              21,
+              28
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T46",
+      "sql": "SELECT NULL, LENGTH(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/length_null",
+      "source_query_ordinal": 4,
+      "family": "LENGTH_NULL",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              12,
+              -22,
+              -11
+            ],
+            [
+              12,
+              -22,
+              -11
+            ],
+            [
+              null,
+              -29,
+              4
+            ],
+            [
+              -21,
+              null,
+              -2
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              24,
+              9,
+              26
+            ],
+            [
+              -29,
+              14,
+              29
+            ],
+            [
+              -27,
+              2,
+              22
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T47",
+      "sql": "SELECT NULL, LENGTH(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/length_null",
+      "source_query_ordinal": 5,
+      "family": "LENGTH_NULL",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -10,
+              3,
+              12
+            ],
+            [
+              -10,
+              3,
+              12
+            ],
+            [
+              null,
+              13,
+              -18
+            ],
+            [
+              29,
+              null,
+              -7
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -27,
+              -15,
+              -24
+            ],
+            [
+              19,
+              -22,
+              -28
+            ],
+            [
+              8,
+              -29,
+              -18
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T48",
+      "sql": "SELECT NULL, LENGTH(NULL) FROM integers GROUP BY NULL;",
+      "source_file": "generated/queryproof/length_null",
+      "source_query_ordinal": 6,
+      "family": "LENGTH_NULL",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -12,
+              -11,
+              -29
+            ],
+            [
+              -12,
+              -11,
+              -29
+            ],
+            [
+              null,
+              -21,
+              3
+            ],
+            [
+              13,
+              null,
+              -27
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              27,
+              24,
+              -11
+            ],
+            [
+              17,
+              19,
+              -1
+            ],
+            [
+              -28,
+              14,
+              4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T49",
+      "sql": "SELECT i, SUM(j) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum",
+      "source_query_ordinal": 1,
+      "family": "GROUPED_SUM",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              16,
+              16,
+              22
+            ],
+            [
+              16,
+              16,
+              22
+            ],
+            [
+              null,
+              22,
+              -22
+            ],
+            [
+              -10,
+              null,
+              -12
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              2,
+              12,
+              -10
+            ],
+            [
+              4,
+              -14,
+              1
+            ],
+            [
+              -12,
+              17,
+              -18
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T50",
+      "sql": "SELECT i, SUM(j) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum",
+      "source_query_ordinal": 2,
+      "family": "GROUPED_SUM",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -24,
+              -30,
+              19
+            ],
+            [
+              -24,
+              -30,
+              19
+            ],
+            [
+              null,
+              -21,
+              -2
+            ],
+            [
+              30,
+              null,
+              -4
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              23,
+              13,
+              5
+            ],
+            [
+              6,
+              -26,
+              -17
+            ],
+            [
+              27,
+              -12,
+              -8
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T51",
+      "sql": "SELECT i, SUM(j) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum",
+      "source_query_ordinal": 3,
+      "family": "GROUPED_SUM",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -18,
+              -26,
+              15
+            ],
+            [
+              -18,
+              -26,
+              15
+            ],
+            [
+              null,
+              -5,
+              -13
+            ],
+            [
+              -10,
+              null,
+              -18
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -15,
+              -29,
+              10
+            ],
+            [
+              25,
+              -24,
+              -6
+            ],
+            [
+              18,
+              1,
+              13
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T52",
+      "sql": "SELECT i, SUM(j) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum",
+      "source_query_ordinal": 4,
+      "family": "GROUPED_SUM",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              5,
+              -23,
+              23
+            ],
+            [
+              5,
+              -23,
+              23
+            ],
+            [
+              null,
+              0,
+              22
+            ],
+            [
+              18,
+              null,
+              -25
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -26,
+              22,
+              4
+            ],
+            [
+              23,
+              7,
+              -25
+            ],
+            [
+              22,
+              -19,
+              -6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T53",
+      "sql": "SELECT i, SUM(j) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum",
+      "source_query_ordinal": 5,
+      "family": "GROUPED_SUM",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              14,
+              18,
+              -8
+            ],
+            [
+              14,
+              18,
+              -8
+            ],
+            [
+              null,
+              12,
+              -6
+            ],
+            [
+              16,
+              null,
+              20
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              8,
+              -12,
+              9
+            ],
+            [
+              -28,
+              12,
+              18
+            ],
+            [
+              -24,
+              6,
+              -14
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T54",
+      "sql": "SELECT i, SUM(j) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum",
+      "source_query_ordinal": 6,
+      "family": "GROUPED_SUM",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -1,
+              2,
+              -21
+            ],
+            [
+              -1,
+              2,
+              -21
+            ],
+            [
+              null,
+              -16,
+              22
+            ],
+            [
+              26,
+              null,
+              -12
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -18,
+              -26,
+              -12
+            ],
+            [
+              13,
+              -22,
+              3
+            ],
+            [
+              30,
+              -22,
+              -15
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T55",
+      "sql": "SELECT i, SUM(i) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum_with_key",
+      "source_query_ordinal": 1,
+      "family": "GROUPED_SUM_WITH_KEY",
+      "modulus": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              23,
+              1,
+              3
+            ],
+            [
+              23,
+              1,
+              3
+            ],
+            [
+              null,
+              -3,
+              12
+            ],
+            [
+              2,
+              null,
+              28
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              24,
+              -24,
+              16
+            ],
+            [
+              -27,
+              -12,
+              -9
+            ],
+            [
+              -2,
+              -22,
+              11
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T56",
+      "sql": "SELECT i, SUM(i) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum_with_key",
+      "source_query_ordinal": 2,
+      "family": "GROUPED_SUM_WITH_KEY",
+      "modulus": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              25,
+              -15,
+              -7
+            ],
+            [
+              25,
+              -15,
+              -7
+            ],
+            [
+              null,
+              30,
+              14
+            ],
+            [
+              -3,
+              null,
+              -26
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              4,
+              6,
+              15
+            ],
+            [
+              -20,
+              20,
+              -17
+            ],
+            [
+              0,
+              2,
+              -16
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T57",
+      "sql": "SELECT i, SUM(i) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum_with_key",
+      "source_query_ordinal": 3,
+      "family": "GROUPED_SUM_WITH_KEY",
+      "modulus": 5,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -6,
+              9,
+              -28
+            ],
+            [
+              -6,
+              9,
+              -28
+            ],
+            [
+              null,
+              -26,
+              9
+            ],
+            [
+              12,
+              null,
+              25
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              4,
+              -11,
+              -2
+            ],
+            [
+              12,
+              -23,
+              16
+            ],
+            [
+              -26,
+              23,
+              2
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T58",
+      "sql": "SELECT i, SUM(i) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum_with_key",
+      "source_query_ordinal": 4,
+      "family": "GROUPED_SUM_WITH_KEY",
+      "modulus": 7,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -8,
+              -7,
+              -24
+            ],
+            [
+              -8,
+              -7,
+              -24
+            ],
+            [
+              null,
+              20,
+              -27
+            ],
+            [
+              -12,
+              null,
+              -19
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -18,
+              22,
+              -29
+            ],
+            [
+              24,
+              -2,
+              -29
+            ],
+            [
+              9,
+              16,
+              -23
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T59",
+      "sql": "SELECT i, SUM(i) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum_with_key",
+      "source_query_ordinal": 5,
+      "family": "GROUPED_SUM_WITH_KEY",
+      "modulus": 11,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -14,
+              23,
+              -14
+            ],
+            [
+              -14,
+              23,
+              -14
+            ],
+            [
+              null,
+              -6,
+              30
+            ],
+            [
+              -20,
+              null,
+              -28
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              22,
+              27,
+              -2
+            ],
+            [
+              14,
+              4,
+              -18
+            ],
+            [
+              -13,
+              12,
+              23
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "T60",
+      "sql": "SELECT i, SUM(i) FROM integers GROUP BY i ORDER BY i;",
+      "source_file": "generated/queryproof/grouped_sum_with_key",
+      "source_query_ordinal": 6,
+      "family": "GROUPED_SUM_WITH_KEY",
+      "modulus": 13,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -3,
+              29,
+              14
+            ],
+            [
+              -3,
+              29,
+              14
+            ],
+            [
+              null,
+              -3,
+              24
+            ],
+            [
+              7,
+              null,
+              -5
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -2,
+              10,
+              -15
+            ],
+            [
+              -1,
+              -3,
+              -12
+            ],
+            [
+              22,
+              25,
+              -14
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}
