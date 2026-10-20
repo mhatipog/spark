@@ -58,7 +58,10 @@ def _expression(items, scope):
         require(opname == "Remainder" and
                 node.get("num-children") == 2 and
                 node.get("left") == 0 and node.get("right") == 1 and
-                set(node) == {"class", "num-children", "left", "right"},
+                set(node) in (
+                    {"class", "num-children", "left", "right"},
+                    {"class", "num-children", "left", "right",
+                     "evalContext"}),
                 "UNSAFE_OR_UNKNOWN_PROJECT_EXPRESSION")
         left, lefttype, nextpos = read(offset + 1)
         rightpos = nextpos
@@ -71,7 +74,12 @@ def _expression(items, scope):
         divisor = items[rightpos].get("value")
         require(type(divisor) is int and divisor != 0,
                 "REMAINDER_DIVISOR_ZERO_OR_NONINT")
-        return ("remainder", lefttype, left, right), lefttype, finalpos
+        context = node.get("evalContext", "__UNSPECIFIED__")
+        serialized_context = json.dumps(
+            context, sort_keys=True, separators=(",", ":"))
+        require(len(serialized_context) <= 512,
+                "UNTRUSTED_REMAINDER_EVAL_CONTEXT")
+        return ("remainder", lefttype, serialized_context, left, right), lefttype, finalpos
 
     result, dtype, pos = read(0)
     require(pos == len(items), "TRAILING_PROJECT_EXPRESSION")
