@@ -86,7 +86,7 @@ Proof.
     as matches eqn:HM.
   destruct matches as [|r more].
   - reflexivity.
-  - simpl. rewrite map_map. reflexivity.
+  - simpl. rewrite !map_map. reflexivity.
 Qed.
 
 Theorem left_outer_projection_frame :
