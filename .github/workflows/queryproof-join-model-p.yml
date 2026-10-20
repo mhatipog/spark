@@ -1,0 +1,34 @@
+name: QueryProof P exhaustive join bag model
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_join_model_p_20261020/**
+      - .github/workflows/queryproof-join-model-p.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exhaustive-join-bag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_join_model_p_20261020
+          sparse-checkout-cone-mode: true
+      - name: Pin model code before execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git hash-object tools/queryproof_join_model_p_20261020/exhaustive_projection_join.py)"
+          test "$actual" = "390c3b463d26ed85e6b4ed096934ff2144ec80f7"
+          python3 -m py_compile tools/queryproof_join_model_p_20261020/exhaustive_projection_join.py
+      - name: Enumerate all finite bag-join configurations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B tools/queryproof_join_model_p_20261020/exhaustive_projection_join.py
