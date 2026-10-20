@@ -1,0 +1,75 @@
+name: QueryProof VeriEQL pinned five-pair bounded comparator
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_verieql_controls_20261020/**
+      - .github/workflows/queryproof-verieql-development.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verieql-first-comparator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_verieql_controls_20261020
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify immutable source and five cases before first test
+        run: |
+          python -B -c '
+          import json,subprocess
+          from pathlib import Path
+          root=Path("tools/queryproof_verieql_controls_20261020")
+          p=json.loads((root/"PROTOCOL.json").read_text())
+          cases=[json.loads(x) for x in (root/"mini_pairs.jsonlines").read_text().splitlines()]
+          actual=subprocess.check_output(["git","hash-object",p["input_path"]],
+                                          text=True).strip()
+          assert actual==p["input_git_blob_sha"]
+          assert p["preregistered_before_verieql_first_execution"]
+          assert len(cases)==5 and [c["index"] for c in cases]==list(range(5))
+          assert p["bound_size"]==3
+          print("QUERYPROOF_VERIEQL_PIN_CHECKED", actual, p["verieql_commit"])
+          '
+      - name: Retrieve pinned official VeriEQL implementation and dependencies
+        run: |
+          git clone --depth 1 https://github.com/VeriEQL/VeriEQL.git verieql
+          git -C verieql fetch --depth 1 origin 493cbb81000205e33b0623cfd1c39106fa035fae
+          git -C verieql checkout --detach 493cbb81000205e33b0623cfd1c39106fa035fae
+          python -m pip install --disable-pip-version-check -r verieql/requirements.txt
+      - name: Execute 5 frozen SQL pairs up to 3-row bound without schema keys
+        run: |
+          mkdir -p artifacts
+          cd verieql
+          python -m parallel.cli_within_bound \
+            -f "$GITHUB_WORKSPACE/tools/queryproof_verieql_controls_20261020/mini_pairs.jsonlines" \
+            -s 3 -t 25 -c 1 -i 0 \
+            -o "$GITHUB_WORKSPACE/artifacts/queryproof_verieql_first_five.jsonlines"
+      - name: Preserve every definite, unknown, unsupported, and timeout outcome
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          p=Path("artifacts/queryproof_verieql_first_five.jsonlines")
+          if not p.is_file():
+              raise SystemExit("VERIEQL_FIRST_COMPARATOR_OUTPUT_MISSING")
+          records=[json.loads(line) for line in p.read_text().splitlines()]
+          print("QUERYPROOF_VERIEQL_FIRST_FIVE", json.dumps([
+              {"index":r["index"],"name":r["file"],
+               "states":r["states"],"err":r.get("err")}
+              for r in records],sort_keys=True))
+          assert len(records)==5
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: queryproof-verieql-five-first-development-only
+          path: artifacts/queryproof_verieql_first_five.jsonlines
+          retention-days: 30
+          if-no-files-found: warn
