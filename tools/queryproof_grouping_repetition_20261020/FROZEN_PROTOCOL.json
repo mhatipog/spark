@@ -1,0 +1,26 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-grouping-repetition-targeted-20261020",
+  "required_case_count": 48,
+  "freeze_date_utc": "2026-10-20",
+  "frozen_verifier_commit": "b0c440fefae83d0935f006675d18dfa4cdc86014",
+  "prospective_grouping_repetition": true,
+  "generated_targeted": true,
+  "primary": "On all 48 untouched design-informed generated SQL/fixture cases, enumerate every actual changed Catalyst event labeled RemoveRepetitionFromGroupExpressions; report exact sound grouping-idempotence certificates and all UNKNOWN abstentions, with zero minimum acceptance requirement.",
+  "secondary": [
+    "Every 48-case SQL result compared as Spark 4.2.0 versus SQLite row bags; reject entire cohort on any error/mismatch",
+    "Trace capture, source integrity, named-rule denominator and checker+scoring-driver git blob identities must match preregistration",
+    "Include direct/repeated/computed grouping keys, multiple grouping keys, empty-input filtered group, and non-repetition controls; keep all zero-event SQL families"
+  ],
+  "source_selection": "Eight precommitted design-informed SQL families by six modulus/fixture variants, LCG seed 20261020, nine input rows with duplicates, NULL and negative values, all frozen as CASES.json before the first evaluation of this cohort. The earlier 12-event 60-case replay is development-only.",
+  "invalidation": [
+    "Any checker/scorer/case modification after first evaluation forfeits prospective status",
+    "Any SQL error, cross-engine result mismatch or malformed instrumented event invalidates complete cohort",
+    "No individual cases or rule events may be dropped retrospectively to increase coverage"
+  ],
+  "limitations": [
+    "Synthetic target-enriched cases are not independent externally authored SQL",
+    "Cases within families are correlated; individual event rates must not be interpreted as optimizer-wide probability",
+    "The certificate proves one local bag-semantics transformation in a whitelist, not Spark's entire optimizer chain or physical ordering"
+  ]
+}
