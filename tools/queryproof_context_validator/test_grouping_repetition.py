@@ -214,6 +214,21 @@ class GroupRepetitionTests(unittest.TestCase):
                                  "qualifier": []})
         self.yes(e)
 
+    def test_real_spark_qualifier_string_shape(self):
+        e = ex()
+        for plan in (e["old"], e["new"]):
+            for group in plan[0]["groupingExpressions"]:
+                group[0].update({"qualifier": "List(integers)",
+                                 "metadata": {}, "nullable": True})
+        self.yes(e)
+
+    def test_excessive_qualifier_string_rejected(self):
+        e = ex()
+        for plan in (e["old"], e["new"]):
+            for group in plan[0]["groupingExpressions"]:
+                group[0]["qualifier"] = "x" * 513
+        self.no(e)
+
     def test_malformed_nullable_metadata_rejected(self):
         e = ex()
         for plan in (e["old"], e["new"]):
