@@ -18,6 +18,7 @@ from run_holdout import _rule_basename
 from scope_ledger import score_scope_trace
 from generalized_projection_liveness_certificate import certify_generalized_projection_liveness_event
 from aggregate_framed_identity_certificate import certify_aggregate_framed_identity_event
+from aggregate_identity_v2 import certify_aggregate_framed_identity_event as v2_identity
 
 ORIGINAL = run_external.union_coverage
 CHECKS = {
@@ -42,6 +43,11 @@ def diagnostic(path):
             "CERTIFIED" if verdict["status"] == "EQUIVALENT_IN_FRAGMENT"
             else verdict.get("reason", "UNKNOWN"))
         per_case[case][key] += 1
+        if name == "CollapseProject":
+            v2 = v2_identity(event)
+            per_case[case]["CollapseProjectV2:" + (
+                "CERTIFIED" if v2["status"] == "EQUIVALENT_IN_FRAGMENT"
+                else v2.get("reason", "UNKNOWN"))] += 1
         if len(safe_shape[case]) < 20:
             def topology(nodes):
                 return [str(n.get("class", "?")).rsplit(".", 1)[-1]
