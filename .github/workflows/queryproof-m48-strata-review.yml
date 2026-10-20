@@ -1,0 +1,58 @@
+name: QueryProof M48 posthoc stratified readout
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - .github/workflows/queryproof-m48-strata-review.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  analyze-existing-pristine-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_prospective_m_20261020
+      - uses: actions/download-artifact@v4
+        with:
+          name: queryproof-prospective-m48-frozen-first-run
+          path: artifacts/pristine
+          run-id: 39417193656
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Describe frozen first-run outcomes without rerunning or tuning SQL
+        run: |
+          python -B -c '
+          import json
+          from collections import Counter,defaultdict
+          from pathlib import Path
+          manifest=json.loads(Path("tools/queryproof_prospective_m_20261020/CASES.json").read_text())
+          report=json.loads(Path("artifacts/pristine/queryproof_prospective_m.json").read_text())
+          cases={c["id"]:c for c in manifest["cases"]}
+          coverage=report["union_coverage"]
+          scope=coverage["hierarchical_scope_ledger"]
+          status=defaultdict(Counter)
+          family=defaultdict(Counter)
+          for s in scope["optimizer_suffix_case_counts"]:
+              item=cases[s["case"]]
+              level=item["group"]
+              status[level]["n"]+=1
+              status[level]["changed"]+=int(s["changed"])
+              status[level]["scope_certified"]+=int(s["changed"] and s["proved"])
+              family[item["family"]]["n"]+=1
+              family[item["family"]]["scope_certified"]+=int(s["changed"] and s["proved"])
+          gate=coverage["m_frozen_full_observer_gate"]
+          print("QUERYPROOF_M48_FROZEN_STRATA",json.dumps(dict(status),sort_keys=True))
+          print("QUERYPROOF_M48_FROZEN_FAMILIES",json.dumps(dict(family),sort_keys=True))
+          print("QUERYPROOF_M48_TAG_TYPES",json.dumps(coverage["v6_tag_type_census"]["recognized_tag_value_types"],sort_keys=True))
+          print("QUERYPROOF_M48_RULE_CALLS",json.dumps(coverage["v5_all_rule_accounting"]["all_rule_invocations"],sort_keys=True))
+          print("QUERYPROOF_M48_UNKNOWN_RULES",json.dumps(scope["unknown_rules"][:12],sort_keys=True))
+          print("QUERYPROOF_M48_GATE_INTERSECTION",gate["conservative_intersection"])
+          assert sum(x["n"] for x in status.values())==48
+          assert sum(x["scope_certified"] for x in status.values())==20
+          assert gate["conservative_intersection"]==20
+          '
