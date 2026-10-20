@@ -25,5 +25,7 @@
     "Third-party DuckDB corpus from same repository as earlier cohorts, but new unused SQL ordinal pairs",
     "Only bag semantics and explicitly admitted pure expressions, no guarantee of Spark physical runtime or order",
     "SQLite finite-fixture row results provide corroboration, not a universal proof"
-  ]
+  ],
+  "fixture_repair_after_first_run": true,
+  "fixture_repair_provenance": "First execution run 39375398971 stopped between P12 and P13; JS unary-minus precedence had rounded the negative 64-bit minimum fixture to an out-of-range float while creating CASES.json. Case P13 value corrected to original DuckDB -9223372036854775808 without changing SQL or verifier. A partial first-run trace (100 transitions, zero ColumnPruning events on first 12 cases) was observed; therefore subsequent replay is classified as diagnostic rather than prospective, even though checker blob remains frozen."
 }
