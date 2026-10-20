@@ -102,8 +102,13 @@ def _project_step(node, scope):
                     first.get("num-children") == 1 and
                     first.get("child") == 0 and
                     isinstance(first.get("name"), str) and
-                    set(first) == {"class", "num-children", "child",
-                                   "name", "exprId"},
+                    (set(first) == {"class", "num-children", "child",
+                                    "name", "exprId"} or
+                     (set(first) == {"class", "num-children", "child",
+                                     "name", "exprId", "qualifier",
+                                     "nonInheritableMetadataKeys"} and
+                      first["qualifier"] == [] and
+                      first["nonInheritableMetadataKeys"] == [])),
                     "BAD_PROJECT_ALIAS")
             output_id = _identity(first)
             require(output_id not in scope, "ALIAS_SHADOWS_INPUT_EXPR_ID")
