@@ -35,7 +35,7 @@ def score_m(path):
     checks = (
         scopes.get("status") == "RETROSPECTIVE_EXACT_CATALYST_SCOPE_LEDGER",
         not scopes.get("errors"),
-        state.get("status") == "COMPLETE_STATE_COMPARISON",
+        state.get("status") == "COMPLETE_JVM_WITNESSES",
         frame.get("status") == "COMPLETE_FRAME_COMPARISON",
         inputs.get("status") == "COMPLETE_INPUT_RETROSPECTIVE",
         rule_calls.get("status") == "COMPLETE_ALL_RULE_AUDIT",
