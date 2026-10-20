@@ -164,7 +164,7 @@ def patch_text(source: str) -> str:
         if source.count(old) != 1:
             raise ValueError("REFUSE unexpected Spark source anchor " + old[:65])
         source = source.replace(old, new)
-    if source.count("QUERYPROOF_TAG_MUTATION_V10") != 3:
+    if source.count("QUERYPROOF_TAG_MUTATION_V10") != 4:
         raise ValueError("Unexpected mutation tracer markers")
     return source
 
