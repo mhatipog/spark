@@ -280,6 +280,8 @@ def score_scope_trace(private_trace_path):
     for line in private_trace_path.read_text(errors="replace").splitlines():
         if line.startswith("QUERYPROOF_SCOPE_ERROR\t"):
             marker_errors.append("SCOPE_SERIALIZATION_FAILURE")
+        elif line.startswith("QUERYPROOF_AST_OVERFLOW"):
+            marker_errors.append("EFFECTIVE_EVENT_CAPTURE_OVERFLOW")
         elif line.startswith("QUERYPROOF_AST_ERROR\t"):
             marker_errors.append("RULE_SERIALIZATION_FAILURE")
         elif line.startswith("QUERYPROOF_SCOPE\t"):
