@@ -1,0 +1,27 @@
+name: QueryProof grouping-key idempotence proof checks
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_context_validator/grouping_repetition_certificate.py
+      - tools/queryproof_context_validator/test_grouping_repetition.py
+      - .github/workflows/queryproof-grouping-repetition.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  grouping-idempotence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_context_validator
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test grouping equivalence and fail-closed adversarial guards
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_grouping_repetition.py' -v
+      - name: Retest prerequisite compositional projection liveness
+        run: python -B -m unittest discover -s tools/queryproof_context_validator -p 'test_generalized_projection_liveness.py' -v
