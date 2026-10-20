@@ -38,7 +38,7 @@ synthetic phase/trace tests and replayed unchanged W32: 16 v5 candidates,
 changed-rule opaque-count mutant rejected W01 and retained 15 other cases.
 The result is explicitly posthoc and only observational.
 
-**FUNDAMENTAL NEGATIVE:** Spark tag fingerprinting is NOT injective before
+**FUNDAMENTAL NEGATIVE 1:** Spark tag fingerprinting is NOT injective before
 SHA-256: the maps `{qpA: "one|qpB:two"}` and
 `{qpA: "one", qpB: "two"}` produce the same delimiter-joined string and hash.
 The repository contains a genuine Spark Scala collision fixture
@@ -47,6 +47,24 @@ the exact problematic encoding. No snapshot-only equality of this digest
 proves real mutable tag-map equality. A native post-cut tag write with the
 same encoding, or any mutation between snapshots, can elude the guard.
 Thus Y recovers useful observation coverage but **does not solve soundness**.
+
+**FUNDAMENTAL NEGATIVE 2 (independently tested later):** the actual
+`instrument_frame.py` observer records tags as a sorted *multiset* of
+`node.getClass.getSimpleName + SHA256(tags)`, with NO node identity.
+Swapping distinct tag values between two different `AttributeReference`
+instances therefore produces exactly the same frame, EVEN WITH an injective
+tag serialization. `test_frame_observer_aliasing.py` checks this exact
+source encoding, the delimiter collision, a different-class detectable
+control, and a transient-mutated-then-restored snapshot. Source-pin
+`instrument_frame.py` blob
+`3d2f64d6b91e5a09830a43f066f6690af91abdbb`. CI
+`39446088363` passed **4/4**; test committed at
+`15eaa3ade87fb3de5cfc473fe9f18666cb9c91c2` and independent workflow at
+`1fa7916ec84633edaf1cfb37214b01791d19e439`. This is an
+**observer noninjectivity / insufficiency counterexample**, not evidence of
+wrong Spark query answers. A separate full Y replay `39446056607` again
+passed, with original 16/16 observational and strict 0/16, pre-cut
+positive W01 and post-cut negative W01.
 
 ## Round Z: identify every unsupported W case
 
@@ -82,8 +100,7 @@ identity ColumnPruning context. It verifies all referenced keys are retained
 and source-consistent. It **does not** infer non-NULL guards under OR.
 
 **V6 result: 20/32 complete structural optimizer suffixes** (W01–W16
-retained, W21–W24 newly certified); zero regression. Each of four new
-positive local events survived three real-trace mutants? NO: the 12 mutants
+retained, W21–W24 newly certified); zero regression. For four new positive local events, twelve independent real-trace mutants
 (OR→AND, EqualTo→EqualNullSafe, foreign ExprId) all returned UNKNOWN.
 The source frame, RDD input, all-rule and tag-type necessary gates each
 retained 20 candidates. Y's phase-local observer retained all 20.
@@ -113,6 +130,26 @@ performance. It is a candidate theorem/grammar development result.
   shortcuts; the workflow checks this. None of this establishes correctness
   of Catalyst AST parsing, JVM state, or SQL aggregates/overflow/errors.
 
+## Effect-indexed trace calculus and sharper proof boundary
+
+`research/queryproof/proofs/QueryProofEffectIndexedTrace.v` was added in
+commit `19bb5788b483477faebfe15e465edb8b1dac1d3a` and **kernel-checked
+in Coq 8.18** without any admitted/axiomatic shortcuts, CI
+`39446469409`. It explicitly separates (i) preservation of the visible
+plan rewrite at the starting hidden state, from (ii) semantic
+**noninterference** of the hidden-state change at the resulting plan. A
+finite certified suffix composes by equality transitivity with an arbitrary
+pre-cut analyzer state: there is no need to prove the prefix for a
+post-Finish-Analysis theorem.
+
+Crucial generalization: hidden observation need not be byte-for-byte
+injective; it must be a **semantic congruence** for all supported resulting
+plans. Coq proves sufficiency of this premise and gives an explicit Boolean
+countermodel to the unsound rule “equal observer + equal plan => equal
+meaning.” This is a **generic formal calculus**, not a verified Catalyst
+extractor or checked effect analysis. Proving that any concrete Spark
+rule/attribute/tag domain meets the premises is still the central task.
+
 ## External comparison
 
 Pinned SQLSolver source `dcc2a91d8971a4c4d30b055f99d7d8428a1b754b`
@@ -126,8 +163,27 @@ official source commit `493cbb81000205e33b0623cfd1c39106fa035fae`,
 input blob pinned in `PROTOCOL.json`, five SQL pairs (literal mismatch,
 identity projection, duplicate grouping, LEFT_OR projected dependency, bad
 OR-side IS NOT NULL), no PK uniqueness, max relation bound 3, explicit
-UNKNOWN/unsupported policy. Development run `39444540912` is pending at
-the time of this note; inspect actual result, do not guess success.
+UNKNOWN/unsupported policy. The **first** development comparator run `39444540912` (artifact
+`12274859459`, SHA256
+`7b7b9bb63e5e474eca95d06956c33d58f83dbd1d270e4f78bac0828bca15efc6`)
+recorded **five OTE infrastructure failures**, not five semantic verdicts:
+`And(..., ctx=...)`, `Or(..., ctx=...)`, `Sum(..., ctx=...)` rejected
+by installed ordinary `z3-solver==5.3.1.0`. The official VeriEQL
+source's README explicitly requires copying its custom `z3py_libs/*.py`;
+source-pinned `z3.py` blob `c64e6584ee24df2b83a701d2e6f017530162653f`
+contains the distinct signatures `And(*args, ctx)`, `Or(*args, ctx)`,
+`Sum(*args, ctx=None)`. This is a missing documented setup step in our
+first harness, not a VeriEQL equivalence failure.
+
+A separately labelled **posthoc author-Z3 environment repair** workflow
+`.github/workflows/queryproof-verieql-author-z3-repair.yml` pins
+`z3-solver==4.12.2.0`, copies the unchanged official 11 custom Z3 files,
+checks their signatures, and uses the SAME five previously pinned SQL pairs
+and 1–3 row bound. Run `39445532031`, commit `bf883dcf31839005a910abd0abc87a62095e16e7`, passed:
+`S1=NEQ, S2=EQU/EQU/EQU, S3=EQU/EQU/EQU,
+S4=EQU/EQU/EQU, S5=NEQ` — **5/5 predicted classifications**.
+These are bounded, five-case development controls, not unbounded proof or a
+matched 32-trace comparison. The initial five OTEs remain immutable.
 
 Published comparison: SQLSolver (SIGMOD 2024) proves stronger SQL-level
 equivalence in its fragment; VeriEQL (OOPSLA 2024) has richer bounded SQL,
@@ -156,11 +212,14 @@ carrying over *actual optimizer rewrite chains*. Novelty is unestablished.
    operator/expression serialization into typed Coq semantic terms, with
    sound ExprId binding and output-field identity. Reject or reveal lossy
    metadata and tag domains at every boundary.
-2. **Eliminate lossy state equality as a basis for soundness**: instrument
-   mutation sites (including alias/shared mutable tag values), or prove
-   a narrow static noninterference/effect discipline for the only supported
-   Catalyst rule/attribute/tag families. Snapshot hash agreement alone is
-   NOT an acceptable premise for an unconditional theorem.
+2. **Prove a source-level hidden-effect *semantic congruence*, not merely
+   state-hash equality**: enumerate effectful tag/metadata reads/writes in
+   the supported Spark rule families, establish exactly which effects are
+   semantically irrelevant to each resulting plan, and encode these as
+   checked obligations. If relying on observation, repair both string
+   delimiters AND node-identity aliasing and instrument intra-rule writes
+   (a reverted transient mutation defeats any boundary-only snapshot).
+   Snapshot hash agreement alone is NOT an acceptable premise for proof.
 3. **Independent prospective V7**: freeze new checker and data before
    first execution; withhold fresh multi-key OR/inequality and nested frames.
    Predeclare targets/UNKNOWN, exact whole-suffix and all necessary SAME-CASE
@@ -170,9 +229,10 @@ carrying over *actual optimizer rewrite chains*. Novelty is unestablished.
    source-level AST checks. For `DISTINCT_PAIR`, prove
    `ReplaceDistinctWithAggregate` and adjust frames; `HAVING_COUNT`
    is hardest because four rule families interact.
-5. Compare SQLSolver/VeriEQL on genuinely matched SQL pairs and semantics
-   assumptions. Report unsupported/timeouts and do not compare incomparable
-   raw percentages. Use published Coq SQL mechanizations as the semantic
+5. Expand the now-working five-pair VeriEQL comparator to genuinely
+   matched SQL pairs and semantics assumptions, and repeat each run under
+   its own prospectively pinned protocol. Preserve original five OTEs and
+   the posthoc 5/5 repair independently; report UNKNOWN/timeouts as such. Use published Coq SQL mechanizations as the semantic
    standard against which the mini-model should be measured.
 6. Preserve all CI attempts, negative fixtures, source SHA pins and
    original first-run reports; no retroactive relabelling and no premature
@@ -186,3 +246,23 @@ batch and optimizer boundary while an explicit effect/noninterference
 policy handles mutable tags, metadata and unobserved state. The essential
 research claim is the trustworthy *bridge from real execution to proof
 objects*, not the rediscovery of equivalent SQL rewrites.
+
+## End-of-round acceptance gates
+
+A researcher may describe W32 as **prospectively 16/32 structural** and X
+as **0/16 under strict hidden-state guard**. They may describe Y as
+**posthoc 16/16 observational**, V6 as **posthoc 20/32 structural** with
+**0/20 legacy strict acceptance**, Coq as **kernel-proven conditional laws**,
+and the first/repaired VeriEQL studies as **5 OTE** and **5/5 bounded expected
+outputs**, respectively. They must NOT describe any QueryProof structural
+candidate as an unconditional Spark transformation proof until: (a) the
+Catalyst AST-to-Coq meaning-preserving bridge is mechanically checked,
+(b) each step carries actual rule-source identity and sound obligations,
+(c) hidden-state congruence/noninterference is source-proven, (d) the whole
+post-cut chain composes, and (e) adversarial negative cases fail closed.
+
+Next proposed first independent V7 study: freeze checker, trace sources,
+new SQL, mutation inventory and prospective scoring gates BEFORE the first
+fresh run; target both INNER_LT and two-branch LEFT_OR without reusing
+W32 cases for prospective headline metrics. Prefer one sound, completely
+proven family over higher observational percentage bought with assumptions.
