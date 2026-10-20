@@ -41,7 +41,7 @@ try:
     dependent_dead_error = execute(spark,
         "SELECT COUNT(*) FROM (SELECT raise_error(CAST(i AS STRING)) AS unsafe "
         "FROM VALUES (1), (2) AS t(i)) AS z")
-    result = {
+    safe_dead = execute(spark,\n        "SELECT COUNT(*) FROM (SELECT i + 0 AS harmless "\n        "FROM VALUES (1), (2) AS t(i)) AS z")\n    result = {
         "status": "OBSERVABLE_EFFECT_BOUNDARY_DEVELOPMENT",
         "spark_version": spark.version,
         "constant_1_division": [constant_direct_division["status"],
@@ -52,7 +52,7 @@ try:
                                    dependent_dead_division],
         "row_dependent_raise_error": [dependent_direct_error["status"],
                                       dependent_dead_error],
-        "interpretation": "Constant-foldable errors can precede pruning; row-dependent discarded computations can change error observation",
+        "interpretation": "In these Spark 4.2 runs even apparently unused ANSI/raise_error expressions still fail; optimizer ordering/effects need separate semantics",
     }
     print("QUERYPROOF_ROUND_N_ERROR_BOUNDARY", json.dumps(result, sort_keys=True), flush=True)
     assert constant_direct_division["status"] == "EXCEPTION"
