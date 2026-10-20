@@ -266,3 +266,122 @@ new SQL, mutation inventory and prospective scoring gates BEFORE the first
 fresh run; target both INNER_LT and two-branch LEFT_OR without reusing
 W32 cases for prospective headline metrics. Prefer one sound, completely
 proven family over higher observational percentage bought with assumptions.
+
+## Subsequent Round V7: strict effective-rule completeness and real hidden effects
+
+**V7 first diagnostic run:** `39451278579` on the SAME W32 cases, with
+`tools/queryproof_posthoc_v7_20261020/scope_ledger_v7_all_steps.py`,
+`run_v7.py`, and five pre-replay synthetic tests (5/5 passed).
+The strict auditor was cloned from V6 blob
+`9ca27603cdc36de30a779e307eac87d131a61d24`; it disallows the
+legacy shortcut `if start == end: return True` whenever a batch,
+executor or suffix encloses effective rule steps that lack proof. A synthetic
+net-zero intermediate rule cycle clearly demonstrated the OLD ledger could
+accept identity while hiding two uncertified events. The strict ledger
+correctly rejected it. **Actual W32 result: 20/32 remained event-complete,
+0 regressions; 0 observed post-cut identity cycles hiding unsupported
+steps; 12 unsupported cases remain UNKNOWN.** This is an important
+failed falsification of the W32 data, NOT a repair to the hidden-state guard
+and NOT a new prospective W run. Source labels in the audit say exactly
+what is and is not proved. Original strict hidden-state X remains 0.
+
+**Independent production-engine source audit:** official `apache/spark`
+`v4.2.0` `TreeNode.scala` blob
+`e82e6a30b9bba41e637b27cbab43f26d9d23ff9b` defines mutable private
+`_tags`, `setTagValue`/`unsetTagValue`, and `fastEquals` based on
+reference or structural equality. Official `RuleExecutor.scala` blob
+`b5a35608a54e688c798796f81b949e2998a6f546` labels a rule
+effective only when `!result.fastEquals(plan)`. QueryProof's disposable
+`QueryProofAstTrace.capture` is INSIDE that `if (effective)` block.
+Therefore in-place hidden-only mutations are not necessarily accompanied
+by a `QUERYPROOF_AST` event.
+
+Native CI `39451725225`, code
+`tools/queryproof_posthoc_v7_20261020/QueryProofNativeInPlaceTagWitness.scala`
+(commit `923b386ec8ed24c4a20ddf7c32e4e581ca0af82b`) compiled real
+Spark 4.2.0 JVM code with the instrumented RuleExecutor. A deliberately
+crafted rule set a tag on the same plan instance; tag changed but plan JSON
+and effective-rule AST event remained unchanged. A second crafted rule
+set/unset a tag within one invocation; snapshots before/after were equal.
+The real structural rewrite positive control emitted its AST event. This
+is **instrumentation incompleteness**, NOT a Spark miscompilation.
+
+**Independent private-rule-cache result:** `TreeNode.scala` also contains
+private mutable `_ineffectiveRules: BitSet`, which
+`transformDownWithPruning` consults and updates. This field is not exposed
+by the current `stateCounts` product/metadata/tag census or
+`queryProofFrame` hashing. Native CI `39452186486`, code
+`QueryProofNativeRuleCacheWitness.scala` (commit
+`7635cecd03ecf47b35d7b8b633905698a7d727af`), proved with fresh-node
+control that the cache suppresses the second rule traversal on an otherwise
+unchanged `OneRowRelation`, while tags and JSON stay unchanged. Spark's
+official `RuleIdCollection.scala` blob
+`a890d43f0672c39d70fdccc348ca17d84b70936a` documents the intended
+PURE/external-state-independent RuleId contract. This is correct Spark
+behavior under its contract, not a correctness defect.
+
+**Crucial production-rule rather than toy-only confirmation:** official
+`v4.2.0` `optimizer/expressions.scala` blob
+`929ffdef2b52ff1aabdc6f38501dc131e7938fd2` has
+`ConstantFolding.FAILED_TO_EVALUATE: TreeNodeTag[Unit]`. Its
+`tryFold` catches an evaluation error inside a conditional branch and
+sets this tag on the existing Expression; a subsequent `containsTag`
+branch changes future folding control flow. Native CI `39452930918`
+compiled `QueryProofNativeConstantFoldingTagWitness.scala`
+(commit `567dacd688efe3fe523150d9e970ff5f4fdb1321`) against official
+Spark 4.2.0: an invalid ANSI cast in a conditional branch caused the REAL
+`ConstantFolding` rule to mutate `FAILED_TO_EVALUATE`, yet plan JSON was
+identical and no `QUERYPROOF_AST` event appeared. A separate successful
+constant-folding control DID emit the expected AST event. This establishes
+a genuine production-rule observation gap, but says NOTHING about a Spark
+wrong-answer bug or whether this occurred within W32's 20 successes.
+
+**Math/semantics refinement:** Coq file
+`QueryProofRuleCacheEffect.v` (commit
+`708d6cb46c3b877dea72e3afb875a4494b131b31`,
+kernel CI `39452554191`) distinguishes exact-plan cache correctness
+(requiring valid `rule(p)=p` when skipping) from *semantic* correctness.
+A skipped rule can be semantically harmless even when its optimized AST
+would differ, PROVIDED all possible executions of that rule preserve
+denotation. A Boolean countermodel demonstrates why external-state-dependent
+rules can invalidate the exact replay premise. Theorem is an ABSTRACT Coq
+model, NOT verified Spark implementation semantics.
+
+**Synthesis:** strict changed-AST event tracing is necessary but does not
+observe all in-place optimizer effects. A sound candidate system must add
+either (i) explicit, correctly scoped effect witnesses at mutation sites
+(also transients), OR (ii) mechanically justified semantic noninterference
+for hidden state affected by each supported rule family. The second is
+potentially substantially more efficient but requires a verified source
+bridge. For example, `FAILED_TO_EVALUATE` controls whether a fold is
+reattempted, while the result expression is unchanged in the caught-error
+path; its global semantic irrelevance has NOT been proved here.
+
+**Related compiler-verification frontier:** LLVM's Alive2 already performs
+translation validation of ACTUAL compiler optimization pipelines; CompCert
+has long supplied mechanized compiler-correctness proofs. Therefore
+actual-execution-linked validation is NOT a generic first. QueryProof's
+candidate contribution is an effect-aware translation validator specialized
+to the subtleties of Catalyst / SQL bag and NULL semantics, contingent on
+a trustworthy Spark/semantics bridge and comparable benchmarks.
+
+### Next falsifiable source-specific round
+
+1. Source-audit Spark 4.2.0's exact five V6-certified rule families for every
+   `TreeNodeTag`, `RuleId`, private memo, metadata, stateful expression,
+   evaluation-error and query-configuration dependency. Preserve source
+   blob hashes and build a machine-readable effect inventory.
+2. Exercise a **production** `ConstantFolding` silent-effect counterexample
+   in a controlled multi-rule chain, comparing post-cut tag/cache states and
+   resulting plans. Test a second rule that reads that state. Do not claim
+   wrong answers from a mere planning-path difference.
+3. Define a typed, complete semantic projection for the *exact* emitted
+   Catalyst AST fragment, with a proof that the parser rejects every
+   unrecognized value-bearing field rather than treating it as hidden junk.
+4. State source-proven per-rule semantic noninterference obligations, and
+   connect them to the already kernel-checked effect-indexed trace calculus.
+5. Freeze a new prospective corpus with unexposed, adversarial target
+   families and negative mutators before the first V8 execution; report
+   an EXACT same-case intersection of whole-suffix proof and all independent
+   guards. The original W32 remains 16/32 prospective forever.
+
