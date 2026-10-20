@@ -195,3 +195,19 @@ records *effective* changes and could silently omit in-place tag mutations;
 a pre-rule/post-rule audit of **all** invocations is needed before trying to
 relax the tag quarantine. Then separately derive (or refute) a formal
 noninterference lemma for tags within the narrow logical row-bag fragment.
+
+### Additional all-rule soundness counterexample
+
+Actual Spark source injects a rule that mutates a plan's private tag in place
+and returns the same JVM object. Thus `result.fastEquals(plan)` is true, and
+the original QueryProof AST observer (effective changes only) emits no rule
+event at all. The instrumented before/after observer, inserted at the actual
+`RuleExecutor` invocation boundary, **detects the hidden mutation**. An
+identical benign no-op has no false alarm. Successful free CI:
+https://github.com/mhatipog/spark/actions/runs/39408827014 .
+
+This is a second distinct blind spot in the *verifier's trace-completeness
+assumption*, not a Spark optimizer bug. The all-rule observer is observational
+and still uses a lossy tag-frame digest. Its absence-of-drift result, even if
+confirmed over H, cannot prove semantic noninterference of tags or exclude
+transient mutation followed by restoration inside a single rule call.
