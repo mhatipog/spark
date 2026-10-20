@@ -1,0 +1,78 @@
+name: QueryProof 48-case prospective grouping-key certificate
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_grouping_repetition_20261020/CASES.json
+      - tools/queryproof_grouping_repetition_20261020/FROZEN_PROTOCOL.json
+      - tools/queryproof_grouping_repetition_20261020/VERIFIER_PIN.json
+      - tools/queryproof_grouping_repetition_20261020/run_prospective.py
+      - .github/workflows/queryproof-grouping-prospective.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prospective-grouping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official PySpark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Build disposable instrumented Catalyst overlay
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Replay 48 previously unseen targeted SQL fixtures
+        run: python -u tools/queryproof_grouping_repetition_20261020/run_prospective.py
+      - name: Enforce frozen verifier, complete coverage and no oracle mismatch
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          f = Path("artifacts/queryproof_grouping_repetition_20261020.json")
+          if not f.exists():
+              raise SystemExit("Missing prospective grouping report")
+          r = json.loads(f.read_text())
+          p = r["grouping_repetition"]
+          print("GROUPING_PROSPECTIVE", json.dumps(p, sort_keys=True))
+          print("GROUPING_PROSPECTIVE_RULE_INVENTORY", r["union_coverage"]["by_rule"])
+          print("GROUPING_PROSPECTIVE_ALL_EVENTS", r["trace"]["trace_events"])
+          print("GROUPING_PROSPECTIVE_CASES", r["executed_cases"])
+          print("GROUPING_PROSPECTIVE_ORACLE_MISMATCHES", r["row_oracle_mismatch_cases"])
+          print("GROUPING_PROSPECTIVE_ERRORS", r["error_cases"])
+          if p["status"] != "PROSPECTIVE_FROZEN_TARGETED_GENERATED_REPETITION":
+              raise SystemExit("Prospective status / frozen provenance mismatch")
+          if not p["verifier_provenance"]["matches_frozen_checker_and_scorer"]:
+              raise SystemExit("Checker or scoring driver was modified after preregistration")
+          if r["worker_exit_code"] != 0 or r["executed_cases"] != 48:
+              raise SystemExit("Incomplete untouched 48-case cohort")
+          if r["missing_cases"] or r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("Row-result error or cross-engine disagreement")
+          if r["trace"]["trace_events"] <= 0:
+              raise SystemExit("Missing optimizer transitions")
+          if r["trace"]["decode_failures"] or r["trace"]["instrumentation_failures"]:
+              raise SystemExit("Catalyst trace missing or unreadable")
+          '
+      - name: Save sanitized prospective proof scoreboard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-prospective-grouping-48-cases
+          path: artifacts/queryproof_grouping_repetition_20261020.json
+          if-no-files-found: warn
+          retention-days: 14
