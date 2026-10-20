@@ -178,6 +178,11 @@ def summarize_scope_stream(stream):
             "proved": proof,
             "reason": reason,
             "changed_later_batches": sum(batch["changed"] for batch in later),
+            "later_batch_diagnostics": [
+                {"batch": batch["batch"], "changed": batch["changed"],
+                 "certified": batch["certified"], "reason": batch["reason"]}
+                for batch in later if batch["changed"] or not batch["certified"]
+            ],
         })
     suffix_reasons = Counter(s["reason"] for s in suffixes)
     return {
