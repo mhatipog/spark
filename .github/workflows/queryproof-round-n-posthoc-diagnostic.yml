@@ -63,6 +63,8 @@ jobs:
           assert r["executed_cases"]==4 and not r["error_cases"] and not r["row_oracle_mismatch_cases"]
           assert r["worker_exit_code"]==0
           assert d["status"]=="POSTHOC_DEVELOPMENT_ONLY_NO_PROSPECTIVE_CREDIT"
+          assert d["total_negative_rejections"]==8
+          assert all(v.get("CollapseProjectV2:CERTIFIED")==1 for k,v in d["checker_reasons"].items() if k in ("M17","M21"))
           '
       - name: Store sanitized posthoc diagnosis
         if: always()
