@@ -23,6 +23,11 @@ def strict_score(path):
         row["case"] for row in strict["optimizer_suffix_case_counts"]
         if row["changed"] and row["proved"]
     }
+    all_cases = {row["case"] for row in strict["optimizer_suffix_case_counts"]}
+    rejected_cases = all_cases - strict_cases
+    all_rule_status = report["v6_posthoc_predicate_dependency"]["v6_observer_statuses"]["all_rule"]
+    if all_rule_status != "COMPLETE_ALL_RULE_AUDIT":
+        raise RuntimeError("RULE_AUDIT_DID_NOT_ESTABLISH_EVENT_COMPLETENESS: " + all_rule_status)
     if not strict_cases <= old_cases:
         raise RuntimeError("STRICT_VERIFIER_ACCEPTED_CASE_NOT_ACCEPTED_BY_V6")
     if len(old_cases) != 20:
@@ -34,6 +39,12 @@ def strict_score(path):
         "v8_strict_count": len(strict_cases),
         "v8_strict_case_ids": sorted(strict_cases),
         "newly_rejected_case_ids": sorted(old_cases - strict_cases),
+        "rejected_case_ids": sorted(rejected_cases),
+        "rejected_case_unknown_rules": [
+            row for row in strict["unknown_rule_case_inventory"]
+            if row["case"] in rejected_cases
+        ],
+        "all_rule_audit_status": all_rule_status,
         "impossible_extra_acceptances": sorted(strict_cases - old_cases),
         "strict_scope_reason_counts": strict["by_reason"],
         "strict_suffix_reason_counts": strict["optimizer_suffix_reason_counts"],
