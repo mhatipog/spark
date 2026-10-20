@@ -1,5 +1,6 @@
 """Diagnostic-only replay of the already-seen 60-case Spark corpus.
 These cases have no new holdout status for grouping-key deduction.
+Attribute diagnostics expose only field-key shapes, never values or ExprIds.
 """
 from pathlib import Path
 import sys
