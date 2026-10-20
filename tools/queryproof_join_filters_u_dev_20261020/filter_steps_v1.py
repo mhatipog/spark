@@ -66,6 +66,19 @@ def _source_project(tree):
     return selected, project, pc[0]
 
 
+def _serialized_qualifier(qualifier):
+    """Recognize Spark TreeNode.toJSON's two observed Seq encodings.
+
+    In the recorded plans, an empty Seq is a JSON [], while a populated
+    qualifier Seq is serialized as a JSON string. Both describe Spark's
+    non-value-bearing AttributeReference.qualifier; never parse it as a key.
+    """
+    return (isinstance(qualifier, list) and
+            all(isinstance(q, str) for q in qualifier)) or (
+            isinstance(qualifier, str) and bool(qualifier) and
+            len(qualifier) <= 1024)
+
+
 def _is_not_null(filter_header, retained):
     require(filter_header.get("class") == LOGICAL + "Filter" and
             filter_header.get("num-children") == 1 and
@@ -93,10 +106,8 @@ def _is_not_null(filter_header, retained):
     require(set(reference) == set(expected) and
             all(reference[field] == expected[field] for field in expected
                 if field != "qualifier") and
-            isinstance(reference.get("qualifier"), list) and
-            all(isinstance(q, str) for q in reference["qualifier"]) and
-            isinstance(expected.get("qualifier"), list) and
-            all(isinstance(q, str) for q in expected["qualifier"]),
+            _serialized_qualifier(reference.get("qualifier")) and
+            _serialized_qualifier(expected.get("qualifier")),
             "FILTER_ATTRIBUTE_RESOLVED_ID_OR_VALUE_METADATA_CHANGED")
     return key
 
