@@ -21,6 +21,7 @@ jobs:
             tools/queryproof_context_validator
             tools/queryproof_holdout_20261018
             tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_external_duckdb_column_liveness_20261019
             tools/queryproof_external_duckdb_generalized_liveness_20261020
             tools/queryproof_instrumented
       - uses: actions/setup-java@v4
@@ -66,11 +67,39 @@ jobs:
           if r["trace"]["trace_events"] <= 0:
               raise SystemExit("No optimizer events recorded")
           '
+      - name: Diagnose previously observed A10-style exception (no holdout credit)
+        run: python -u tools/queryproof_external_duckdb_generalized_liveness_20261020/run_generalized_old_A_posthoc.py
+      - name: Audit previously seen A cohort separately
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          f = Path("artifacts/queryproof_generalized_old_A_replay_DIAGNOSTIC.json")
+          if not f.exists():
+              raise SystemExit("Missing prior A diagnostic report")
+          r = json.loads(f.read_text())
+          p = r["generalized_column_liveness"]
+          print("POSTHOC_OLD_A_CASES", r["executed_cases"])
+          print("POSTHOC_OLD_A_EVENTS", r["trace"]["trace_events"])
+          print("POSTHOC_OLD_A_GENERALIZED", p)
+          print("POSTHOC_OLD_A_FROZEN_ORIGINAL", r["retrospective_column_liveness"])
+          if p["status"] != "RETROSPECTIVE_UNPINNED":
+              raise SystemExit("No posthoc proof may be called prospective")
+          if r["executed_cases"] != 15 or r["worker_exit_code"] != 0:
+              raise SystemExit("Incomplete old A retrospective cohort")
+          if r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("Cross-engine discrepancy in old A replay")
+          if r["trace"]["decode_failures"] or r["trace"]["instrumentation_failures"]:
+              raise SystemExit("Incomplete old A diagnostic trace")
+          '
       - name: Archive sanitized independent-protocol scores
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: queryproof-generalized-liveness-repaired-diagnostic
-          path: artifacts/queryproof_duckdb_generalized_liveness_20261020.json
+          path: |
+            artifacts/queryproof_duckdb_generalized_liveness_20261020.json
+            artifacts/queryproof_generalized_old_A_replay_DIAGNOSTIC.json
           if-no-files-found: warn
           retention-days: 14
