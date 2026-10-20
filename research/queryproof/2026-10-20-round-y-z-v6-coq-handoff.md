@@ -463,3 +463,118 @@ try to instantiate the effect-indexed Coq trace theorem with an actual
 Spark 4.2.0 expression-extractor soundness bridge, or report UNKNOWN.
 Then return to the 12 unsupported W32 cases with a separate prospective
 corpus and blind negative controls. Preserve all failed CI runs.
+
+
+## Follow-up: Spark JSON serialization collision, impossibility theorem, and source-side repair
+
+**Major new source-level falsifier:** official Spark v4.2.0
+`sql/catalyst/.../trees/TreeNode.scala`, pinned blob
+`e82e6a30b9bba41e637b27cbab43f26d9d23ff9b`, serializes
+`Metadata` through `case m: Metadata => Metadata.empty.jsonValue` in
+`parseToJson`. The source comment cites Spark issue SPARK-17356:
+unbounded ML metadata can trigger out-of-memory conditions. The serializer
+also drops generic maps and has intentionally truncated sequences; neither
+`toJSON` nor `prettyJson` is a complete, injective Catalyst object
+representation. This is standard intentional Spark behavior, not a bug.
+
+The official v4.2.0 `namedExpressions.scala`, blob
+`c7a2165480854905999e22be6125d76eb3a31db0`, makes
+`AttributeReference.equals` depend on `metadata` and defines `ExprId`
+equality using BOTH numeric `id` and `jvmId`. The same numeric
+`ExprId` alone is NOT a sufficient binding identity.
+`BoundAttribute.scala` blob
+`9a0bab32061fa0d12af3cefb8055dc06a4c5942c` shows
+`BindReferences.bindReference` locates slots by full `exprId`;
+binding must happen after column-pruning layout changes.
+
+**First native serializer experiment:** source
+`tools/queryproof_posthoc_v7_20261020/QueryProofNativeJsonLossWitness.scala`,
+commit `a64c8126e40dccb6a60ca7c742bc7d2f5d4723bc`, workflow
+`.github/workflows/queryproof-native-json-loss.yml`, commit
+`a84c617248ab35aae62c95ed4afc111cb462b3dc`.
+GitHub Actions **`39461415673`**, job `118761549608`, SUCCESS,
+actual unmodified Spark 4.2.0 JVM:
+
+- Two `AttributeReference` nodes with the SAME name, type, nullability
+  and full ExprId but distinct actual metadata
+  `{"queryproof_provenance":"secret-A"}` and `secret-B` were unequal
+  by Spark `equals/fastEquals`, but `toJSON` strings were EXACTLY equal
+  and printed `"metadata":{}` for both.
+- The collision survives wrapping in a genuine unequal
+  `LocalRelation` logical plan: again IDENTICAL `toJSON`.
+- Positive controls showed Spark's JSON *does* retain distinct ExprId
+  JVM UUIDs even when numeric ids collide; data type and nullability
+  changes also produced distinct JSON. This is a specific encoding gap.
+- The source contains the exact printed Spark JSON and both true raw
+  metadata values in the CI log. Do NOT conflate real Catalyst equality
+  with its lossy JSON image.
+
+**Coq lower-bound theorem:** `QueryProofJsonImpossibility.v` first
+introduced in `061a10956a0275e7a7dffb1f858889f2445498d9`.
+Initial Coq compile `39461873748` FAILED on equality rewrite
+orientation; fix `9493ab3f297fc7f10f63cd83247f1180e0756168` compiled
+under official Coq 8.18, CI **`39462049077` SUCCESS**. The theorem
+proves a colliding serializer cannot have a total left inverse that
+reconstructs EVERY distinct source object. A semantic-decoder
+impossibility requires the ADDITIONAL premise that the colliding objects
+have different meanings; no Spark wrong-answer or actual metadata
+denotational difference is established. A strictly restricted source
+domain with empty metadata can have an injective simplified representation,
+but `TreeNode.toJSON` does NOT prove actual metadata was empty.
+
+**Constructive narrow source-side repair:** Scala
+`QueryProofNativeSourceBoundFrameWitness.scala`,
+commit `6a07bdcf39078ca67db9b32360262aa3d2e35a39`;
+workflow `queryproof-native-source-bound-frame.yml`,
+commit `283443dddb4d8f060d0c8e4828709d6dbe44d9e3`.
+GitHub Actions **`39462504637`**, job `118765311862`, SUCCESS.
+For the SINGLE tiny admitted grammar `LocalRelation` with an EMPTY,
+NON-STREAMING input and only `AttributeReference` output slots,
+a separate native source frame captures full `a.metadata.json`,
+`exprId.id`, `exprId.jvmId`, name, dtype, nullability,
+non-truncated qualifier values, and `/output/INDEX` paths; metadata
+and qualifier lengths have explicit upper limits. A two-column metadata
+SWAP that leaves Spark's `toJSON` unchanged is DETECTED by the new
+position-indexed frame. An unrelated `Project` plan is explicitly
+rejected as `UNKNOWN`. This repairs one source-observation collision
+in one tiny scope; it does NOT capture intra-rule transient mutation,
+opaque private cache state, arbitrary Catalyst expressions, runtime SQL
+semantics, or prove the native extractor matches a Coq interpretation.
+
+A second, explicitly POSTHOC Coq development commit
+`736e0e0c0cbaf7bdd9b247838e4cd306cb6ec571` extends the
+impossibility file with an abstract ordered source-frame injectivity
+and metadata-swap countermodel. Record independent Coq CI outcome
+once verified; do not credit as kernel-proven until successful.
+
+**Exact impact on old scores: NONE.** W32 prospective first run stays
+16/32 structural; X stays 0/16 strict; V6/V7 posthoc stay 20/32
+structural and 0/20 strict. This is new evidence about the reliability
+of existing serialization as a proof bridge, not a new W case that
+changed results. No historical first-run file or scoring definition changed.
+
+**Critical next obligations:**
+
+1. Treat raw Catalyst `toJSON` as a lossy *diagnostic*, not as a
+   mathematical AST witness; reject unverified metadata or other erased
+   fields rather than treating absence from JSON as evidence of absence
+   from the native plan.
+2. Make the source-bound frame complete for EACH recognized operator,
+   including exact ordered field identities and actual metadata,
+   qualifier, dtype, nullability, TreeNodeTag effects and rule caches,
+   or discharge explicitly source-proven semantic noninterference.
+3. Formalize and validate the specific Scala source-frame to typed
+   Coq-interpreter mapping. Coq kernel correctness of an abstract
+   record-based frame does not verify a Scala extractor.
+4. Add mutation-site event witnesses or rigorously prove effects can
+   be ignored for row bags; snapshots at rule boundaries cannot reveal
+   state transitions that are reverted within one rule.
+5. Only THEN freeze a new independent prospective corpus and evaluate
+   whole-suffix proof+every hidden gate on the EXACT same cases, with
+   predeclared UNKNOWN controls. Keep SQLSolver/VeriEQL comparisons
+   within their official semantics and first-run provenance.
+
+**Scientific label:** source-observer counterexample + conditional
+impossibility proof + narrow source-bound prototype. NOT production
+Spark correctness verification, no query-answer flaw, no upgraded
+W32 headline.
