@@ -1,0 +1,40 @@
+{
+  "schema_version": 5,
+  "benchmark_id": "queryproof-prospective-n32-new-data-20261020",
+  "required_case_count": 32,
+  "prospectively_frozen_before_first_n_execution": true,
+  "primary_metric": "Number of changed post-FinishAnalysis optimizer suffixes with complete v2 structural proof chains passing original independent state/frame/RDD-input/all-rule/tag guards; guard counts and exact intersection required",
+  "source_protocol": "New independent seeded synthetic dataset and SQL generation, 8 families x 4 cases",
+  "data_oracle": "Finite Apache Spark 4.2.0 vs SQLite unordered row-multiset equality",
+  "cohort_strata": {
+    "TARGET_EXTREMA": 8,
+    "TARGET_NESTED": 8,
+    "GENERALIZATION_CHALLENGE": 16
+  },
+  "frozen_git_blob_shas": {
+    "tools/queryproof_round_n_dev_20261020/aggregate_identity_v2.py": "f0c579cfd422e56c6017f04a9900784c1fdbcfdf",
+    "tools/queryproof_round_n_dev_20261020/generalized_liveness_v2.py": "12bfb44e682cae059869f245eff7e3c1ec18ce12",
+    "tools/queryproof_round_n_dev_20261020/scope_ledger_v2.py": "d03f21c8fd6543d2d38456899c3f664a0fc5ed73",
+    "tools/queryproof_context_validator/grouping_repetition_certificate.py": "092bb0ecdf8e459a0c1cd3c712959a9d243a191f",
+    "tools/queryproof_adversarial_20261020/replay_input_h.py": "9a06dd33c61d014a4a986c1a05c6cfb5c37e1060",
+    "tools/queryproof_prospective_n_20261020/run_n.py": "6ee4e8e4666784f31739807e2df99cdba5a15179",
+    "tools/queryproof_state_witness_20261020/state_guard.py": "9c73e9d09e405d8ffad4d52702a810029a603b59",
+    "tools/queryproof_state_frame_20261020/frame_guard.py": "3b66d103e11db0b9adbbace0e0b6977df0266f6f",
+    "tools/queryproof_adversarial_20261020/replay_silent_h.py": "351c175f57ad8ecf99dd52d04517187dd9bc4886",
+    "tools/queryproof_adversarial_20261020/tag_taxonomy_h.py": "2f320c9c9632b5336927febf68a5b27cf2ce5dde"
+  },
+  "unknown_policy": "No unsupported rules, plans, inputs or metadata silently admitted; abstention counted against denominator",
+  "no_postrun_threshold_tuning": true,
+  "zero_certificates_is_valid_result": true,
+  "exclusions": [
+    "Runtime observable error equivalence and arbitrary UDF state",
+    "Version-independent guarantees",
+    "Ordered-list/tie-sensitive top-k equivalence",
+    "General causal SQL proof beyond the checked local grammar"
+  ],
+  "prior_art": [
+    "SQLSolver",
+    "Logos, arXiv 2608.15709"
+  ],
+  "preregistration_caution": "Coverage estimates are stratified purposive synthetic cases, not production-rate estimates"
+}
