@@ -1,0 +1,74 @@
+name: QueryProof strict exact-plan proof chain diagnostic
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_composition_20261020/chain_connectivity.py
+      - tools/queryproof_composition_20261020/test_chain_connectivity.py
+      - tools/queryproof_composition_20261020/run_chain.py
+      - .github/workflows/queryproof-exact-chain.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-chain-adjacency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fail-closed adjacency, metadata, and UNKNOWN controls
+        run: python -B -m unittest discover -s tools/queryproof_composition_20261020 -p 'test_chain_connectivity.py' -v
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official PySpark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Build disposable traced Catalyst overlay
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Score exact snapshot-continuous local proof chains
+        run: python -u tools/queryproof_composition_20261020/run_chain.py
+      - name: Report strict connectivity without exposing raw plans
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          f = Path("artifacts/queryproof_exact_chain_diagnostic.json")
+          if not f.exists():
+              raise SystemExit("Missing chain diagnostic output")
+          r = json.loads(f.read_text())
+          chain = r["union_coverage"]["strict_chain_diagnostic"]
+          print("STRICT_CHAIN_DIAGNOSTIC", json.dumps({
+              k: v for k, v in chain.items()
+              if k != "per_case"}, sort_keys=True))
+          print("STRICT_CHAIN_ERRORS", r["error_cases"])
+          print("STRICT_CHAIN_MISMATCHES", r["row_oracle_mismatch_cases"])
+          print("STRICT_CHAIN_EVENT_COUNT", r["trace"]["trace_events"])
+          if r["worker_exit_code"] != 0 or r["executed_cases"] != 48:
+              raise SystemExit("Incomplete diagnostic")
+          if r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("Oracle mismatch")
+          if chain["recorded_events"] != r["trace"]["trace_events"]:
+              raise SystemExit("Missing events in strict plan chain diagnosis")
+          '
+      - name: Save sanitized chain and case counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-strict-plan-chain-diagnostic
+          path: artifacts/queryproof_exact_chain_diagnostic.json
+          retention-days: 14
+          if-no-files-found: warn
