@@ -188,6 +188,29 @@ class GroupRepetitionTests(unittest.TestCase):
         e["old"][0]["groupingExpressions"][0][0]["exprId"]["id"] = 66
         self.no(e)
 
+    def test_real_spark_max_output(self):
+        e = ex()
+        maximum = agg_fn("Max", [att(1)], 33)
+        e["old"][0]["aggregateExpressions"].append(copy.deepcopy(maximum))
+        e["new"][0]["aggregateExpressions"].append(copy.deepcopy(maximum))
+        self.yes(e)
+
+    def test_min_output_with_null_key(self):
+        e = ex()
+        minimum = agg_fn("Min", [att(1)], 34)
+        e["old"][0]["aggregateExpressions"].append(copy.deepcopy(minimum))
+        e["new"][0]["aggregateExpressions"].append(copy.deepcopy(minimum))
+        self.yes(e)
+
+    def test_nonatomic_max_input_abstains(self):
+        e = ex()
+        add = [{"class": EX + "Add", "num-children": 2,
+                "left": 0, "right": 1}, att(1), literal(1, "integer")]
+        maximum = agg_fn("Max", add, 33)
+        e["old"][0]["aggregateExpressions"].append(copy.deepcopy(maximum))
+        e["new"][0]["aggregateExpressions"].append(copy.deepcopy(maximum))
+        self.no(e)
+
     def test_nondeterministic_aggregate_output(self):
         e = ex()
         e["old"][0]["aggregateExpressions"][0] = [
