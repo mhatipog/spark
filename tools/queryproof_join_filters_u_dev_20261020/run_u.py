@@ -159,6 +159,12 @@ def diagnostic(path):
         "v4_certified_suffixes": new.get("certified_changed_optimizer_suffixes"),
         "v4_status": new.get("status"),
         "v4_unknown_rule_types": new.get("unknown_rules"),
+        "v4_scope_reason_counts": new.get("by_reason"),
+        "v4_batch_aggregate_counts": new.get("by_batch"),
+        "v4_per_case_scope_counts": {
+            case: counts for case, counts in new.get("case_counts", {}).items()
+            if case in ("M17", "M21", "M29", "M33")
+        },
         "all_guard_statuses": {
             "state": state.get("status"), "frame": frame.get("status"),
             "rdd_input": inp.get("status"), "all_rule": all_rule.get("status"),
