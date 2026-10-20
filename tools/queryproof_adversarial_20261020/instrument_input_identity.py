@@ -53,11 +53,11 @@ METHODS = r'''
 '''
 
 FRAME_ANCHOR = (
-    '    System.err.println("QUERYPROOF_FRAME\\\\t" + frames.map(b64).mkString("\\\\t"))\n'
+    '    System.err.println("QUERYPROOF_FRAME\\t" + frames.map(b64).mkString("\\t"))\n'
 )
 INPUT_APPEND = (
     '    val inputs = Seq(query) ++ context ++ plans.map(queryProofLeafInputs)\n'
-    '    System.err.println("QUERYPROOF_INPUT\\\\t" + inputs.map(b64).mkString("\\\\t"))\n'
+    '    System.err.println("QUERYPROOF_INPUT\\t" + inputs.map(b64).mkString("\\t"))\n'
 )
 
 
