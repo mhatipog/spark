@@ -62,6 +62,37 @@ def _negative_identity_mutations(event):
         probes[name] = verdict.get("reason", "UNKNOWN")
     return probes
 
+def _negative_liveness_mutations(event):
+    """Change AST semantic obligations around one actual JVM pruning event."""
+    probes = {}
+    for name in ("aggregate_changed", "input_substituted",
+                 "live_projection_dropped", "output_identity_changed"):
+        modified = deepcopy(event)
+        if name == "aggregate_changed":
+            agg = next(n for n in modified["new"]
+                       if str(n.get("class", "")).endswith(".Aggregate"))
+            agg["__corrupt_aggregate__"] = True
+        elif name == "input_substituted":
+            leaf = next(n for n in modified["new"]
+                        if str(n.get("class", "")).endswith(".LogicalRDD"))
+            leaf["__corrupt_backing_relation__"] = True
+        else:
+            prj = next(n for n in modified["new"]
+                       if str(n.get("class", "")).endswith(".Project"))
+            assert prj["projectList"]
+            if name == "live_projection_dropped":
+                prj["projectList"] = []
+            else:
+                atom = prj["projectList"][0][0]
+                ident = atom.get("exprId")
+                assert isinstance(ident, dict) and type(ident.get("id")) is int
+                ident["id"] += 1000000
+        verdict = v2_liveness(modified)
+        if verdict["status"] == "EQUIVALENT_IN_FRAGMENT":
+            raise AssertionError("UNSAFE_V2_LIVENESS_FALSE_ACCEPT:" + name)
+        probes[name] = verdict.get("reason", "UNKNOWN")
+    return probes
+
 ORIGINAL = run_external.union_coverage
 CHECKS = {
     "ColumnPruning": certify_generalized_projection_liveness_event,
@@ -73,6 +104,7 @@ def diagnostic(path):
     per_case = defaultdict(Counter)
     safe_shape = defaultdict(list)
     v2_negative_controls = {}
+    v2_liveness_negative_controls = {}
     for line in path.read_text(errors="replace").splitlines():
         if not line.startswith("QUERYPROOF_AST" + chr(9)):
             continue
@@ -88,6 +120,8 @@ def diagnostic(path):
         per_case[case][key] += 1
         if name == "ColumnPruning":
             v2_prune = v2_liveness(event)
+            if v2_prune["status"] == "EQUIVALENT_IN_FRAGMENT":
+                v2_liveness_negative_controls[case] = _negative_liveness_mutations(event)
             per_case[case]["ColumnPruningV2:" + (
                 "CERTIFIED" if v2_prune["status"] == "EQUIVALENT_IN_FRAGMENT"
                 else v2_prune.get("reason", "UNKNOWN"))] += 1
@@ -120,6 +154,8 @@ def diagnostic(path):
         "sanitized_rule_topologies": dict(safe_shape),
         "adversarial_negative_rejections": v2_negative_controls,
         "total_negative_rejections": sum(map(len, v2_negative_controls.values())),
+        "liveness_negative_rejections": v2_liveness_negative_controls,
+        "total_liveness_negative_rejections": sum(map(len, v2_liveness_negative_controls.values())),
         "changed_suffixes": scope.get("changed_optimizer_suffixes"),
         "certified_changed_suffixes_under_ORIGINAL_M_checkers":
             scope.get("certified_changed_optimizer_suffixes"),
