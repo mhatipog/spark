@@ -16,6 +16,7 @@ from test_generalized_projection_liveness import example
 from generalized_projection_liveness_certificate import (
     certify_generalized_projection_liveness_event)
 from scope_ledger import _chain_proof
+from guarded_leaf_identity import certify_with_opaque_leaf_guard
 
 data = json.loads(
     (ROOT / "artifacts" / "queryproof_logical_rdd_collision.json").read_text())
@@ -60,3 +61,11 @@ if result["status"] == "EQUIVALENT_IN_FRAGMENT":
 else:
     print("QUERYPROOF_ADVERSARIAL_LOCAL_CHECKER_ABSTAINS=CONFIRMED")
     print("QUERYPROOF_UNKNOWN_REASON", result.get("reason", "unspecified")[:200])
+
+# The independently versioned emergency guard must refuse the exact injected
+# transition that the old checker certifies.
+guarded = certify_with_opaque_leaf_guard(
+    event, certify_generalized_projection_liveness_event)
+assert guarded["status"] == "UNKNOWN", guarded
+assert guarded["reason"] == "UNATTESTED_INPUT_RELATION", guarded
+print("QUERYPROOF_OPAQUE_LEAF_GUARD_REJECTS_FALSE_CERTIFICATE=CONFIRMED")
