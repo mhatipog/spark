@@ -55,6 +55,7 @@ try:
                                    dependent_dead_division],
         "row_dependent_raise_error": [dependent_direct_error["status"],
                                       dependent_dead_error],
+        "safe_unused_projection_count": safe_dead,
         "interpretation": "In these Spark 4.2 runs even apparently unused ANSI/raise_error expressions still fail; optimizer ordering/effects need separate semantics",
     }
     print("QUERYPROOF_ROUND_N_ERROR_BOUNDARY", json.dumps(result, sort_keys=True), flush=True)
@@ -64,7 +65,8 @@ try:
     assert constant_dead_error["status"] == "EXCEPTION"
     assert dependent_direct_division["status"] == "EXCEPTION"
     assert dependent_direct_error["status"] == "EXCEPTION"
-    assert dependent_dead_division == {"status": "VALUE", "rows": [[2]]}, result
-    assert dependent_dead_error == {"status": "VALUE", "rows": [[2]]}, result
+    assert dependent_dead_division["status"] == "EXCEPTION", result
+    assert dependent_dead_error["status"] == "EXCEPTION", result
+    assert safe_dead == {"status": "VALUE", "rows": [[2]]}, result
 finally:
     spark.stop()
