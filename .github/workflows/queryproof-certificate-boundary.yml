@@ -503,6 +503,7 @@ jobs:
           print("COLUMN_HOLDOUT_CASES", report["executed_cases"])
           print("COLUMN_HOLDOUT_EVENTS", report["trace"]["trace_events"])
           print("COLUMN_HOLDOUT_PROOF", proof)
+          print("COLUMN_HOLDOUT_REDACTED_SHAPES", report["column_pruning_diagnostic"])
           print("COLUMN_HOLDOUT_ERRORS", report["error_cases"])
           print("COLUMN_HOLDOUT_MISMATCHES", report["row_oracle_mismatch_cases"])
           print("COLUMN_HOLDOUT_RULE_DENOMINATORS", report["union_coverage"]["by_rule"])
