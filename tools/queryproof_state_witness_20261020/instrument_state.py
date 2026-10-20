@@ -36,7 +36,7 @@ STATE_METHODS = """
             case a: Alias => visit(a.metadata)
             case p: LogicalPlan =>
               p.expressions.foreach(visit)
-              p.output.foreach(visit)
+              if (p.resolved) p.output.foreach(visit)
             case _ =>
           }
         }
