@@ -36,11 +36,11 @@ METHODS = r'''
         val fields = Seq(query, executor, batch, rule, iteration.toString,
           effective.toString, mismatch.toString, frameChanged.toString,
           inputChanged.toString)
-        System.err.println("QUERYPROOF_RULE_AUDIT\\t" +
-          fields.map(b64).mkString("\\t"))
+        System.err.println("QUERYPROOF_RULE_AUDIT\t" +
+          fields.map(b64).mkString("\t"))
       } catch {
         case scala.util.control.NonFatal(e) =>
-          System.err.println("QUERYPROOF_RULE_AUDIT_ERROR\\t" + e.getClass.getName)
+          System.err.println("QUERYPROOF_RULE_AUDIT_ERROR\t" + e.getClass.getName)
       }
     }
   }
