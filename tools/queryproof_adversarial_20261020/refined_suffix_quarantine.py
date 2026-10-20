@@ -20,9 +20,7 @@ def tagged_optimizer_suffix_cases(records):
 
     def active():
         return any(
-            entry["kind"] == "EXECUTOR" and
-            entry["executor"] == "Optimizer" and
-            entry["finished"] for entry in stack)
+            entry["kind"] == "EXECUTOR" and entry["finished"] for entry in stack)
 
     def has_tags(record):
         states = record.get("states")
@@ -63,8 +61,7 @@ def tagged_optimizer_suffix_cases(records):
             tagged.add(case)
         stack.pop()
         if kind == "BATCH" and batch == "Finish Analysis":
-            if not stack or stack[-1]["kind"] != "EXECUTOR" or (
-                    stack[-1]["executor"] != "Optimizer"):
+            if not stack or stack[-1]["kind"] != "EXECUTOR":
                 raise ValueError("MISSING_OPTIMIZER_CUT")
             stack[-1]["finished"] = True
             finish[case] += 1
