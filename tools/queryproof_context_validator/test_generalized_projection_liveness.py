@@ -16,9 +16,13 @@ def rem(src, divisor=2):
              "left": 0, "right": 1}, src, literal(divisor, "integer")]
 
 
+def alias_expr(expr, expr_id, name):
+    return [alias(expr[0], expr_id, name)[0], *expr]
+
+
 def example():
     a, b = att(0), att(1)
-    k = alias(rem(a), 10, "k")
+    k = alias_expr(rem(a), 10, "k")
     key = alias_ref(10, "k")
     top = agg([[copy.deepcopy(key)]], [
         agg_fn("Sum", [copy.deepcopy(a)], 20),
@@ -32,7 +36,7 @@ def example():
 
 def dead_expression_example():
     a, b = att(0), att(1)
-    k = alias(rem(a), 10, "k")
+    k = alias_expr(rem(a), 10, "k")
     top = agg([[a]], [agg_fn("Count", [literal(1, "integer")], 20)])
     base = logical_rdd(a, b)
     return {"old": [top, proj([a], [b], k), base],
@@ -153,7 +157,7 @@ class GeneralizedLivenessTests(unittest.TestCase):
 
     def test_rand_cannot_be_discarded(self):
         e = dead_expression_example()
-        e["old"][1]["projectList"][2] = alias(
+        e["old"][1]["projectList"][2] = alias_expr(
             [{"class": EX + "Rand", "num-children": 0}], 10, "k")
         self.no(e)
 
@@ -176,7 +180,7 @@ class GeneralizedLivenessTests(unittest.TestCase):
 
     def test_unknown_cast_in_computed_project_rejected(self):
         e = example()
-        e["old"][1]["projectList"][2] = alias([
+        e["old"][1]["projectList"][2] = alias_expr([
             {"class": EX + "Cast", "num-children": 1, "child": 0},
             att(0)], 10, "k")
         self.no(e)
@@ -188,7 +192,7 @@ class GeneralizedLivenessTests(unittest.TestCase):
 
     def test_project_reference_out_of_scope_rejected(self):
         e = example()
-        e["new"][2]["projectList"][2] = alias(rem(att(99)), 10, "k")
+        e["new"][2]["projectList"][2] = alias_expr(rem(att(99)), 10, "k")
         self.no(e)
 
     def test_project_stack_depth_limit(self):
