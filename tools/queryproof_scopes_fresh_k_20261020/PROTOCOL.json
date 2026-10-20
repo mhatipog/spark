@@ -1,0 +1,17 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-hierarchical-scope-fresh-k-20261020",
+  "required_case_count": 48,
+  "frozen_verifier_commit": "369200a21d3923f0fb2364f12c356e2a606bfcaf",
+  "retrospective": false,
+  "prospective_scope_suffix": true,
+  "prospective_grouping_repetition": true,
+  "generated_targeted": true,
+  "prospective_generalized_liveness": false,
+  "limitations": [
+    "First-run frozen-scope proof audit on a separately generated but grammar-correlated K cohort; not blind third-party SQL",
+    "Changing scope/checker/scorer after this first run invalidates prospective scope claims",
+    "Optimizer suffix starts strictly after FinishAnalysis; Analyzer and normalization not certified",
+    "Spark vs SQLite finite rowbags are an independent regression oracle, not a universal proof"
+  ]
+}
