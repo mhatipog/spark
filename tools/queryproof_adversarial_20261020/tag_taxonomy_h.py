@@ -5,7 +5,7 @@ matched against a checked Spark v4.2.0 source allowlist. This inventory is
 NOT proof that tags are inert or that tag mutation cannot affect optimization.
 """
 import base64
-from collections import Counter
+from collections import Counter, defaultdict
 import hashlib
 from pathlib import Path
 import sys
@@ -38,10 +38,13 @@ def parse_taxonomy(values):
     if not values:
         return summary, types
     for atom in values.split(";"):
-        parts = atom.rsplit(":", 2)
-        if len(parts) != 3:
+        parts = atom.rsplit(":", 3)
+        if len(parts) != 4:
             raise ValueError("MALFORMED_TAG_TYPE_DESCRIPTOR")
-        key_hash, typ, raw_count = parts
+        key_hash, typ, shape, raw_count = parts
+        if shape not in ("all-long-elements", "non-long-elements",
+                         "not-hashset", "not-examined"):
+            raise ValueError("INVALID_TAG_ELEMENT_SHAPE")
         if len(key_hash) != 64 or any(c not in "0123456789abcdef" for c in key_hash):
             raise ValueError("INVALID_TAG_KEY_HASH")
         if not raw_count.isdecimal() or int(raw_count) < 1:
@@ -49,8 +52,40 @@ def parse_taxonomy(values):
         number = int(raw_count)
         key = KEYS.get(key_hash, "UNRECOGNIZED_KEY")
         summary[key] += number
-        types[(key, typ)] += number
+        types[(key, typ, shape)] += number
     return summary, types
+
+
+_ALLOWED_DATASET_FORM = (
+    "dataset_id", "scala.collection.mutable.HashSet", "all-long-elements"
+)
+
+
+def dataset_tag_eligible(type_counts):
+    """Necessary phase-local, source-pinned tag gate; NOT a proof by itself."""
+    return all(form == _ALLOWED_DATASET_FORM and count >= 1
+               for form, count in type_counts.items())
+
+
+def test_gate_falsifiers():
+    assert dataset_tag_eligible(Counter({_ALLOWED_DATASET_FORM: 2}))
+    assert not dataset_tag_eligible(Counter({
+        _ALLOWED_DATASET_FORM: 1,
+        ("processedJoinCondition", "org.apache.spark.sql.catalyst.expressions.Or",
+         "not-examined"): 1,
+    }))
+    assert not dataset_tag_eligible(Counter({
+        ("dataset_id", "scala.collection.mutable.HashSet",
+         "non-long-elements"): 1,
+    }))
+    assert not dataset_tag_eligible(Counter({
+        ("dataset_id", "java.lang.String", "not-hashset"): 1,
+    }))
+    assert not dataset_tag_eligible(Counter({
+        ("UNRECOGNIZED_KEY", "scala.collection.mutable.HashSet",
+         "not-examined"): 1,
+    }))
+    return True
 
 
 def read_bound_records(path):
@@ -112,6 +147,8 @@ def score_taxonomy(path, scope_summary):
     suffixcounts = Counter()
     suffixtypes = Counter()
     unknown_suffix = set()
+    case_suffix_forms = defaultdict(Counter)
+    suffix_observed = set()
     for r in records:
         case = r["case"]
         if r["kind"] == "SCOPE":
@@ -151,6 +188,8 @@ def score_taxonomy(path, scope_summary):
                                 r["context"][4] == "END"):
                 suffixcounts.update(summary)
                 suffixtypes.update(types)
+                case_suffix_forms[case].update(types)
+                suffix_observed.add(case)
                 if summary:
                     tagged_suffix_cases.add(case)
                 if summary.get("UNRECOGNIZED_KEY", 0):
@@ -164,6 +203,10 @@ def score_taxonomy(path, scope_summary):
                   if c["changed"] and c["proved"]}
     if errors:
         candidates = set()
+    eligible = {case for case in candidates
+                if case in suffix_observed and
+                dataset_tag_eligible(case_suffix_forms[case])}
+    blocked = candidates - eligible
     return {
         "status": "COMPLETE_HASHED_TAG_CENSUS" if not errors else "INVALID_TAG_CENSUS",
         "errors": sorted(set(errors)),
@@ -173,12 +216,15 @@ def score_taxonomy(path, scope_summary):
         "tagged_suffix_cases": len(tagged_suffix_cases),
         "candidate_cases_with_observed_tags": len(candidates & tagged_suffix_cases),
         "candidate_cases_with_unrecognized_tag_names": len(candidates & unknown_suffix),
+        "candidate_cases_passing_tag_shape_necessary_gate": len(eligible),
+        "candidate_cases_rejected_or_missing_tag_shape": len(blocked),
+        "tag_shape_gate_status": "SOURCE_PINNED_DATASET_ID_ONLY_NOT_A_SEMANTIC_PROOF",
         "recognized_tag_occurrences": {k: v for k, v in sorted(suffixcounts.items())
                                        if k != "UNRECOGNIZED_KEY"},
         "unrecognized_tag_occurrences": suffixcounts["UNRECOGNIZED_KEY"],
         "recognized_tag_value_types": [
-            {"name": k, "jvm_value_type": t, "occurrences": v}
-            for (k, t), v in sorted(suffixtypes.items()) if k != "UNRECOGNIZED_KEY"],
+            {"name": k, "jvm_value_type": t, "element_shape": shape, "occurrences": v}
+            for (k, t, shape), v in sorted(suffixtypes.items()) if k != "UNRECOGNIZED_KEY"],
         "overall_known_key_occurrences": {k: v for k, v in sorted(counts.items())
                                           if k != "UNRECOGNIZED_KEY"},
         "limits": [
@@ -186,6 +232,7 @@ def score_taxonomy(path, scope_summary):
             "Known-name catalog derived from Spark v4.2.0 static source search",
             "Unknown keys are deliberately not revealed or accepted",
             "This is a retrospective observational inventory, never a proof of noninterference",
+            "Passing tag-shape gate is a necessary phase-local condition, not an unconditional certificate",
         ],
     }
 
