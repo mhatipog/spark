@@ -42,6 +42,30 @@ class ChainConnectivityTests(unittest.TestCase):
         self.assertEqual(r["adjacent_certified_pairs"], 2)
         self.assertEqual(r["cases_with_two_edge_segment"], 2)
 
+    def test_equal_snapshot_different_executor_is_not_a_chain(self):
+        a = transition("q1", 0, 1)
+        b = transition("q1", 1, 2)
+        a["executor"] = "Optimizer"
+        b["executor"] = "Analyzer"
+        r = summarize_event_chain([a, b])
+        self.assertEqual(r["multi_edge_segments"], 0)
+
+    def test_equal_snapshot_different_batch_is_not_a_chain(self):
+        a = transition("q1", 0, 1)
+        b = transition("q1", 1, 2)
+        a.update({"executor": "Optimizer", "batch": "A"})
+        b.update({"executor": "Optimizer", "batch": "B"})
+        r = summarize_event_chain([a, b])
+        self.assertEqual(r["multi_edge_segments"], 0)
+
+    def test_same_executor_and_batch_allows_exact_chain(self):
+        a = transition("q1", 0, 1)
+        b = transition("q1", 1, 2)
+        a.update({"executor": "Optimizer", "batch": "OperatorOpt"})
+        b.update({"executor": "Optimizer", "batch": "OperatorOpt"})
+        r = summarize_event_chain([a, b])
+        self.assertEqual(r["multi_edge_segments"], 1)
+
     def test_unknown_single_event_never_proves_whole_trace(self):
         r = summarize_event_chain([transition("q1", 0, 1, yes=False)])
         self.assertEqual(r["fully_connected_certified_recorded_case_traces"], 0)
