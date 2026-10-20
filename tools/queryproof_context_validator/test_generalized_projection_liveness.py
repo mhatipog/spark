@@ -228,6 +228,25 @@ class GeneralizedLivenessTests(unittest.TestCase):
         e["old"][1]["projectList"][2][0]["hiddenState"] = True
         self.no(e)
 
+    def test_real_remainder_eval_context_preserved(self):
+        e = example()
+        for node in (e["old"][1]["projectList"][2][1],
+                     e["new"][2]["projectList"][2][1]):
+            node["evalContext"] = {"mode": "ANSI"}
+        self.yes(e)
+
+    def test_live_remainder_context_mutation_rejected(self):
+        e = example()
+        e["old"][1]["projectList"][2][1]["evalContext"] = {"mode": "ANSI"}
+        e["new"][2]["projectList"][2][1]["evalContext"] = {
+            "mode": "different"}
+        self.no(e)
+
+    def test_remainder_eval_context_size_limit(self):
+        e = example()
+        e["old"][1]["projectList"][2][1]["evalContext"] = "Z" * 600
+        self.no(e)
+
     def test_same_tree_is_not_a_transition(self):
         e = example()
         e["new"] = copy.deepcopy(e["old"])
