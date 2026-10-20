@@ -1,0 +1,81 @@
+name: QueryProof T posthoc join filter shape discovery
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_join_filters_t_dev_20261020/**
+      - .github/workflows/queryproof-t-posthoc-filters.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay-observed-m-join:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_join_filters_t_dev_20261020
+            tools/queryproof_join_suffix_s_dev_20261020
+            tools/queryproof_join_pruning_q_dev_20261020
+            tools/queryproof_round_n_dev_20261020
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compile checker and runner before running SQL
+        run: |
+          python -m py_compile tools/queryproof_join_filters_t_dev_20261020/run_t.py
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Attach disposable scope and independent hidden-state observers
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          python -B tools/queryproof_adversarial_20261020/instrument_silent_rules.py
+          python -B tools/queryproof_adversarial_20261020/instrument_tag_taxonomy.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Reexecute previously known M cases development-only
+        run: python -u tools/queryproof_join_filters_t_dev_20261020/run_t.py
+      - name: Print sanitized result and enforce oracle integrity
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          p=Path("artifacts/queryproof_round_t_sanitized_shapes.json")
+          if not p.is_file(): raise SystemExit("MISSING_ROUND_Q_RESULT")
+          r=json.loads(p.read_text())
+          d=r["union_coverage"]["round_t_sanitized_unknown_filter_transitions"]
+          print("QUERYPROOF_T_SHAPES",json.dumps(d,sort_keys=True))
+          assert r["executed_cases"]==4 and not r["error_cases"] and not r["row_oracle_mismatch_cases"]
+          assert r["worker_exit_code"]==0
+          assert d["status"]=="POSTHOC_DEVELOPMENT_ONLY"
+          assert d["event_count"]==4
+          '
+      - name: Preserve sanitized posthoc diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-t-posthoc-filter-shapes
+          path: artifacts/queryproof_round_t_sanitized_shapes.json
+          retention-days: 14
+          if-no-files-found: warn
