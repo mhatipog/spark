@@ -1,0 +1,17 @@
+{
+  "benchmark_id": "queryproof-hierarchical-scope-fresh-k-20261020",
+  "frozen_protocol_base_commit": "a39e991088c8d26dc96d54e5353d01a99073ec41",
+  "frozen_verifier_commit": "369200a21d3923f0fb2364f12c356e2a606bfcaf",
+  "verifier_module": "tools/queryproof_context_validator/grouping_repetition_certificate.py",
+  "frozen_verifier_git_blob_sha": "092bb0ecdf8e459a0c1cd3c712959a9d243a191f",
+  "scorer_module": "tools/queryproof_external_postgresql_join_20261019/run_external.py",
+  "frozen_scorer_git_blob_sha": "06428852dc1cc0e3e8c546a537b2775dd47db66b",
+  "scope_and_support_module_blob_sha": {
+    "tools/queryproof_scopes_20261020/scope_ledger.py": "0fe25f61ff4ef971762d4102051f76b7e8f628eb",
+    "tools/queryproof_scopes_20261020/instrument_scopes.py": "d6c058623c7b2c92232df6d68d5cc750c07b5d56",
+    "tools/queryproof_scopes_20261020/test_scope_ledger.py": "64b0346ca3984e9191164d07a8395958bf6678ad",
+    "tools/queryproof_context_validator/generalized_projection_liveness_certificate.py": "c1a8c81fa10d94d191e7c930254d78e9de7c3258",
+    "tools/queryproof_context_validator/aggregate_framed_identity_certificate.py": "0c5d9a3f188db5588217c89edfca922161fe2bf9"
+  },
+  "claim": "First prospective K execution after freezing scope/aggregation/projection certificates and boundary instrumentor; new synthetic variants and data only. No third-party representativeness."
+}
