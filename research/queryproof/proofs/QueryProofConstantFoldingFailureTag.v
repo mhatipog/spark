@@ -102,7 +102,7 @@ Proof.
   destruct view; simpl; [|reflexivity].
   destruct (compile_eval e) as [v|] eqn:Hcompile; simpl.
   - unfold meaning; simpl.
-    apply (Hsound v Hcompile r).
+    symmetry. apply (Hsound v Hcompile r).
   - reflexivity.
 Qed.
 
