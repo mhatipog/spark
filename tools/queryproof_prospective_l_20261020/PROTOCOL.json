@@ -1,0 +1,20 @@
+{
+  "schema_version": 4,
+  "benchmark_id": "queryproof-preserved-jvm-frame-prospective-l-20261020",
+  "required_case_count": 48,
+  "frozen_verifier_commit": "93305ffcfbfbb75c067715a134f31e99c33f900e",
+  "retrospective": false,
+  "prospective_frame_preservation": true,
+  "prospective_scope_suffix": true,
+  "prospective_grouping_repetition": false,
+  "prospective_generalized_liveness": false,
+  "generated_targeted": false,
+  "limitations": [
+    "Eight-family first-run xorshift32 synthetic corpus; not third-party representative SQL",
+    "Frame observer, scope ledger and local certificates must match frozen Git blob hashes before executing any L case",
+    "Certified optimizer suffix begins AFTER FinishAnalysis; upstream Analyzer and normalization are outside the equational proof",
+    "Hashes of runtime tag value string representations and actual metadata are empirical identity witnesses, not formal noninterference",
+    "Spark versus SQLite result agreement on these 48 finite rowbags is regression evidence only",
+    "Failures or unexpected unknowns must be reported without tuning verifier against frozen L"
+  ]
+}
