@@ -152,3 +152,46 @@ inputs to local proof obligations; raw syntactic coverage gains are premature.
 
 Historical files, branch, manifest pins and previous prospective results were
 not modified. No upstream PR was opened.
+
+## Live RuleExecutor follow-up (completed 2026-10-20)
+
+The next experiment proposed above **has now been executed** on the same
+versioned research branch. All links below point to free GitHub Actions runs.
+
+- Actual disposable Spark 4.2.0 source overlay, built from pinned scope/state/frame
+  tracers and `instrument_input_identity.py` emitting a fourth `QUERYPROOF_INPUT`
+  marker. Tokens are minted by a synchronized JVM `IdentityHashMap` over the
+  actual `LogicalRDD.rdd` references.
+- Actual `RuleExecutor` negative rule substitutes independent RDDs behind
+  identical Catalyst JSON; the observer **rejects** the transition with
+  `INPUT_REFERENCE_CHANGED`. Actual same-RDD project simplification **passes**
+  the input witness `SAME_INPUT_SEQUENCE`. The authentic rule compiler,
+  execution and fail-closed parser all passed in
+  https://github.com/mhatipog/spark/actions/runs/39407217801 .
+  Precisely: 2 changed rule records and 8 complete scope snapshots.
+- A second run replayed frozen H01-H48 **retrospectively** with the same live
+  observer: 438 changed rule records, 5,856 scope markers, 120 post-FinishAnalysis
+  rule records. All 120 suffix rule records preserved actual input identity;
+  30/30 earlier conditional certificates pass this *additional necessary*
+  identity obligation. Across the entire trace, 48 rule records and 768 scope
+  snapshots abstained on unsupported relation semantics, all before the proof
+  suffix window. CI https://github.com/mhatipog/spark/actions/runs/39407609164 .
+- A separate adversarial protocol suite exercises 10 malformed/reordered/
+  incomplete witness cases; CI
+  https://github.com/mhatipog/spark/actions/runs/39407833953 .
+
+**Combined verdict:** Actual RDD identity integration repairs the demonstrated
+false premise on the tested JVM input type and preserves all historical H
+candidate suffixes at that particular gate. It does not restore *unconditional*
+certificates: strict post-FinishAnalysis tag quarantine still excludes all 30.
+The observer does not authenticate arbitrary external log tampering, does not
+model non-RDD source leaves, and does not by itself validate any rewrite.
+The positive test was an input-identity witness success, not a general proof
+that arbitrary project rewrites are sound.
+
+**Next highest-value falsification:** test changes to tags/hidden state during
+rule invocations that return `fastEquals=true`. The current AST logger only
+records *effective* changes and could silently omit in-place tag mutations;
+a pre-rule/post-rule audit of **all** invocations is needed before trying to
+relax the tag quarantine. Then separately derive (or refute) a formal
+noninterference lemma for tags within the narrow logical row-bag fragment.
