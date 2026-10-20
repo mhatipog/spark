@@ -1,0 +1,29 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-duckdb-generalized-liveness-unused-20261020",
+  "required_case_count": 16,
+  "freeze_date_utc": "2026-10-20",
+  "frozen_verifier_commit": "c569e347739c432bd9189e51a16cd1353f9d5bee",
+  "prospective_generalized_liveness": true,
+  "source_commit": "0b272c23b19eb7747313fffa0a1097f720905b29",
+  "primary": "Count certified / all actual named ColumnPruning transitions on 16 never-replayed original external SQL statements. Evaluate only the pre-committed checker generalized_projection_liveness_certificate.py; report UNKNOWN and zero-denominator honestly. Zero certificates is valid.",
+  "secondary": [
+    "All 16 SQL cases execute and Spark/SQLite logical row bags match or full cohort fails",
+    "Retain changed Catalyst transition denominator, named ColumnPruning denominator, abstentions, unrecognized shapes, trace decoder errors",
+    "Pin exact new checker git blob, with any post-freeze change marked retrospective",
+    "Keep the historical five-checker union and 15-query earlier ColumnPruning holdout separate",
+    "No raw private AST, internal plan IDs, query constants or unredacted optimizer log in published diagnostic"
+  ],
+  "fixture": "Original upstream table rows at each selected SQL test statement's stage. For TINYINT, SMALLINT and BIGINT, runner maps explicit Spark numeric types; two BIGINT fixture values serialized as lossless decimal strings and parsed to 64-bit integers before engine insertion.",
+  "falsification": [
+    "Any query exception, Spark-SQLite bag disagreement, missing capture, decode failure or truncated event trace invalidates complete confirmation",
+    "Any change to frozen SQL, data, primary scorer or checker after first execution loses prospective status",
+    "No minimum certification fraction; no optimizer-wide extrapolation"
+  ],
+  "limitations": [
+    "Purposive grouping and HAVING regression sample, not statistically representative of Spark production workloads",
+    "Third-party DuckDB corpus from same repository as earlier cohorts, but new unused SQL ordinal pairs",
+    "Only bag semantics and explicitly admitted pure expressions, no guarantee of Spark physical runtime or order",
+    "SQLite finite-fixture row results provide corroboration, not a universal proof"
+  ]
+}
