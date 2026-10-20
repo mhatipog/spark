@@ -12,6 +12,9 @@ sys.path.insert(0, str(ROOT / "tools" / "queryproof_context_validator"))
 sys.path.insert(0, str(ROOT / "tools" / "queryproof_instrumented"))
 sys.path.insert(0, str(ROOT / "tools" / "queryproof_scopes_20261020"))
 sys.path.insert(0, str(ROOT / "tools" / "queryproof_holdout_20261018"))
+sys.path.insert(0, str(ROOT / "tools" / "queryproof_state_witness_20261020"))
+sys.path.insert(0, str(ROOT / "tools" / "queryproof_state_frame_20261020"))
+sys.path.insert(0, str(ROOT / "tools" / "queryproof_adversarial_20261020"))
 
 import run_external
 from rank_ast import decode
@@ -22,6 +25,11 @@ from generalized_projection_liveness_certificate import certify_generalized_proj
 from aggregate_framed_identity_certificate import certify_aggregate_framed_identity_event
 from aggregate_identity_v2 import certify_aggregate_framed_identity_event as v2_identity
 from generalized_liveness_v2 import certify_generalized_projection_liveness_event as v2_liveness
+from state_guard import score_state_witness
+from frame_guard import score_frame
+from replay_input_h import score_input_trace
+from replay_silent_h import audit_all_rules
+from tag_taxonomy_h import score_taxonomy
 
 def _negative_identity_mutations(event):
     """Adversarial AST mutations of REAL Spark-reached events, never SQL holdout."""
@@ -147,6 +155,28 @@ def diagnostic(path):
             })
     scope = score_scope_trace(path)
     scope_v2 = score_scope_trace_v2(path)
+    v2_state = score_state_witness(path, scope_v2)
+    v2_frame = score_frame(path, scope_v2)
+    v2_input = score_input_trace(path, scope_v2)
+    v2_all = audit_all_rules(path, scope_v2)
+    v2_tags = score_taxonomy(path, scope_v2)
+    witness = {
+        "status": {
+            "state": v2_state.get("status"),
+            "frame": v2_frame.get("status"),
+            "rdd_input": v2_input.get("status"),
+            "all_rule": v2_all.get("status"),
+            "tags": v2_tags.get("status"),
+        },
+        "candidate_count": scope_v2.get("certified_changed_optimizer_suffixes"),
+        "necessary_gate_candidate_counts": {
+            "frame": v2_frame.get("newly_frame_preserved_count"),
+            "rdd_input": v2_input.get("input_identity_eligible_conditional_certificates"),
+            "all_rule": v2_all.get("candidates_without_observed_silent_drift"),
+            "tags": v2_tags.get("candidate_cases_passing_tag_shape_necessary_gate"),
+        },
+        "limits": ["Posthoc only", "Guards are necessary, not sufficient"],
+    }
     result["round_n_posthoc_diagnostic"] = {
         "status": "POSTHOC_DEVELOPMENT_ONLY_NO_PROSPECTIVE_CREDIT",
         "replayed_cases": sorted(per_case),
@@ -162,6 +192,7 @@ def diagnostic(path):
         "dev_v2_certified_changed_suffixes":
             scope_v2.get("certified_changed_optimizer_suffixes"),
         "dev_v2_suffix_reasons": scope_v2.get("optimizer_suffix_reason_counts"),
+        "dev_v2_independent_witness_gates": witness,
         "dev_v2_suffix_cases": scope_v2.get("optimizer_suffix_case_counts"),
         "unknown_rules": scope.get("unknown_rules"),
         "limits": ["No first-run claim", "No raw Catalyst AST or RDD contents emitted"],
