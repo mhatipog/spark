@@ -1,0 +1,50 @@
+name: QueryProof native Spark 4.2 real ConstantFolding hidden tag effect
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_posthoc_v7_20261020/QueryProofNativeConstantFoldingTagWitness.scala
+      - .github/workflows/queryproof-native-constantfolding-effect.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-tag-only-rule:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_posthoc_v7_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument disposable RuleExecutor and build Catalyst overlay
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Compile native three-rule falsifier against the instrumented Scala sources
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_native_tag_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "artifacts/queryproof_classes:$JARS/*" \
+            -d artifacts/queryproof_native_tag_classes \
+            tools/queryproof_posthoc_v7_20261020/QueryProofNativeConstantFoldingTagWitness.scala
+          test -f artifacts/queryproof_native_tag_classes/org/apache/spark/sql/catalyst/optimizer/QueryProofNativeConstantFoldingTagWitness.class
+      - name: Run real production ConstantFolding hidden tag and positive controls
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          java -Xmx3g -cp "artifacts/queryproof_native_tag_classes:artifacts/queryproof_classes:$JARS/*" \
+            org.apache.spark.sql.catalyst.optimizer.QueryProofNativeConstantFoldingTagWitness
+          echo QUERYPROOF_NATIVE_REAL_CONSTANT_FOLDING_EFFECT_CHECK_COMPLETE
