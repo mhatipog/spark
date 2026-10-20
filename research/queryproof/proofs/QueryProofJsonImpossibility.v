@@ -133,3 +133,78 @@ Example json_sameness_does_not_prove_metadata_absence :
 Proof.
   simpl. split; [reflexivity|discriminate].
 Qed.
+
+
+(** Constructive, very narrow repair: source-side, path-indexed frames
+    record BOTH identity and metadata. The native fragment-specific
+    extractor tested in run 39462504637 performs this for two outputs
+    of an empty LocalRelation. The following small Coq model verifies
+    that the additional information suffices for its declared domain.
+    It does NOT verify the Scala extractor or unknown hidden Spark state. *)
+Definition source_full_field_frame (a : TinyAttribute) : nat * bool :=
+  (numerical_expr_id a, nonempty_metadata a).
+
+Theorem full_source_attribute_frame_is_injective :
+  forall x y,
+    source_full_field_frame x = source_full_field_frame y ->
+    x = y.
+Proof.
+  intros [ix mx] [iy my] H.
+  unfold source_full_field_frame in H.
+  simpl in H.
+  injection H as Hi Hm.
+  subst; reflexivity.
+Qed.
+
+Record TwoOutputFrame := {
+  first_output : TinyAttribute;
+  second_output : TinyAttribute
+}.
+
+Definition path_indexed_frame (p : TwoOutputFrame) :=
+  (source_full_field_frame (first_output p),
+   source_full_field_frame (second_output p)).
+
+Theorem path_indexed_source_frame_is_injective :
+  forall x y,
+    path_indexed_frame x = path_indexed_frame y ->
+    x = y.
+Proof.
+  intros [x0 x1] [y0 y1] H.
+  pose proof (f_equal fst H) as H0.
+  pose proof (f_equal snd H) as H1.
+  unfold path_indexed_frame in H0, H1.
+  simpl in H0, H1.
+  apply full_source_attribute_frame_is_injective in H0.
+  apply full_source_attribute_frame_is_injective in H1.
+  subst; reflexivity.
+Qed.
+
+Definition swap_a : TwoOutputFrame :=
+  {| first_output :=
+       {| numerical_expr_id := 11; nonempty_metadata := false |};
+     second_output :=
+       {| numerical_expr_id := 12; nonempty_metadata := true |} |}.
+
+Definition swap_b : TwoOutputFrame :=
+  {| first_output :=
+       {| numerical_expr_id := 11; nonempty_metadata := true |};
+     second_output :=
+       {| numerical_expr_id := 12; nonempty_metadata := false |} |}.
+
+Definition erased_two_output_json (p : TwoOutputFrame) :=
+  (numerical_expr_id (first_output p),
+   numerical_expr_id (second_output p)).
+
+Example unequal_native_style_swaps_have_equal_erased_json :
+  swap_a <> swap_b /\
+  erased_two_output_json swap_a = erased_two_output_json swap_b.
+Proof.
+  split; [discriminate|reflexivity].
+Qed.
+
+Example path_indexed_source_frame_separates_native_style_swaps :
+  path_indexed_frame swap_a <> path_indexed_frame swap_b.
+Proof.
+  simpl. discriminate.
+Qed.
