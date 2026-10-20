@@ -31,9 +31,14 @@ def _group_key(expression, scope):
         require(isinstance(node, dict), "INVALID_GROUPING_EXPRESSION")
         if node.get("class") == EXPR + "AttributeReference":
             required = {"class", "num-children", "name", "dataType", "exprId"}
-            optional = {"qualifier"}
+            optional = {"qualifier", "metadata", "nullable"}
             require(required <= set(node) <= required | optional and
-                    (node.get("qualifier", []) == []),
+                    node.get("qualifier", []) == [] and
+                    ("nullable" not in node or
+                     type(node["nullable"]) is bool) and
+                    ("metadata" not in node or
+                     (isinstance(node["metadata"], dict) and
+                      len(json.dumps(node["metadata"], sort_keys=True)) <= 4096)),
                     "UNTRUSTED_GROUPING_ATTRIBUTE_METADATA")
     _expression(expression, scope)
     # Exact syntax is a stronger, simpler condition than Catalyst's
