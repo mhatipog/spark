@@ -354,3 +354,35 @@ We now have a plausible, version-pinned denotational tag-erasure exception
 rather than a generic annotation assumption. Keep H figures labeled
 **retrospective conditional** until a fresh prospective cohort and a
 source-reviewed supported phase give independent evidence.
+
+
+## Preregistered M48 successor checkpoint (first-run complete)
+
+An actually unseen 48-case synthetic corpus was frozen before execution, with
+24 target-enriched and 24 generalization-challenge cases. **No original proof
+checker was altered for this cohort.** First valid Spark 4.2.0 run:
+https://github.com/mhatipog/spark/actions/runs/39417193656 .
+
+Result: 48/48 executed, 0 Spark/SQLite finite rowbag mismatches, 412 changed
+Catalyst rule events, 48 changed optimizer suffixes, **20 structurally
+certified conditional suffixes**, and all 20 retained by each independent
+frame/RDD-identity/all-rule/tag-shape necessary witness gate. 26,244 actual
+Catalyst rule calls included 25,832 no-ops; 0 observed silent hidden-state or
+backing-input drift. The only observed post-FinishAnalysis tag class remained
+well-typed `dataset_id:HashSet[Long]`.
+
+Crucially, the first-run artifact's *posthoc* stratum analysis showed **16/24**
+support in the target-enriched group and **4/24** in the broader group, with
+all four broader successes limited to a no-repeat aggregate control. No
+complete certifications for join, left join, union, DISTINCT or HAVING cases.
+This is a narrow promising verifier fragment, **not** a broadly general SQL
+checker. Stratum readout CI:
+https://github.com/mhatipog/spark/actions/runs/39417529333 .
+
+**Full unretuned result and successor protocol:**
+`research/queryproof/2026-10-20-prospective-m-first-run.md`.
+Frozen corpus and protocol:
+`tools/queryproof_prospective_m_20261020/`.
+Do not change M and treat it as prospective a second time. Future proof
+extensions require new frozen cohort N after negative controls and source-level
+derivation. No paid compute or upstream PR.
