@@ -1,7 +1,7 @@
 """Ephemeral, privacy-preserving tag-key/type census for Spark 4.2 Catalyst.
 
 Must run AFTER scope, state, frame and input overlays. Emits only hashed tag
-names, Java value-type names and counts, never tag values or SQL literals.
+names, Java value-type names, type-shape booleans and counts, never tag values or SQL literals.
 Do not infer tag noninterference merely from stable hashes.
 """
 from pathlib import Path
@@ -13,7 +13,7 @@ METHODS = r'''
     import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
     import org.apache.spark.sql.catalyst.trees.TreeNodeTag
     val visited = new java.util.IdentityHashMap[AnyRef, java.lang.Boolean]()
-    val counts = scala.collection.mutable.Map.empty[(String, String), Int]
+    val counts = scala.collection.mutable.Map.empty[(String, String, String), Int]
     def visit(value: Any): Unit = value match {
       case null =>
       case node: TreeNode[_] =>
@@ -24,7 +24,13 @@ METHODS = r'''
             raw.foreach { case (key, datum) =>
               val nameHash = queryProofHash(key.name)
               val kind = if (datum == null) "null" else datum.getClass.getName
-              val label = (nameHash, kind)
+              val shape = if (key.name == "dataset_id") datum match {
+                case xs: scala.collection.mutable.HashSet[_] =>
+                  if (xs.forall(_.isInstanceOf[Long])) "all-long-elements"
+                  else "non-long-elements"
+                case _ => "not-hashset"
+              } else "not-examined"
+              val label = (nameHash, kind, shape)
               counts(label) = counts.getOrElse(label, 0) + 1
             }
           }
@@ -51,8 +57,8 @@ METHODS = r'''
       case _ =>
     }
     visit(root)
-    counts.toSeq.sorted.map { case ((key, kind), number) =>
-      key + ":" + kind + ":" + number.toString
+    counts.toSeq.sorted.map { case ((key, kind, shape), number) =>
+      key + ":" + kind + ":" + shape + ":" + number.toString
     }.mkString(";")
   }
 
