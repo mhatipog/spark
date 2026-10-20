@@ -1,0 +1,45 @@
+{
+  "schema_version": 5,
+  "benchmark_id": "queryproof-prospective-r32-join-step-20261020",
+  "required_case_count": 32,
+  "frozen_verifier_commit": "49a4da96cfbef9dd649ed81e8d1b7c3ecf95d6c8",
+  "prospectively_frozen_before_first_r_execution": true,
+  "source_policy": "All scorer and checker sources pinned by Git blob SHA before any R SQL",
+  "primary_metric": "Fraction and absolute count of actual changed ColumnPruning rule events with local strictly checked join-project certificates, stratified target/challenge; cases with no changed events not success",
+  "secondary_metric": "Existing frozen v2 changed post-FinishAnalysis full optimizer suffixes, separately measured with state/frame/live-RDD/all-rule/tag necessary gates. Never automatically promote local Q proofs to suffix proofs",
+  "cohort_strata": {
+    "JOIN_TARGET": 16,
+    "JOIN_CHALLENGE": 16
+  },
+  "cohort_family_count": 8,
+  "instances_per_family": 4,
+  "data_oracle": "Finite official Spark 4.2.0 versus SQLite unordered rowbag, no mismatches required",
+  "frozen_git_blob_shas": {
+    "tools/queryproof_join_pruning_q_dev_20261020/join_project_v1.py": "0440ff7841573ce5fd17c8dbb64de91b3a59a49b",
+    "tools/queryproof_prospective_r_20261020/run_r.py": "2c135238b2e69924ee0e9f5c8601e336170fe9cc",
+    "tools/queryproof_round_n_dev_20261020/scope_ledger_v2.py": "d03f21c8fd6543d2d38456899c3f664a0fc5ed73",
+    "tools/queryproof_round_n_dev_20261020/generalized_liveness_v2.py": "12bfb44e682cae059869f245eff7e3c1ec18ce12",
+    "tools/queryproof_round_n_dev_20261020/aggregate_identity_v2.py": "f0c579cfd422e56c6017f04a9900784c1fdbcfdf",
+    "tools/queryproof_context_validator/grouping_repetition_certificate.py": "092bb0ecdf8e459a0c1cd3c712959a9d243a191f",
+    "tools/queryproof_state_witness_20261020/state_guard.py": "9c73e9d09e405d8ffad4d52702a810029a603b59",
+    "tools/queryproof_state_frame_20261020/frame_guard.py": "3b66d103e11db0b9adbbace0e0b6977df0266f6f",
+    "tools/queryproof_adversarial_20261020/replay_input_h.py": "9a06dd33c61d014a4a986c1a05c6cfb5c37e1060",
+    "tools/queryproof_adversarial_20261020/replay_silent_h.py": "351c175f57ad8ecf99dd52d04517187dd9bc4886",
+    "tools/queryproof_adversarial_20261020/tag_taxonomy_h.py": "2f320c9c9632b5336927febf68a5b27cf2ce5dde"
+  },
+  "unknown_policy": "Unsupported rule event must abstain. Zero prospective join proofs is valid.",
+  "zero_certificates_is_valid_result": true,
+  "no_postrun_threshold_tuning": true,
+  "preflight_required_protocol_fields": [
+    "benchmark_id",
+    "required_case_count",
+    "frozen_verifier_commit"
+  ],
+  "limitations": [
+    "32 purposive family-correlated synthetic SQL instances, not production workload probability sample",
+    "Q checker is local logical row-bag theorem, not mechanized kernel proof or runtime error proof",
+    "Posthoc M29/M33 never count as prospective R successes",
+    "Join condition only direct numeric equality, exact identity AttributeReferences and unchanged frames",
+    "Frozen O32 and M48 scores unchanged"
+  ]
+}
