@@ -82,6 +82,7 @@ def score_z(path):
     scope = score_scope_trace(path)
     suffixes = {x["case"]: x for x in scope["optimizer_suffix_case_counts"]}
     obligations = []
+    join_condition_shapes = {}
     for line in path.read_text(errors="replace").splitlines():
         if not line.startswith("QUERYPROOF_AST\t"):
             continue
@@ -94,6 +95,19 @@ def score_z(path):
                 event["batch"] == "Finish Analysis"):
             continue
         rule = _rule_basename(event["rule"])
+        if rule == "ColumnPruning" and FAMILIES[case] not in join_condition_shapes:
+            joins = [node for node in event["old"]
+                     if isinstance(node, dict) and
+                     node.get("class", "").endswith(".Join")]
+            if len(joins) == 1:
+                condition = joins[0].get("condition", [])
+                join_condition_shapes[FAMILIES[case]] = [
+                    {"type": node.get("class", "").split(".")[-1],
+                     "num_children": node.get("num-children"),
+                     "index_fields": {k: node[k] for k in
+                         ("left", "right", "child") if k in node},
+                     "field_names": sorted(node)}
+                    for node in condition if isinstance(node, dict)]
         answer, strategy = _attempt(event, rule)
         obligations.append({
             "case": case, "family": FAMILIES[case],
@@ -126,6 +140,7 @@ def score_z(path):
             {"family": f, "rule": rule, "reason": reason, "count": n}
             for (f, rule, reason), n in sorted(rejected.items())],
         "observed_challenge_changed_rule_steps": len(obligations),
+        "redacted_join_condition_shapes": join_condition_shapes,
         "limitations": [
             "Retrospective diagnostics only; NO upgrade to any frozen W outcome",
             "Rule identities are source-pinned; no new v6 acceptance rule",
