@@ -191,6 +191,30 @@ def summarize_scope_stream(stream):
                 for batch in later if batch["changed"] or not batch["certified"]
             ],
         })
+    # Scope-local AST identity would have hidden these changed, unproved
+    # rule steps in the v6 snapshot shortcut. Count them separately from
+    # the overall suffix result; never export original ASTs or SQL values.
+    postcut_identity_bypasses = []
+    for executor in executors:
+        children = executor["children"]
+        finish_positions = [i for i, b in enumerate(children)
+                            if b["kind"] == "BATCH" and
+                            b["batch"] == "Finish Analysis"]
+        if len(finish_positions) != 1:
+            continue
+        for batch in children[finish_positions[0] + 1:]:
+            if batch["start"] != batch["end"]:
+                continue
+            changed_steps = batch["direct_steps"]
+            unknowns = [step for step in changed_steps if not step["certified"]]
+            if unknowns:
+                postcut_identity_bypasses.append({
+                    "case": executor["case"], "batch": batch["batch"],
+                    "effective_rule_steps": len(changed_steps),
+                    "uncertified_rule_steps": len(unknowns),
+                    "uncertified_rule_names": sorted({s["rule"] for s in unknowns}),
+                })
+
     suffix_reasons = Counter(s["reason"] for s in suffixes)
     return {
         "status": "POSTHOC_STRICT_EVENT_COMPLETENESS_AUDIT",
@@ -213,6 +237,7 @@ def summarize_scope_stream(stream):
             s["changed"] and s["proved"] for s in suffixes),
         "optimizer_suffix_reason_counts": dict(sorted(suffix_reasons.items())),
         "optimizer_suffix_case_counts": [s for s in suffixes],
+        "postcut_identity_bypass_events": postcut_identity_bypasses,
         "by_reason": {kind + ":" + reason: count
                       for (kind, reason), count in sorted(by_reason.items())},
         "unknown_rules": [
