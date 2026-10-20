@@ -118,10 +118,15 @@ class GroupRepetitionTests(unittest.TestCase):
         e = ex()
         e["new"][0]["groupingExpressions"] = []
         self.no(e)
-        # GROUP BY literal on zero rows gives zero groups, whereas a scalar
-        # global COUNT aggregate returns one row containing zero.
-        self.assertEqual([], [])
-        self.assertEqual([(0,)], [(0,)])
+        # GROUP BY constant is a group aggregate: empty input has no groups.
+        # Removing *all* grouping keys would change it to a scalar aggregate,
+        # which returns one COUNT row even on the empty input.
+        def grouped_count(rows):
+            return [(len(rows),)] if rows else []
+        def scalar_count(rows):
+            return [(len(rows),)]
+        self.assertNotEqual(grouped_count([]), scalar_count([]))
+        self.assertEqual(grouped_count([1]), scalar_count([1]))
 
     def test_different_distinct_group_deleted(self):
         a, b = att(0), att(1)
