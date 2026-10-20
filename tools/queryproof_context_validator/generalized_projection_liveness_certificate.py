@@ -9,6 +9,7 @@ This is a local, explicitly restricted Catalyst logical-semantics theorem.
 Unrecognized operators, schemas, metadata, state, effects, and scopes abstain.
 """
 import json
+import re
 
 from equality_orbits import Unsupported, require
 from join_prefilter_certificate import EXPR, LOGICAL, tree_from_preorder
@@ -72,8 +73,16 @@ def _expression(items, scope):
         require(lefttype in INTEGERS and righttype == lefttype,
                 "REMAINDER_TYPE_MISMATCH")
         divisor = items[rightpos].get("value")
-        require(type(divisor) is int and divisor != 0,
-                "REMAINDER_DIVISOR_ZERO_OR_NONINT")
+        if isinstance(divisor, str):
+            require(len(divisor) <= 20 and
+                    re.fullmatch(r"-?(0|[1-9][0-9]*)", divisor) is not None,
+                    "REMAINDER_LITERAL_NOT_CANONICAL_INTEGER")
+            divisor = int(divisor)
+        limits = {"byte": 127, "short": 32767, "integer": 2147483647,
+                  "long": 9223372036854775807}
+        require(type(divisor) is int and
+                -limits[lefttype] - 1 <= divisor <= limits[lefttype] and
+                divisor != 0, "REMAINDER_DIVISOR_ZERO_OR_NONINT")
         context = node.get("evalContext", "__UNSPECIFIED__")
         serialized_context = json.dumps(
             context, sort_keys=True, separators=(",", ":"))
