@@ -160,3 +160,61 @@ Section DuplicateGroupingKey.
     intros x y; unfold same_group_ffg, same_group_fg; tauto.
   Qed.
 End DuplicateGroupingKey.
+
+(*
+ Developmental attack on W17-W24: inequality has the same null-intolerant
+ matching property as equality, but OR does not justify per-disjunct guards.
+ These are semantics lemmas, NOT Catalyst AST/rule certificates.
+*)
+Definition sql_lt_true (x y : key) : bool :=
+  match x, y with
+  | Some a, Some b => Nat.ltb a b
+  | _, _ => false
+  end.
+
+Lemma right_null_guard_preserves_lt :
+  forall x right,
+    filter (sql_lt_true x) (filter nonnull right) =
+    filter (sql_lt_true x) right.
+Proof.
+  intros x right; induction right as [|y ys IH].
+  - reflexivity.
+  - destruct x as [a|], y as [b|]; simpl; rewrite IH; reflexivity.
+Qed.
+
+Lemma left_null_guard_preserves_lt :
+  forall y left,
+    filter (fun x => sql_lt_true x y) (filter nonnull left) =
+    filter (fun x => sql_lt_true x y) left.
+Proof.
+  intros y left; induction left as [|x xs IH].
+  - reflexivity.
+  - destruct x as [a|], y as [b|]; simpl; rewrite IH; reflexivity.
+Qed.
+
+Definition inner_lt_join (left right : list key) : list (key * key) :=
+  flat_map
+    (fun x => map (fun y => (x, y)) (filter (sql_lt_true x) right))
+    left.
+
+Theorem inner_lt_right_nonnull :
+  forall left right,
+    inner_lt_join left (filter nonnull right) = inner_lt_join left right.
+Proof.
+  intros left right; unfold inner_lt_join.
+  induction left as [|x xs IH].
+  - reflexivity.
+  - simpl. rewrite right_null_guard_preserves_lt.
+    rewrite IH. reflexivity.
+Qed.
+
+Definition disjunctive_join_match (x y : key * key) : bool :=
+  orb (sql_eq_true (fst x) (fst y))
+      (sql_eq_true (snd x) (snd y)).
+
+Example disjunctive_join_individual_key_guard_wrong :
+  filter (disjunctive_join_match (None, Some 1))
+         [(None, Some 1)] <>
+  filter (disjunctive_join_match (None, Some 1))
+         (filter (fun row => nonnull (fst row)) [(None, Some 1)]).
+Proof. discriminate. Qed.
