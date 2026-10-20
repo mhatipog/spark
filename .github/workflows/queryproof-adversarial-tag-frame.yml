@@ -19,6 +19,7 @@ jobs:
           sparse-checkout: |
             tools/queryproof_adversarial_20261020
             tools/queryproof_state_frame_20261020
+            tools/queryproof_context_validator
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -58,3 +59,13 @@ jobs:
             tools/queryproof_adversarial_20261020/QueryProofTagFrameCollision.scala
           java -Xmx2g -cp "$JARS/*:artifacts/queryproof_tag_collision_classes" \
             org.apache.spark.sql.catalyst.rules.QueryProofTagFrameCollision
+      - name: Compare native plan integrity to QueryProof local proof failures
+        run: |
+          JARS="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "jars"))')"
+          java -Xmx2g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*:artifacts/queryproof_tag_collision_classes" \
+            -d artifacts/queryproof_tag_collision_classes \
+            tools/queryproof_adversarial_20261020/QueryProofNativeValidationControl.scala
+          java -Xmx2g -cp "$JARS/*:artifacts/queryproof_tag_collision_classes" \
+            org.apache.spark.sql.catalyst.rules.QueryProofNativeValidationControl
+          python -B tools/queryproof_adversarial_20261020/compare_native_controls.py
