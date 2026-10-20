@@ -5,7 +5,7 @@ on:
       - research/queryproof-phase-local-independent-20261020
     paths:
       - tools/queryproof_posthoc_v17_20261020/**
-      - .github/workflows/queryproof-native-v17-stock-optimizer.yml
+      - .github/workflows/queryproof-native-v17-stock-optimizer-cache-pair.yml
   workflow_dispatch:
 permissions:
   contents: read
