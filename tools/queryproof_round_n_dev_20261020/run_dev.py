@@ -20,6 +20,7 @@ from scope_ledger import score_scope_trace
 from generalized_projection_liveness_certificate import certify_generalized_projection_liveness_event
 from aggregate_framed_identity_certificate import certify_aggregate_framed_identity_event
 from aggregate_identity_v2 import certify_aggregate_framed_identity_event as v2_identity
+from generalized_liveness_v2 import certify_generalized_projection_liveness_event as v2_liveness
 
 def _negative_identity_mutations(event):
     """Adversarial AST mutations of REAL Spark-reached events, never SQL holdout."""
@@ -84,6 +85,11 @@ def diagnostic(path):
             "CERTIFIED" if verdict["status"] == "EQUIVALENT_IN_FRAGMENT"
             else verdict.get("reason", "UNKNOWN"))
         per_case[case][key] += 1
+        if name == "ColumnPruning":
+            v2_prune = v2_liveness(event)
+            per_case[case]["ColumnPruningV2:" + (
+                "CERTIFIED" if v2_prune["status"] == "EQUIVALENT_IN_FRAGMENT"
+                else v2_prune.get("reason", "UNKNOWN"))] += 1
         if name == "CollapseProject":
             v2 = v2_identity(event)
             if v2["status"] == "EQUIVALENT_IN_FRAGMENT":
