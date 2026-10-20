@@ -51,6 +51,11 @@ def main():
     print("QUERYPROOF_L_CHANGED_BATCHES", json.dumps([
         b for b in ledger["by_batch"] if b["changed"]],
         sort_keys=True))
+    group = report["grouping_repetition"]
+    print("QUERYPROOF_L_GROUPING_UNKNOWN_REASONS", json.dumps(
+        group["unknown_reasons"], sort_keys=True))
+    print("QUERYPROOF_L_GROUPING_SAFE_SHAPES", json.dumps(
+        group["safe_aggregate_expression_shapes"], sort_keys=True))
     print("QUERYPROOF_L_HIDDEN_STATE_FRAME_BOUNDARIES", json.dumps({
         "preserved": frames["newly_frame_preserved_count"],
         "postfinish_batches": frames["postfinish_batch_checks"],
