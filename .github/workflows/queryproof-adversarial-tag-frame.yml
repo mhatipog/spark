@@ -1,0 +1,60 @@
+name: QueryProof adversarial JVM tag-frame collision
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_adversarial_20261020/**
+      - .github/workflows/queryproof-adversarial-tag-frame.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tag-frame-negative-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_state_frame_20261020
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify test targets the existing observer's exact codec
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("tools/queryproof_state_frame_20261020/instrument_frame.py").read_text()
+          assert 'key.name + ":" + queryProofValue(value)' in source
+          assert '}.sorted.mkString("|")' in source
+          assert 'queryProofHash(queryProofNodeTags(n))' in source
+          print("QUERYPROOF_OBSERVER_CODEC_ANCHORS_VERIFIED")
+          PY
+      - name: Install official Spark 4.2.0 and Scala compiler jars
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          JARS="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "jars"))')"
+          LIB="$(find "$JARS" -maxdepth 1 -name 'scala-library-2.13.*.jar' -print -quit)"
+          test -n "$LIB"
+          VERSION="$(basename "$LIB" | sed -e 's/^scala-library-//' -e 's/\.jar$//')"
+          for lib in scala-reflect scala-compiler; do
+            if test ! -f "$JARS/$lib-$VERSION.jar"; then
+              curl --retry 3 -fsSL "https://repo.maven.apache.org/maven2/org/scala-lang/$lib/$VERSION/$lib-$VERSION.jar" -o "$JARS/$lib-$VERSION.jar"
+            fi
+          done
+      - name: Compile and execute real Catalyst tag-map negative control
+        run: |
+          JARS="$(python -c 'import os,pyspark; print(os.path.join(os.path.dirname(pyspark.__file__), "jars"))')"
+          mkdir -p artifacts/queryproof_tag_collision_classes
+          java -Xmx2g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "$JARS/*" \
+            -d artifacts/queryproof_tag_collision_classes \
+            tools/queryproof_adversarial_20261020/QueryProofTagFrameCollision.scala
+          java -Xmx2g -cp "$JARS/*:artifacts/queryproof_tag_collision_classes" \
+            org.apache.spark.sql.catalyst.rules.QueryProofTagFrameCollision
