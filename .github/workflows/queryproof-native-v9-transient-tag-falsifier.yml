@@ -1,0 +1,52 @@
+name: QueryProof V9 transient hidden-tag boundary counterexample
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_posthoc_v9_20261020/QueryProofNativeV9TransientTagCounterexample.scala
+      - .github/workflows/queryproof-native-v9-transient-tag-falsifier.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  v9-transient-tag-negative-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_posthoc_v9_20261020
+            tools/queryproof_posthoc_v8_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Prepare ephemeral pre-rule tag snapshot overlay
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_posthoc_v8_20261020/instrument_v8_trace.py
+          python -B tools/queryproof_posthoc_v9_20261020/instrument_v9_prerule_tag.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Compile real tag mutation and restoration witness
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_v9_transient_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "artifacts/queryproof_classes:$JARS/*" \
+            -d artifacts/queryproof_v9_transient_classes \
+            tools/queryproof_posthoc_v9_20261020/QueryProofNativeV9TransientTagCounterexample.scala
+      - name: Falsify complete-effect-history inference from equal snapshots
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          java -Xmx3g -cp "artifacts/queryproof_v9_transient_classes:artifacts/queryproof_classes:$JARS/*" \
+            org.apache.spark.sql.catalyst.optimizer.QueryProofNativeV9TransientTagCounterexample
+          echo QUERYPROOF_V9_TRANSIENT_EFFECT_NEGATIVE_TEST_COMPLETE
