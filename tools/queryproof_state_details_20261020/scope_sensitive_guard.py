@@ -31,7 +31,7 @@ def audit_details(lines, scope_summary):
                 pending = next_marker
                 state = None
                 if (pending[1] == "SCOPE" and pending[2] == "EXECUTOR" and
-                        pending[3] == "Optimizer" and pending[6] == "BEGIN"):
+                        pending[6] == "BEGIN"):
                     if active_case is not None:
                         errors.append("NESTED_OPTIMIZER_UNSUPPORTED")
                     active_case = pending[0]
@@ -91,9 +91,9 @@ def audit_details(lines, scope_summary):
                 after_finish = True
                 optimizer_cases[pending[0]]["finish_analysis_seen"] += 1
             if (pending[1] == "SCOPE" and pending[2] == "EXECUTOR" and
-                    pending[3] == "Optimizer" and pending[6] == "END"):
-                if active_case != pending[0] or not after_finish:
-                    errors.append("OPTIMIZER_SUFFIX_BOUNDARY_MISSING")
+                    pending[6] == "END"):
+                if active_case != pending[0]:
+                    errors.append("EXECUTOR_BOUNDARY_MISMATCH")
                 active_case = None
                 after_finish = False
             pending = None
@@ -105,7 +105,13 @@ def audit_details(lines, scope_summary):
     if pending is not None:
         errors.append("MISSING_FINAL_CLASS_PROFILE")
     if active_case is not None:
-        errors.append("UNFINISHED_OPTIMIZER")
+        errors.append("UNFINISHED_EXECUTOR")
+    seen_finishes = sum(x["finish_analysis_seen"] for x in optimizer_cases.values())
+    expected_finishes = scope_summary.get("post_finish_analysis_optimizer_suffixes")
+    if expected_finishes is None or seen_finishes != expected_finishes:
+        errors.append("FINISH_ANALYSIS_DENOMINATOR_MISMATCH")
+    if expected_finishes and not suffix_by_case:
+        errors.append("NO_POST_NORMALIZATION_WITNESSES")
     if marker_count != old["scope_witnesses"] + old["event_witnesses"]:
         errors.append("PROFILE_DENOMINATOR_MISMATCH")
     baseline = [
