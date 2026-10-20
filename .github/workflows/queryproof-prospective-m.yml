@@ -36,7 +36,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Freeze check: manifest and protocol fixed before any SQL run
+      - name: Freeze check for manifest and protocol before any SQL run
         run: |
           python -B -c '
           import json
