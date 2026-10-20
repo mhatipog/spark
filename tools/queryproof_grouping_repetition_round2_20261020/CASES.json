@@ -1,0 +1,3776 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-grouping-repetition-fresh-round2-20261020",
+  "source": {
+    "repository": "Frozen deterministic synthetic grouping-key grammar (not third-party source)",
+    "seed": 20261022,
+    "prng": "32-bit LCG state=(1664525*state+1013904223) mod 2^32; sample=(state mod 113)-56",
+    "moduli": [
+      4,
+      6,
+      8,
+      9,
+      10,
+      17
+    ],
+    "families": [
+      "DIRECT_REPEAT",
+      "ALIAS_REPEAT_COUNT",
+      "ALIAS_TRIPLE_SUM",
+      "DIRECT_PAIR_REPEAT",
+      "REORDERED_GROUP_REPEAT",
+      "ALIAS_REPEAT_MAX",
+      "EMPTY_INPUT_REPEAT",
+      "NO_REPEAT_CONTROL"
+    ],
+    "test_design": "Separate untouched SQL and data instance set from the first 48-case development cohort. Selected before evaluating corrected checker on any H-case.",
+    "limits": "Deliberately target-enriched and family-correlated, not a representative random SQL sample."
+  },
+  "tables": {},
+  "cases": [
+    {
+      "id": "H01",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_direct_repeat",
+      "source_query_ordinal": 1,
+      "family": "DIRECT_REPEAT",
+      "modulus": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              28,
+              -35,
+              -41
+            ],
+            [
+              28,
+              -35,
+              -41
+            ],
+            [
+              null,
+              35,
+              9
+            ],
+            [
+              13,
+              null,
+              41
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -50,
+              -11,
+              3
+            ],
+            [
+              -46,
+              -33,
+              0
+            ],
+            [
+              -8,
+              -6,
+              6
+            ],
+            [
+              -40,
+              48,
+              -37
+            ],
+            [
+              49,
+              -28,
+              -29
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H02",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_direct_repeat",
+      "source_query_ordinal": 2,
+      "family": "DIRECT_REPEAT",
+      "modulus": 6,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -9,
+              1,
+              -43
+            ],
+            [
+              -9,
+              1,
+              -43
+            ],
+            [
+              null,
+              51,
+              42
+            ],
+            [
+              -36,
+              null,
+              33
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -19,
+              41,
+              -14
+            ],
+            [
+              52,
+              29,
+              -16
+            ],
+            [
+              43,
+              26,
+              -35
+            ],
+            [
+              -23,
+              35,
+              55
+            ],
+            [
+              30,
+              6,
+              -2
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H03",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_direct_repeat",
+      "source_query_ordinal": 3,
+      "family": "DIRECT_REPEAT",
+      "modulus": 8,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -55,
+              2,
+              42
+            ],
+            [
+              -55,
+              2,
+              42
+            ],
+            [
+              null,
+              -51,
+              -20
+            ],
+            [
+              24,
+              null,
+              -50
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -39,
+              7,
+              49
+            ],
+            [
+              55,
+              -25,
+              36
+            ],
+            [
+              -9,
+              -44,
+              2
+            ],
+            [
+              53,
+              -19,
+              47
+            ],
+            [
+              -29,
+              -52,
+              16
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H04",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_direct_repeat",
+      "source_query_ordinal": 4,
+      "family": "DIRECT_REPEAT",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              4,
+              15,
+              9
+            ],
+            [
+              4,
+              15,
+              9
+            ],
+            [
+              null,
+              22,
+              -38
+            ],
+            [
+              5,
+              null,
+              -32
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              48,
+              -41,
+              -43
+            ],
+            [
+              0,
+              -29,
+              53
+            ],
+            [
+              32,
+              -29,
+              5
+            ],
+            [
+              -12,
+              19,
+              -27
+            ],
+            [
+              -34,
+              20,
+              50
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H05",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_direct_repeat",
+      "source_query_ordinal": 5,
+      "family": "DIRECT_REPEAT",
+      "modulus": 10,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              49,
+              44,
+              -8
+            ],
+            [
+              49,
+              44,
+              -8
+            ],
+            [
+              null,
+              -46,
+              -25
+            ],
+            [
+              -21,
+              null,
+              -11
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -3,
+              45,
+              -51
+            ],
+            [
+              42,
+              17,
+              -29
+            ],
+            [
+              41,
+              56,
+              15
+            ],
+            [
+              35,
+              -56,
+              -9
+            ],
+            [
+              13,
+              28,
+              -44
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H06",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_direct_repeat",
+      "source_query_ordinal": 6,
+      "family": "DIRECT_REPEAT",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -24,
+              33,
+              27
+            ],
+            [
+              -24,
+              33,
+              27
+            ],
+            [
+              null,
+              -54,
+              56
+            ],
+            [
+              -44,
+              null,
+              -11
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -43,
+              -48,
+              25
+            ],
+            [
+              40,
+              17,
+              -35
+            ],
+            [
+              -1,
+              -18,
+              -38
+            ],
+            [
+              -12,
+              56,
+              32
+            ],
+            [
+              46,
+              -7,
+              22
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H07",
+      "sql": "SELECT i % 4 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_count",
+      "source_query_ordinal": 1,
+      "family": "ALIAS_REPEAT_COUNT",
+      "modulus": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -16,
+              -3,
+              33
+            ],
+            [
+              -16,
+              -3,
+              33
+            ],
+            [
+              null,
+              1,
+              -52
+            ],
+            [
+              18,
+              null,
+              -51
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -25,
+              56,
+              -21
+            ],
+            [
+              31,
+              20,
+              38
+            ],
+            [
+              -3,
+              -44,
+              -40
+            ],
+            [
+              23,
+              4,
+              35
+            ],
+            [
+              -19,
+              19,
+              49
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H08",
+      "sql": "SELECT i % 6 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_count",
+      "source_query_ordinal": 2,
+      "family": "ALIAS_REPEAT_COUNT",
+      "modulus": 6,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              37,
+              -12,
+              -47
+            ],
+            [
+              37,
+              -12,
+              -47
+            ],
+            [
+              null,
+              -5,
+              -33
+            ],
+            [
+              42,
+              null,
+              -24
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -55,
+              10,
+              22
+            ],
+            [
+              33,
+              0,
+              10
+            ],
+            [
+              -13,
+              -54,
+              -50
+            ],
+            [
+              44,
+              -30,
+              -32
+            ],
+            [
+              43,
+              -34,
+              12
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H09",
+      "sql": "SELECT i % 8 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_count",
+      "source_query_ordinal": 3,
+      "family": "ALIAS_REPEAT_COUNT",
+      "modulus": 8,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -51,
+              51,
+              39
+            ],
+            [
+              -51,
+              51,
+              39
+            ],
+            [
+              null,
+              45,
+              37
+            ],
+            [
+              -19,
+              null,
+              -44
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -26,
+              -6,
+              -34
+            ],
+            [
+              -41,
+              -7,
+              -5
+            ],
+            [
+              11,
+              -9,
+              -55
+            ],
+            [
+              31,
+              12,
+              -28
+            ],
+            [
+              -36,
+              33,
+              -13
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H10",
+      "sql": "SELECT i % 9 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_count",
+      "source_query_ordinal": 4,
+      "family": "ALIAS_REPEAT_COUNT",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -37,
+              -28,
+              8
+            ],
+            [
+              -37,
+              -28,
+              8
+            ],
+            [
+              null,
+              10,
+              -54
+            ],
+            [
+              56,
+              null,
+              -11
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              3,
+              -7,
+              43
+            ],
+            [
+              2,
+              -14,
+              -54
+            ],
+            [
+              -46,
+              36,
+              26
+            ],
+            [
+              -28,
+              51,
+              52
+            ],
+            [
+              -26,
+              -26,
+              -15
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H11",
+      "sql": "SELECT i % 10 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_count",
+      "source_query_ordinal": 5,
+      "family": "ALIAS_REPEAT_COUNT",
+      "modulus": 10,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -9,
+              37,
+              -8
+            ],
+            [
+              -9,
+              37,
+              -8
+            ],
+            [
+              null,
+              13,
+              -14
+            ],
+            [
+              -32,
+              null,
+              -32
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              24,
+              22,
+              -2
+            ],
+            [
+              34,
+              27,
+              -18
+            ],
+            [
+              -39,
+              -53,
+              -37
+            ],
+            [
+              56,
+              34,
+              30
+            ],
+            [
+              -31,
+              -7,
+              -28
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H12",
+      "sql": "SELECT i % 17 AS k, COUNT(*) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_count",
+      "source_query_ordinal": 6,
+      "family": "ALIAS_REPEAT_COUNT",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -36,
+              30,
+              51
+            ],
+            [
+              -36,
+              30,
+              51
+            ],
+            [
+              null,
+              -41,
+              21
+            ],
+            [
+              -24,
+              null,
+              20
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -34,
+              -5,
+              -6
+            ],
+            [
+              -28,
+              49,
+              27
+            ],
+            [
+              -40,
+              56,
+              4
+            ],
+            [
+              55,
+              -54,
+              -48
+            ],
+            [
+              29,
+              14,
+              -44
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H13",
+      "sql": "SELECT i % 4 AS k, SUM(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_triple_sum",
+      "source_query_ordinal": 1,
+      "family": "ALIAS_TRIPLE_SUM",
+      "modulus": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              21,
+              -21,
+              -8
+            ],
+            [
+              21,
+              -21,
+              -8
+            ],
+            [
+              null,
+              -35,
+              -21
+            ],
+            [
+              34,
+              null,
+              -41
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -16,
+              15,
+              51
+            ],
+            [
+              25,
+              55,
+              27
+            ],
+            [
+              -23,
+              -19,
+              -44
+            ],
+            [
+              30,
+              54,
+              56
+            ],
+            [
+              -51,
+              -29,
+              -12
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H14",
+      "sql": "SELECT i % 6 AS k, SUM(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_triple_sum",
+      "source_query_ordinal": 2,
+      "family": "ALIAS_TRIPLE_SUM",
+      "modulus": 6,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -44,
+              -16,
+              -6
+            ],
+            [
+              -44,
+              -16,
+              -6
+            ],
+            [
+              null,
+              -27,
+              16
+            ],
+            [
+              -39,
+              null,
+              43
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -31,
+              37,
+              22
+            ],
+            [
+              34,
+              -9,
+              -30
+            ],
+            [
+              25,
+              6,
+              11
+            ],
+            [
+              29,
+              7,
+              -10
+            ],
+            [
+              8,
+              29,
+              -25
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H15",
+      "sql": "SELECT i % 8 AS k, SUM(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_triple_sum",
+      "source_query_ordinal": 3,
+      "family": "ALIAS_TRIPLE_SUM",
+      "modulus": 8,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              32,
+              40,
+              -40
+            ],
+            [
+              32,
+              40,
+              -40
+            ],
+            [
+              null,
+              44,
+              -30
+            ],
+            [
+              20,
+              null,
+              -43
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              0,
+              -41,
+              18
+            ],
+            [
+              -10,
+              -41,
+              -53
+            ],
+            [
+              -45,
+              -27,
+              -3
+            ],
+            [
+              -23,
+              -46,
+              48
+            ],
+            [
+              -21,
+              -7,
+              14
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H16",
+      "sql": "SELECT i % 9 AS k, SUM(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_triple_sum",
+      "source_query_ordinal": 4,
+      "family": "ALIAS_TRIPLE_SUM",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              4,
+              36,
+              0
+            ],
+            [
+              4,
+              36,
+              0
+            ],
+            [
+              null,
+              51,
+              50
+            ],
+            [
+              37,
+              null,
+              -9
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              33,
+              -43,
+              -2
+            ],
+            [
+              -1,
+              -16,
+              22
+            ],
+            [
+              -55,
+              33,
+              -5
+            ],
+            [
+              -25,
+              -31,
+              54
+            ],
+            [
+              -55,
+              -35,
+              49
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H17",
+      "sql": "SELECT i % 10 AS k, SUM(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_triple_sum",
+      "source_query_ordinal": 5,
+      "family": "ALIAS_TRIPLE_SUM",
+      "modulus": 10,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              52,
+              -33,
+              0
+            ],
+            [
+              52,
+              -33,
+              0
+            ],
+            [
+              null,
+              1,
+              11
+            ],
+            [
+              -52,
+              null,
+              -4
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              8,
+              -35,
+              42
+            ],
+            [
+              32,
+              32,
+              20
+            ],
+            [
+              -5,
+              -27,
+              -41
+            ],
+            [
+              -15,
+              -6,
+              -16
+            ],
+            [
+              -36,
+              17,
+              54
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H18",
+      "sql": "SELECT i % 17 AS k, SUM(j) FROM integers GROUP BY k, k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_triple_sum",
+      "source_query_ordinal": 6,
+      "family": "ALIAS_TRIPLE_SUM",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -39,
+              -15,
+              -42
+            ],
+            [
+              -39,
+              -15,
+              -42
+            ],
+            [
+              null,
+              38,
+              -9
+            ],
+            [
+              45,
+              null,
+              38
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -56,
+              4,
+              46
+            ],
+            [
+              -32,
+              -21,
+              42
+            ],
+            [
+              -12,
+              9,
+              33
+            ],
+            [
+              -4,
+              -42,
+              -1
+            ],
+            [
+              46,
+              -16,
+              -39
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H19",
+      "sql": "SELECT i, j, COUNT(*) FROM integers GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_direct_pair_repeat",
+      "source_query_ordinal": 1,
+      "family": "DIRECT_PAIR_REPEAT",
+      "modulus": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -2,
+              -44,
+              20
+            ],
+            [
+              -2,
+              -44,
+              20
+            ],
+            [
+              null,
+              -52,
+              -39
+            ],
+            [
+              35,
+              null,
+              43
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              55,
+              -41,
+              16
+            ],
+            [
+              27,
+              -52,
+              -33
+            ],
+            [
+              40,
+              -8,
+              -24
+            ],
+            [
+              -31,
+              9,
+              0
+            ],
+            [
+              -49,
+              -26,
+              -22
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H20",
+      "sql": "SELECT i, j, COUNT(*) FROM integers GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_direct_pair_repeat",
+      "source_query_ordinal": 2,
+      "family": "DIRECT_PAIR_REPEAT",
+      "modulus": 6,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -4,
+              9,
+              55
+            ],
+            [
+              -4,
+              9,
+              55
+            ],
+            [
+              null,
+              -10,
+              54
+            ],
+            [
+              41,
+              null,
+              -19
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              55,
+              24,
+              9
+            ],
+            [
+              46,
+              -53,
+              -27
+            ],
+            [
+              49,
+              -5,
+              43
+            ],
+            [
+              19,
+              37,
+              -1
+            ],
+            [
+              45,
+              -42,
+              -35
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H21",
+      "sql": "SELECT i, j, COUNT(*) FROM integers GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_direct_pair_repeat",
+      "source_query_ordinal": 3,
+      "family": "DIRECT_PAIR_REPEAT",
+      "modulus": 8,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -43,
+              -50,
+              21
+            ],
+            [
+              -43,
+              -50,
+              21
+            ],
+            [
+              null,
+              6,
+              53
+            ],
+            [
+              35,
+              null,
+              52
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -42,
+              32,
+              17
+            ],
+            [
+              -15,
+              53,
+              -47
+            ],
+            [
+              -40,
+              19,
+              56
+            ],
+            [
+              21,
+              -22,
+              -14
+            ],
+            [
+              50,
+              36,
+              43
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H22",
+      "sql": "SELECT i, j, COUNT(*) FROM integers GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_direct_pair_repeat",
+      "source_query_ordinal": 4,
+      "family": "DIRECT_PAIR_REPEAT",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -2,
+              32,
+              -8
+            ],
+            [
+              -2,
+              32,
+              -8
+            ],
+            [
+              null,
+              3,
+              23
+            ],
+            [
+              50,
+              null,
+              31
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -18,
+              -52,
+              -4
+            ],
+            [
+              17,
+              -48,
+              17
+            ],
+            [
+              51,
+              14,
+              -54
+            ],
+            [
+              -19,
+              18,
+              30
+            ],
+            [
+              -11,
+              -13,
+              32
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H23",
+      "sql": "SELECT i, j, COUNT(*) FROM integers GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_direct_pair_repeat",
+      "source_query_ordinal": 5,
+      "family": "DIRECT_PAIR_REPEAT",
+      "modulus": 10,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -47,
+              41,
+              51
+            ],
+            [
+              -47,
+              41,
+              51
+            ],
+            [
+              null,
+              36,
+              -31
+            ],
+            [
+              24,
+              null,
+              -14
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              50,
+              20,
+              -7
+            ],
+            [
+              15,
+              21,
+              -40
+            ],
+            [
+              -34,
+              -11,
+              44
+            ],
+            [
+              -9,
+              -52,
+              2
+            ],
+            [
+              9,
+              -40,
+              -19
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H24",
+      "sql": "SELECT i, j, COUNT(*) FROM integers GROUP BY i, j, i ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_direct_pair_repeat",
+      "source_query_ordinal": 6,
+      "family": "DIRECT_PAIR_REPEAT",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              56,
+              -10,
+              46
+            ],
+            [
+              56,
+              -10,
+              46
+            ],
+            [
+              null,
+              -46,
+              24
+            ],
+            [
+              33,
+              null,
+              -41
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              30,
+              29,
+              55
+            ],
+            [
+              25,
+              46,
+              -41
+            ],
+            [
+              53,
+              -52,
+              40
+            ],
+            [
+              36,
+              3,
+              -45
+            ],
+            [
+              12,
+              -44,
+              -54
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H25",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_reordered_group_repeat",
+      "source_query_ordinal": 1,
+      "family": "REORDERED_GROUP_REPEAT",
+      "modulus": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -6,
+              0,
+              -20
+            ],
+            [
+              -6,
+              0,
+              -20
+            ],
+            [
+              null,
+              -28,
+              20
+            ],
+            [
+              53,
+              null,
+              48
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              11,
+              49,
+              14
+            ],
+            [
+              -52,
+              4,
+              39
+            ],
+            [
+              -6,
+              -6,
+              1
+            ],
+            [
+              26,
+              -29,
+              41
+            ],
+            [
+              8,
+              52,
+              19
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H26",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_reordered_group_repeat",
+      "source_query_ordinal": 2,
+      "family": "REORDERED_GROUP_REPEAT",
+      "modulus": 6,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              41,
+              9,
+              -2
+            ],
+            [
+              41,
+              9,
+              -2
+            ],
+            [
+              null,
+              -37,
+              43
+            ],
+            [
+              43,
+              null,
+              43
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -11,
+              8,
+              -38
+            ],
+            [
+              34,
+              -19,
+              -5
+            ],
+            [
+              49,
+              -6,
+              41
+            ],
+            [
+              35,
+              33,
+              -52
+            ],
+            [
+              37,
+              28,
+              11
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H27",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_reordered_group_repeat",
+      "source_query_ordinal": 3,
+      "family": "REORDERED_GROUP_REPEAT",
+      "modulus": 8,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -2,
+              -2,
+              40
+            ],
+            [
+              -2,
+              -2,
+              40
+            ],
+            [
+              null,
+              0,
+              41
+            ],
+            [
+              -17,
+              null,
+              18
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              55,
+              41,
+              -39
+            ],
+            [
+              -47,
+              7,
+              -20
+            ],
+            [
+              46,
+              19,
+              41
+            ],
+            [
+              -45,
+              36,
+              31
+            ],
+            [
+              -19,
+              10,
+              12
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H28",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_reordered_group_repeat",
+      "source_query_ordinal": 4,
+      "family": "REORDERED_GROUP_REPEAT",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1,
+              -40,
+              42
+            ],
+            [
+              1,
+              -40,
+              42
+            ],
+            [
+              null,
+              -48,
+              -52
+            ],
+            [
+              32,
+              null,
+              -51
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -3,
+              -55,
+              37
+            ],
+            [
+              11,
+              -8,
+              32
+            ],
+            [
+              -22,
+              -2,
+              -20
+            ],
+            [
+              36,
+              8,
+              25
+            ],
+            [
+              -25,
+              -31,
+              12
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H29",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_reordered_group_repeat",
+      "source_query_ordinal": 5,
+      "family": "REORDERED_GROUP_REPEAT",
+      "modulus": 10,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -21,
+              35,
+              17
+            ],
+            [
+              -21,
+              35,
+              17
+            ],
+            [
+              null,
+              25,
+              -54
+            ],
+            [
+              -44,
+              null,
+              43
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -21,
+              36,
+              36
+            ],
+            [
+              -19,
+              -9,
+              -52
+            ],
+            [
+              25,
+              3,
+              -27
+            ],
+            [
+              3,
+              28,
+              -46
+            ],
+            [
+              -26,
+              -9,
+              -33
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H30",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j ORDER BY 1, 2;",
+      "source_file": "generated/queryproof/fresh_reordered_group_repeat",
+      "source_query_ordinal": 6,
+      "family": "REORDERED_GROUP_REPEAT",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -18,
+              -53,
+              42
+            ],
+            [
+              -18,
+              -53,
+              42
+            ],
+            [
+              null,
+              -42,
+              26
+            ],
+            [
+              -11,
+              null,
+              -1
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              8,
+              -20,
+              -52
+            ],
+            [
+              -2,
+              8,
+              -15
+            ],
+            [
+              34,
+              -34,
+              17
+            ],
+            [
+              -23,
+              28,
+              -26
+            ],
+            [
+              -19,
+              -49,
+              -21
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H31",
+      "sql": "SELECT i % 4 AS k, MAX(j) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_max",
+      "source_query_ordinal": 1,
+      "family": "ALIAS_REPEAT_MAX",
+      "modulus": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              7,
+              36,
+              16
+            ],
+            [
+              7,
+              36,
+              16
+            ],
+            [
+              null,
+              -43,
+              27
+            ],
+            [
+              31,
+              null,
+              11
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -32,
+              -34,
+              -24
+            ],
+            [
+              -5,
+              47,
+              18
+            ],
+            [
+              -5,
+              32,
+              -22
+            ],
+            [
+              17,
+              -36,
+              -6
+            ],
+            [
+              -44,
+              -27,
+              4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H32",
+      "sql": "SELECT i % 6 AS k, MAX(j) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_max",
+      "source_query_ordinal": 2,
+      "family": "ALIAS_REPEAT_MAX",
+      "modulus": 6,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              41,
+              -27,
+              16
+            ],
+            [
+              41,
+              -27,
+              16
+            ],
+            [
+              null,
+              -16,
+              21
+            ],
+            [
+              38,
+              null,
+              -1
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -14,
+              40,
+              39
+            ],
+            [
+              56,
+              -56,
+              -31
+            ],
+            [
+              -53,
+              17,
+              -19
+            ],
+            [
+              -16,
+              -34,
+              47
+            ],
+            [
+              53,
+              -54,
+              -18
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H33",
+      "sql": "SELECT i % 8 AS k, MAX(j) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_max",
+      "source_query_ordinal": 3,
+      "family": "ALIAS_REPEAT_MAX",
+      "modulus": 8,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              52,
+              25,
+              34
+            ],
+            [
+              52,
+              25,
+              34
+            ],
+            [
+              null,
+              39,
+              14
+            ],
+            [
+              -22,
+              null,
+              -41
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              23,
+              -32,
+              39
+            ],
+            [
+              -44,
+              17,
+              -30
+            ],
+            [
+              39,
+              36,
+              47
+            ],
+            [
+              34,
+              -2,
+              6
+            ],
+            [
+              -34,
+              7,
+              36
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H34",
+      "sql": "SELECT i % 9 AS k, MAX(j) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_max",
+      "source_query_ordinal": 4,
+      "family": "ALIAS_REPEAT_MAX",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              10,
+              -38,
+              -49
+            ],
+            [
+              10,
+              -38,
+              -49
+            ],
+            [
+              null,
+              24,
+              -25
+            ],
+            [
+              -9,
+              null,
+              -8
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              19,
+              -3,
+              -45
+            ],
+            [
+              -31,
+              -33,
+              12
+            ],
+            [
+              -19,
+              16,
+              29
+            ],
+            [
+              53,
+              -18,
+              -20
+            ],
+            [
+              9,
+              26,
+              13
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H35",
+      "sql": "SELECT i % 10 AS k, MAX(j) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_max",
+      "source_query_ordinal": 5,
+      "family": "ALIAS_REPEAT_MAX",
+      "modulus": 10,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -5,
+              54,
+              41
+            ],
+            [
+              -5,
+              54,
+              41
+            ],
+            [
+              null,
+              12,
+              -40
+            ],
+            [
+              -3,
+              null,
+              27
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              43,
+              -8,
+              -25
+            ],
+            [
+              -48,
+              12,
+              -33
+            ],
+            [
+              8,
+              30,
+              29
+            ],
+            [
+              -51,
+              48,
+              -49
+            ],
+            [
+              -41,
+              -28,
+              48
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H36",
+      "sql": "SELECT i % 17 AS k, MAX(j) FROM integers GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_alias_repeat_max",
+      "source_query_ordinal": 6,
+      "family": "ALIAS_REPEAT_MAX",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              11,
+              52,
+              11
+            ],
+            [
+              11,
+              52,
+              11
+            ],
+            [
+              null,
+              -44,
+              -42
+            ],
+            [
+              28,
+              null,
+              5
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -35,
+              -42,
+              -19
+            ],
+            [
+              18,
+              12,
+              -46
+            ],
+            [
+              18,
+              3,
+              29
+            ],
+            [
+              39,
+              -9,
+              -24
+            ],
+            [
+              -6,
+              -49,
+              -47
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H37",
+      "sql": "SELECT i % 4 AS k, COUNT(*) FROM integers WHERE i > 999999 GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_empty_input_repeat",
+      "source_query_ordinal": 1,
+      "family": "EMPTY_INPUT_REPEAT",
+      "modulus": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              23,
+              17,
+              -55
+            ],
+            [
+              23,
+              17,
+              -55
+            ],
+            [
+              null,
+              13,
+              36
+            ],
+            [
+              4,
+              null,
+              27
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              18,
+              28,
+              -4
+            ],
+            [
+              -53,
+              -29,
+              -51
+            ],
+            [
+              -9,
+              -10,
+              25
+            ],
+            [
+              -28,
+              -33,
+              -16
+            ],
+            [
+              49,
+              49,
+              54
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H38",
+      "sql": "SELECT i % 6 AS k, COUNT(*) FROM integers WHERE i > 999999 GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_empty_input_repeat",
+      "source_query_ordinal": 2,
+      "family": "EMPTY_INPUT_REPEAT",
+      "modulus": 6,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -4,
+              -28,
+              -24
+            ],
+            [
+              -4,
+              -28,
+              -24
+            ],
+            [
+              null,
+              -36,
+              43
+            ],
+            [
+              -46,
+              null,
+              15
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              41,
+              55,
+              -29
+            ],
+            [
+              -37,
+              31,
+              -24
+            ],
+            [
+              32,
+              -47,
+              23
+            ],
+            [
+              -28,
+              -22,
+              -35
+            ],
+            [
+              -24,
+              43,
+              -40
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H39",
+      "sql": "SELECT i % 8 AS k, COUNT(*) FROM integers WHERE i > 999999 GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_empty_input_repeat",
+      "source_query_ordinal": 3,
+      "family": "EMPTY_INPUT_REPEAT",
+      "modulus": 8,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -16,
+              -49,
+              17
+            ],
+            [
+              -16,
+              -49,
+              17
+            ],
+            [
+              null,
+              5,
+              -30
+            ],
+            [
+              20,
+              null,
+              5
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              50,
+              -45,
+              28
+            ],
+            [
+              -19,
+              22,
+              37
+            ],
+            [
+              28,
+              8,
+              15
+            ],
+            [
+              30,
+              -44,
+              9
+            ],
+            [
+              -31,
+              0,
+              7
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H40",
+      "sql": "SELECT i % 9 AS k, COUNT(*) FROM integers WHERE i > 999999 GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_empty_input_repeat",
+      "source_query_ordinal": 4,
+      "family": "EMPTY_INPUT_REPEAT",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -16,
+              -55,
+              -32
+            ],
+            [
+              -16,
+              -55,
+              -32
+            ],
+            [
+              null,
+              28,
+              -35
+            ],
+            [
+              -9,
+              null,
+              5
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              9,
+              22,
+              19
+            ],
+            [
+              22,
+              14,
+              -24
+            ],
+            [
+              8,
+              -43,
+              9
+            ],
+            [
+              -37,
+              -43,
+              41
+            ],
+            [
+              -27,
+              -23,
+              25
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H41",
+      "sql": "SELECT i % 10 AS k, COUNT(*) FROM integers WHERE i > 999999 GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_empty_input_repeat",
+      "source_query_ordinal": 5,
+      "family": "EMPTY_INPUT_REPEAT",
+      "modulus": 10,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -37,
+              45,
+              32
+            ],
+            [
+              -37,
+              45,
+              32
+            ],
+            [
+              null,
+              34,
+              1
+            ],
+            [
+              -28,
+              null,
+              -34
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -46,
+              -42,
+              -40
+            ],
+            [
+              0,
+              -23,
+              28
+            ],
+            [
+              4,
+              36,
+              -2
+            ],
+            [
+              53,
+              -12,
+              -22
+            ],
+            [
+              54,
+              -53,
+              40
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H42",
+      "sql": "SELECT i % 17 AS k, COUNT(*) FROM integers WHERE i > 999999 GROUP BY k, k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_empty_input_repeat",
+      "source_query_ordinal": 6,
+      "family": "EMPTY_INPUT_REPEAT",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -14,
+              -16,
+              -46
+            ],
+            [
+              -14,
+              -16,
+              -46
+            ],
+            [
+              null,
+              -10,
+              34
+            ],
+            [
+              13,
+              null,
+              -15
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              54,
+              0,
+              47
+            ],
+            [
+              -43,
+              -47,
+              20
+            ],
+            [
+              -29,
+              47,
+              -28
+            ],
+            [
+              19,
+              37,
+              -18
+            ],
+            [
+              27,
+              -34,
+              -23
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H43",
+      "sql": "SELECT i % 4 AS k, SUM(j) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_no_repeat_control",
+      "source_query_ordinal": 1,
+      "family": "NO_REPEAT_CONTROL",
+      "modulus": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              50,
+              -2,
+              50
+            ],
+            [
+              50,
+              -2,
+              50
+            ],
+            [
+              null,
+              -28,
+              -44
+            ],
+            [
+              1,
+              null,
+              6
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              39,
+              41,
+              40
+            ],
+            [
+              41,
+              52,
+              12
+            ],
+            [
+              28,
+              -17,
+              -28
+            ],
+            [
+              16,
+              30,
+              14
+            ],
+            [
+              24,
+              -30,
+              -18
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H44",
+      "sql": "SELECT i % 6 AS k, SUM(j) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_no_repeat_control",
+      "source_query_ordinal": 2,
+      "family": "NO_REPEAT_CONTROL",
+      "modulus": 6,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -26,
+              32,
+              -9
+            ],
+            [
+              -26,
+              32,
+              -9
+            ],
+            [
+              null,
+              22,
+              -42
+            ],
+            [
+              30,
+              null,
+              -27
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              32,
+              -6,
+              -1
+            ],
+            [
+              18,
+              -43,
+              -3
+            ],
+            [
+              -2,
+              -29,
+              -40
+            ],
+            [
+              7,
+              48,
+              15
+            ],
+            [
+              30,
+              10,
+              -1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H45",
+      "sql": "SELECT i % 8 AS k, SUM(j) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_no_repeat_control",
+      "source_query_ordinal": 3,
+      "family": "NO_REPEAT_CONTROL",
+      "modulus": 8,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -45,
+              20,
+              51
+            ],
+            [
+              -45,
+              20,
+              51
+            ],
+            [
+              null,
+              -46,
+              26
+            ],
+            [
+              -4,
+              null,
+              -5
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -44,
+              24,
+              -8
+            ],
+            [
+              9,
+              22,
+              -43
+            ],
+            [
+              -33,
+              46,
+              -38
+            ],
+            [
+              -24,
+              -31,
+              -54
+            ],
+            [
+              44,
+              15,
+              -13
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H46",
+      "sql": "SELECT i % 9 AS k, SUM(j) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_no_repeat_control",
+      "source_query_ordinal": 4,
+      "family": "NO_REPEAT_CONTROL",
+      "modulus": 9,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              41,
+              31,
+              22
+            ],
+            [
+              41,
+              31,
+              22
+            ],
+            [
+              null,
+              20,
+              -53
+            ],
+            [
+              13,
+              null,
+              10
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -17,
+              41,
+              -9
+            ],
+            [
+              8,
+              50,
+              -45
+            ],
+            [
+              10,
+              -42,
+              -4
+            ],
+            [
+              -20,
+              -45,
+              18
+            ],
+            [
+              -43,
+              -34,
+              8
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H47",
+      "sql": "SELECT i % 10 AS k, SUM(j) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_no_repeat_control",
+      "source_query_ordinal": 5,
+      "family": "NO_REPEAT_CONTROL",
+      "modulus": 10,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -34,
+              45,
+              1
+            ],
+            [
+              -34,
+              45,
+              1
+            ],
+            [
+              null,
+              -34,
+              -47
+            ],
+            [
+              52,
+              null,
+              -1
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              -21,
+              -3,
+              -3
+            ],
+            [
+              -13,
+              -23,
+              -41
+            ],
+            [
+              -50,
+              2,
+              31
+            ],
+            [
+              0,
+              -26,
+              44
+            ],
+            [
+              -25,
+              -41,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "H48",
+      "sql": "SELECT i % 17 AS k, SUM(j) FROM integers GROUP BY k ORDER BY 1;",
+      "source_file": "generated/queryproof/fresh_no_repeat_control",
+      "source_query_ordinal": 6,
+      "family": "NO_REPEAT_CONTROL",
+      "modulus": 17,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -15,
+              25,
+              -49
+            ],
+            [
+              -15,
+              25,
+              -49
+            ],
+            [
+              null,
+              -42,
+              -30
+            ],
+            [
+              -45,
+              null,
+              51
+            ],
+            [
+              0,
+              0,
+              null
+            ],
+            [
+              14,
+              -23,
+              28
+            ],
+            [
+              -15,
+              15,
+              30
+            ],
+            [
+              21,
+              42,
+              -29
+            ],
+            [
+              48,
+              5,
+              -45
+            ],
+            [
+              7,
+              56,
+              48
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}
