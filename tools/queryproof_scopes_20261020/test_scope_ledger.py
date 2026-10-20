@@ -164,5 +164,40 @@ class ScopeLedgerTests(unittest.TestCase):
             decode_scope(bad)
 
 
+    def test_post_finish_analysis_suffix_can_be_proved_without_full_executor(self):
+        seq = [
+            marker(1, "BEGIN", 0, "EXECUTOR"),
+            marker(2, "BEGIN", 0, batch="Finish Analysis"),
+            changed(0, 1, yes=False, batch="Finish Analysis"),
+            marker(2, "END", 1, batch="Finish Analysis"),
+            marker(3, "BEGIN", 1, batch="Aggregate"),
+            changed(1, 2, batch="Aggregate"),
+            marker(3, "END", 2, batch="Aggregate"),
+            marker(1, "END", 2, "EXECUTOR"),
+        ]
+        r = summarize_scope_stream(seq)
+        self.assertEqual(r["certified_changed_executors"], 0)
+        self.assertEqual(r["certified_changed_optimizer_suffixes"], 1)
+
+    def test_unknown_after_finish_analysis_blocks_optimizer_suffix(self):
+        seq = [
+            marker(1, "BEGIN", 0, "EXECUTOR"),
+            marker(2, "BEGIN", 0, batch="Finish Analysis"),
+            changed(0, 1, yes=False, batch="Finish Analysis"),
+            marker(2, "END", 1, batch="Finish Analysis"),
+            marker(3, "BEGIN", 1, batch="Infer Filters"),
+            changed(1, 2, yes=False, batch="Infer Filters"),
+            marker(3, "END", 2, batch="Infer Filters"),
+            marker(1, "END", 2, "EXECUTOR"),
+        ]
+        r = summarize_scope_stream(seq)
+        self.assertEqual(r["certified_changed_optimizer_suffixes"], 0)
+        self.assertEqual(r["optimizer_suffix_reason_counts"]["UNKNOWN_RULE"], 1)
+
+    def test_scope_without_finish_analysis_never_claims_suffix(self):
+        r = summarize_scope_stream(complete(0, 2, [changed(0, 2)]))
+        self.assertEqual(r["post_finish_analysis_optimizer_suffixes"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
