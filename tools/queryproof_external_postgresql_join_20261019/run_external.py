@@ -341,6 +341,7 @@ def score_generalized_column_liveness(private_trace_path):
         certify_generalized_projection_liveness_event,
     )
     certificates, unknowns, events = [], Counter(), 0
+    safe_unknown_alias_shapes = []
     for line in private_trace_path.read_text(errors="replace").splitlines():
         if not line.startswith("QUERYPROOF_AST\t"):
             continue
@@ -361,12 +362,38 @@ def score_generalized_column_liveness(private_trace_path):
             })
         else:
             unknowns[result.get("reason", "UNKNOWN")] += 1
+            if (result.get("reason") == "BAD_PROJECT_ALIAS" and
+                    len(safe_unknown_alias_shapes) < 10):
+                shapes = {"case": event.get("case")}
+                for side in ("old", "new"):
+                    found = []
+                    for plan in event[side]:
+                        if plan.get("class") != (
+                                "org.apache.spark.sql.catalyst.plans.logical."
+                                "Project"):
+                            continue
+                        for entry in plan.get("projectList", []):
+                            if (isinstance(entry, list) and entry and
+                                    isinstance(entry[0], dict) and
+                                    entry[0].get("class") == (
+                                        "org.apache.spark.sql.catalyst."
+                                        "expressions.Alias")):
+                                found.append({
+                                    "keys": sorted(entry[0]),
+                                    "expr_length": len(entry),
+                                    "child_arity": entry[0].get("num-children"),
+                                    "name_is_string": isinstance(
+                                        entry[0].get("name"), str),
+                                })
+                    shapes[side] = found
+                safe_unknown_alias_shapes.append(shapes)
     return {
         "status": "RETROSPECTIVE_UNPINNED",
         "named_column_pruning_events": events,
         "certified": len(certificates),
         "certificates": certificates,
         "unknown_reasons": dict(unknowns),
+        "safe_unknown_alias_shapes": safe_unknown_alias_shapes,
         "certificate_scope": "pure_nested_project_observational_liveness",
     }
 
