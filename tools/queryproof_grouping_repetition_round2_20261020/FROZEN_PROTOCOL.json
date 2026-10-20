@@ -1,0 +1,27 @@
+{
+  "schema_version": 3,
+  "benchmark_id": "queryproof-grouping-repetition-fresh-round2-20261020",
+  "required_case_count": 48,
+  "freeze_date_utc": "2026-10-20",
+  "frozen_verifier_commit": "369200a21d3923f0fb2364f12c356e2a606bfcaf",
+  "prospective_grouping_repetition": true,
+  "generated_targeted": true,
+  "primary": "On all 48 previously unexecuted frozen H01-H48 cases enumerate every actually changed Catalyst RemoveRepetitionFromGroupExpressions event. Count strict exact local grouping-key certificates and all UNKNOWN cases; no minimum pass-rate target.",
+  "secondary": [
+    "Verify 48 Spark 4.2.0 and SQLite row bags agree with no errors; all cases retained",
+    "Require both checker and scoring driver blob SHA identities remain unchanged",
+    "Capture complete rule denominator, trace integrity, zero-event controls, and explicit synthetic-family dependence"
+  ],
+  "source_selection": "Eight design-informed SQL families x six new moduli 4,6,8,9,10,17; independently seeded 20261022 ten-row bags with duplicates, NULLs, negatives, and empty-input controls. Manifest frozen before this checker ever processed any H-case; differs from prior G01-G48 development cohort.",
+  "invalidation": [
+    "Any edit to checker/scorer or H-case corpus after first execution forfeits prospective classification",
+    "Any SQL error, mismatched result bag or trace instrumentation failure invalidates complete run",
+    "UNKNOWN is abstention and cannot be discarded"
+  ],
+  "limitations": [
+    "Generated cases share families with prior failed workflow and are strongly correlated",
+    "Not independent external SQL or optimizer-wide coverage",
+    "One Catalyst transition under pure fixed bag relational semantics; not an entire optimizer execution or physical performance guarantee"
+  ],
+  "prior_exploratory_disclosure": "The first G01-G48 frozen cohort had 18/42 certificates but a reporting/provenance workflow check failed; subsequent shape-guided replay reached 42/42 on already-seen G cases. This H cohort is a newly frozen untouched successor, not a relabeling of G."
+}
