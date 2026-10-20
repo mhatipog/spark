@@ -10,8 +10,14 @@ from pathlib import Path
 import sys
 
 
+def _same_provenance_adjacent(left, right):
+    return (left["new"] == right["old"] and
+            left.get("executor") == right.get("executor") and
+            left.get("batch") == right.get("batch"))
+
+
 def summarize_event_chain(events):
-    """Events: case, rule, old, new, certified. Retain no raw AST in result."""
+    """Same executor+batch, consecutive plan snapshots; no raw AST output."""
     by_case = defaultdict(list)
     for event in events:
         by_case[event["case"]].append(event)
@@ -21,16 +27,16 @@ def summarize_event_chain(events):
         current = []
         all_certified = all(item["certified"] for item in sequence)
         all_connected = all(
-            left["new"] == right["old"]
+            _same_provenance_adjacent(left, right)
             for left, right in zip(sequence, sequence[1:]))
         for idx, item in enumerate(sequence):
             if item["certified"]:
                 certified_total += 1
                 by_rule[item["rule"]] += 1
-            if idx and sequence[idx - 1]["new"] == item["old"]:
+            if idx and _same_provenance_adjacent(sequence[idx - 1], item):
                 adjacent_all += 1
             if item["certified"]:
-                if current and sequence[idx - 1]["new"] == item["old"]:
+                if current and _same_provenance_adjacent(sequence[idx - 1], item):
                     linked_pairs += 1
                     current.append(item)
                 else:
@@ -74,7 +80,7 @@ def summarize_event_chain(events):
             c["whole_recorded_trace_certified"] for c in case_summaries),
         "per_case": case_summaries,
         "limits": [
-            "Exact snapshot adjacency required, not merely same query or rule name",
+            "Consecutive exact ASTs must share Catalyst executor and optimization batch",
             "Every intervening transition must be certified; UNKNOWN breaks chain",
             "Only recorded local events, not unobserved optimizer/instrumentation steps",
             "Analyzer and Optimizer phase wrappers are currently unproved",
@@ -111,6 +117,9 @@ def score_chain_trace(private_trace_path):
         events.append({
             "case": evt.get("case", "unlabelled"),
             "rule": rule,
+            "executor": evt.get("executor"),
+            "batch": evt.get("batch"),
+            "iteration": evt.get("iteration"),
             "old": evt["old"],
             "new": evt["new"],
             "certified": result["status"] == "EQUIVALENT_IN_FRAGMENT",
