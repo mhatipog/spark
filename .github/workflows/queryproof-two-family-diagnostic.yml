@@ -1,0 +1,69 @@
+name: QueryProof posthoc local certificate coexistence
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_composition_20261020/**
+      - .github/workflows/queryproof-two-family-diagnostic.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  two-family-local-events:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official PySpark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument Spark Catalyst disposable overlay
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Retrospective two-family event coexistence replay
+        run: python -u tools/queryproof_composition_20261020/run_coexistence.py
+      - name: Report separate named-rule denominators
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          f = Path("artifacts/queryproof_two_family_composition_diagnostic.json")
+          if not f.exists():
+              raise SystemExit("No diagnostic coexistence output")
+          r = json.loads(f.read_text())
+          c = r["generalized_column_liveness"]
+          g = r["grouping_repetition"]
+          print("COMPOSITION_GROUPING", json.dumps(g, sort_keys=True))
+          print("COMPOSITION_PROJECTION", json.dumps(c, sort_keys=True))
+          print("COMPOSITION_AGGREGATE", json.dumps(
+              r["posthoc_aggregate_identity"], sort_keys=True))
+          print("COMPOSITION_RULE_COUNTS", r["union_coverage"]["by_rule"])
+          print("COMPOSITION_TOTAL_EVENTS", r["trace"]["trace_events"])
+          if r["worker_exit_code"] != 0 or r["executed_cases"] != 48:
+              raise SystemExit("Incomplete 48-case diagnostic")
+          if r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("Cross-engine row bags disagree")
+          '
+      - name: Save sanitized combined event evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-local-certificate-coexistence
+          path: artifacts/queryproof_two_family_composition_diagnostic.json
+          retention-days: 14
+          if-no-files-found: warn
