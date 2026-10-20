@@ -17,6 +17,7 @@ from generalized_projection_liveness_certificate import (
     certify_generalized_projection_liveness_event)
 from scope_ledger import _chain_proof
 from guarded_leaf_identity import certify_with_opaque_leaf_guard
+from attested_leaf_identity import certify_with_leaf_attestation, SOURCE
 
 data = json.loads(
     (ROOT / "artifacts" / "queryproof_logical_rdd_collision.json").read_text())
@@ -69,3 +70,30 @@ guarded = certify_with_opaque_leaf_guard(
 assert guarded["status"] == "UNKNOWN", guarded
 assert guarded["reason"] == "UNATTESTED_INPUT_RELATION", guarded
 print("QUERYPROOF_OPAQUE_LEAF_GUARD_REJECTS_FALSE_CERTIFICATE=CONFIRMED")
+
+# Distinct JNI/JVM-backed RDD references receive distinct stable tokens. This
+# prototype consumes tokens minted by the controlled Scala process; a usable
+# product checker must bind such tokens to authentic RuleExecutor events.
+left_token, right_token = data["left_rdd_token"], data["right_rdd_token"]
+assert type(left_token) is int and type(right_token) is int
+assert left_token > 0 and right_token > 0 and left_token != right_token
+cls = "org.apache.spark.sql.execution.LogicalRDD"
+def witness(before, after):
+    return {"source": SOURCE, "complete": True,
+            "before": [{"class": cls, "rdd_token": before}],
+            "after": [{"class": cls, "rdd_token": after}]}
+
+blocked = certify_with_leaf_attestation(
+    event, certify_generalized_projection_liveness_event,
+    witness(left_token, right_token))
+assert blocked["status"] == "UNKNOWN" and (
+    blocked["reason"] == "INPUT_RELATION_IDENTITY_CHANGED"), blocked
+print("QUERYPROOF_JVM_BOUND_RDD_SWAP_REJECTED=CONFIRMED")
+
+valid = copy.deepcopy(event)
+valid["new"][-1] = copy.deepcopy(leaf_left)
+allowed = certify_with_leaf_attestation(
+    valid, certify_generalized_projection_liveness_event,
+    witness(left_token, left_token))
+assert allowed["status"] == "EQUIVALENT_IN_FRAGMENT", allowed
+print("QUERYPROOF_SAME_RDD_IDENTITY_POSITIVE_PRESERVED=CONFIRMED")
