@@ -1,0 +1,33 @@
+name: QueryProof analyze immutable prospective L artifact
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_l_diagnostics_20261020/**
+      - .github/workflows/queryproof-l-first-run-breakdown.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_l_diagnostics_20261020
+            tools/queryproof_prospective_l_20261020
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: queryproof-prospective-l-frozen-frames
+          run-id: 39393542980
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts
+      - name: Classify frozen accepted and UNKNOWN SQL families, no Spark re-run
+        run: python -B tools/queryproof_l_diagnostics_20261020/first_run_breakdown.py
