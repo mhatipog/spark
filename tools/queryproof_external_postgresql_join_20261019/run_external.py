@@ -528,6 +528,7 @@ def score_grouping_repetition(private_trace_path):
     from rank_ast import decode
     from grouping_repetition_certificate import certify_grouping_repetition_event
     accepted, unknowns, named = [], Counter(), 0
+    safe_attribute_shapes = []
     for line in private_trace_path.read_text(errors="replace").splitlines():
         if not line.startswith("QUERYPROOF_AST\t"):
             continue
@@ -547,12 +548,35 @@ def score_grouping_repetition(private_trace_path):
             })
         else:
             unknowns[result.get("reason", "UNKNOWN")] += 1
+            if (result.get("reason") ==
+                    "UNTRUSTED_GROUPING_ATTRIBUTE_METADATA" and
+                    len(safe_attribute_shapes) < 10):
+                for plan in event["old"]:
+                    if plan.get("class") != (
+                            "org.apache.spark.sql.catalyst.plans.logical."
+                            "Aggregate"):
+                        continue
+                    for expr in plan.get("groupingExpressions", []):
+                        for node in expr:
+                            if node.get("class") == (
+                                    "org.apache.spark.sql.catalyst.expressions."
+                                    "AttributeReference"):
+                                qualifier = node.get("qualifier")
+                                safe_attribute_shapes.append({
+                                    "field_keys": sorted(node),
+                                    "qualifier_type": type(qualifier).__name__,
+                                    "qualifier_length": len(qualifier)
+                                    if isinstance(qualifier, list) else None,
+                                })
+                                if len(safe_attribute_shapes) >= 10:
+                                    break
     return {
         "status": "RETROSPECTIVE_DEVELOPMENT_ONLY_NO_HOLDOUT_CREDIT",
         "named_grouping_repetition_events": named,
         "certified": len(accepted),
         "certificates": accepted,
         "unknown_reasons": dict(unknowns),
+        "safe_grouping_attribute_shapes": safe_attribute_shapes,
         "semantic_scope": "local pure grouping-key partition equivalence only",
     }
 
