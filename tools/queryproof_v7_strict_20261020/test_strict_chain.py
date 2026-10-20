@@ -27,4 +27,7 @@ class StrictChainTests(unittest.TestCase):
         self.assertEqual(result["status"],"RETROSPECTIVE_EXACT_CATALYST_SCOPE_LEDGER")
         self.assertEqual(result["by_reason"].get("BATCH:UNKNOWN_RULE"),1)
         self.assertEqual(result["by_reason"].get("EXECUTOR:UNKNOWN_ENCLOSED_BATCH"),1)
+        inventory=result["unknown_rule_case_inventory"]
+        self.assertEqual(sum(r["count"] for r in inventory if r["case"]=="T"),2)
+        self.assertEqual({r["rule"] for r in inventory},{"synthetic"})
 if __name__=="__main__": unittest.main()
