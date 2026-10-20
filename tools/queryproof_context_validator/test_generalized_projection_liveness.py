@@ -201,6 +201,33 @@ class GeneralizedLivenessTests(unittest.TestCase):
             e["new"].insert(2, proj([att(0)]))
         self.no(e)
 
+    def test_exact_empty_catalyst_alias_metadata_is_supported(self):
+        e = example()
+        for head in (e["old"][1]["projectList"][2][0],
+                     e["new"][2]["projectList"][2][0]):
+            head["qualifier"] = []
+            head["nonInheritableMetadataKeys"] = []
+        self.yes(e)
+
+    def test_qualified_alias_metadata_abstains(self):
+        e = example()
+        head = e["new"][2]["projectList"][2][0]
+        head["qualifier"] = ["remote"]
+        head["nonInheritableMetadataKeys"] = []
+        self.no(e)
+
+    def test_noninheritable_alias_metadata_abstains(self):
+        e = example()
+        head = e["old"][1]["projectList"][2][0]
+        head["qualifier"] = []
+        head["nonInheritableMetadataKeys"] = ["sensitive"]
+        self.no(e)
+
+    def test_unanticipated_alias_metadata_abstains(self):
+        e = example()
+        e["old"][1]["projectList"][2][0]["hiddenState"] = True
+        self.no(e)
+
     def test_same_tree_is_not_a_transition(self):
         e = example()
         e["new"] = copy.deepcopy(e["old"])
