@@ -1,0 +1,107 @@
+name: QueryProof prospective L diverse hidden-frame validation
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_prospective_l_20261020/**
+      - .github/workflows/queryproof-prospective-frame-l.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prospective-l:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_prospective_l_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reject fabricated, missing, discontinuous or modified JVM frames
+        run: |
+          PYTHONPATH=tools/queryproof_state_frame_20261020 \
+            python -B -m unittest discover -s tools/queryproof_state_frame_20261020 \
+            -p 'test_frame_guard.py' -v
+          python -B -m unittest discover -s tools/queryproof_scopes_20261020 \
+            -p 'test_scope_ledger.py' -q
+          python -B -m unittest discover -s tools/queryproof_state_witness_20261020 \
+            -p 'test_state_guard.py' -q
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Compile only the disposable JVM frame observer
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: First exposure to frozen L01-L48 queries and rowbags
+        run: python -u tools/queryproof_prospective_l_20261020/run_l.py
+      - name: Summarize frozen first-run findings without private Catalyst plans
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from collections import Counter
+          from pathlib import Path
+          p = Path("artifacts/queryproof_prospective_l_frame.json")
+          if not p.exists():
+              raise SystemExit("Missing L first-run report")
+          report = json.loads(p.read_text())
+          u = report["union_coverage"]
+          scopes = u["hierarchical_scope_ledger"]
+          frames = u["prospectively_frozen_frame_preservation"]
+          fields = ("status", "errors", "scope_records", "rule_records",
+                    "optimizer_suffixes", "postfinish_batch_checks",
+                    "frame_violating_batch_reasons",
+                    "opaque_suffix_boundary_states",
+                    "originally_certified_changed_suffixes",
+                    "newly_frame_preserved_count", "suffix_failure_reasons",
+                    "suffix_failure_case_count")
+          print("QUERYPROOF_L_FROZEN_FRAME", json.dumps({
+              key: frames.get(key) for key in fields}, sort_keys=True))
+          print("QUERYPROOF_L_FROZEN_SCOPE", json.dumps({
+              "status": scopes.get("status"),
+              "rule_events": scopes.get("recorded_rule_events"),
+              "certified_changed_batches": scopes.get("certified_changed_batches"),
+              "certified_changed_suffixes":
+                  scopes.get("certified_changed_optimizer_suffixes"),
+              "suffix_reasons": scopes.get("optimizer_suffix_reason_counts"),
+          }, sort_keys=True))
+          print("QUERYPROOF_L_ORACLE", json.dumps({
+              "cases": report["executed_cases"],
+              "errors": report["error_cases"],
+              "mismatches": report["row_oracle_mismatch_cases"],
+              "pins_match": u["frame_proof_version_matches_pins"],
+          }, sort_keys=True))
+          if report["worker_exit_code"] != 0 or report["executed_cases"] != 48:
+              raise SystemExit("L first run incomplete")
+          if report["error_cases"] or report["row_oracle_mismatch_cases"]:
+              raise SystemExit("New grammar has Spark/SQLite discrepancies")
+          if frames["status"] != "COMPLETE_FRAME_COMPARISON":
+              raise SystemExit("Malformed JVM frame provenance")
+          '
+      - name: Archive sanitized first-run L evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-prospective-l-frozen-frames
+          path: artifacts/queryproof_prospective_l_frame.json
+          retention-days: 14
+          if-no-files-found: warn
