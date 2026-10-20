@@ -156,6 +156,30 @@ def summarize_scope_stream(stream):
             batches[key]["proved_nontrivial"] += (
                 scope["changed"] and scope["certified"])
             batches[key]["rule_events"] += len(scope["direct_steps"])
+    suffixes = []
+    for executor in executors:
+        batches_in_executor = executor["children"]
+        finish = [
+            i for i, batch in enumerate(batches_in_executor)
+            if batch["kind"] == "BATCH" and batch["batch"] == "Finish Analysis"
+        ]
+        if len(finish) != 1:
+            continue
+        baseline = batches_in_executor[finish[0]]["end"]
+        later = batches_in_executor[finish[0] + 1:]
+        steps = [{
+            "old": batch["start"], "new": batch["end"],
+            "certified": batch["certified"],
+        } for batch in later]
+        proof, reason = _chain_proof(baseline, executor["end"], steps)
+        suffixes.append({
+            "case": executor["case"],
+            "changed": baseline != executor["end"],
+            "proved": proof,
+            "reason": reason,
+            "changed_later_batches": sum(batch["changed"] for batch in later),
+        })
+    suffix_reasons = Counter(s["reason"] for s in suffixes)
     return {
         "status": "RETROSPECTIVE_EXACT_CATALYST_SCOPE_LEDGER",
         "errors": [],
@@ -171,6 +195,12 @@ def summarize_scope_stream(stream):
             s["changed"] and s["certified"] for s in executors),
         "exact_identity_batches": sum(not s["changed"] for s in batch_scopes),
         "exact_identity_executors": sum(not s["changed"] for s in executors),
+        "post_finish_analysis_optimizer_suffixes": len(suffixes),
+        "changed_optimizer_suffixes": sum(s["changed"] for s in suffixes),
+        "certified_changed_optimizer_suffixes": sum(
+            s["changed"] and s["proved"] for s in suffixes),
+        "optimizer_suffix_reason_counts": dict(sorted(suffix_reasons.items())),
+        "optimizer_suffix_case_counts": [s for s in suffixes],
         "by_reason": {kind + ":" + reason: count
                       for (kind, reason), count in sorted(by_reason.items())},
         "unknown_rules": [
@@ -195,6 +225,7 @@ def summarize_scope_stream(stream):
             "Equal AST endpoints certify identity, even if intermediate rules are unknown",
             "Nested executor changes must be covered by the enclosing parent rule",
             "No Spark order sensitivity, side effects, or non-Catalyst stages proved",
+            "Optimizer suffix begins AFTER FinishAnalysis semantic normalization",
         ],
     }
 
