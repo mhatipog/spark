@@ -4,7 +4,7 @@ on:
     branches:
       - research/queryproof-phase-local-independent-20261020
     paths:
-      - research/queryproof/proofs/QueryProofNarrowJoin.v
+      - research/queryproof/proofs/*.v
       - .github/workflows/queryproof-coq-local-laws.yml
   workflow_dispatch:
 permissions:
@@ -26,14 +26,17 @@ jobs:
         run: |
           python3 -B -c '
           from pathlib import Path
-          p=Path("research/queryproof/proofs/QueryProofNarrowJoin.v")
-          source=p.read_text().lower()
+          files=list(Path("research/queryproof/proofs").glob("*.v"))
+          assert len(files)>=2
+          source="\\n".join(p.read_text().lower() for p in files)
           assert "admitted." not in source and "admit." not in source
           assert "\naxiom " not in source and "\nparameter " not in source
           print("QUERYPROOF_COQ_NO_UNSAFE_AXIOMS=PASS")
           '
       - name: Compile all lemmas in Coq kernel
         run: |
-          coqc -q research/queryproof/proofs/QueryProofNarrowJoin.v
-          test -f research/queryproof/proofs/QueryProofNarrowJoin.vo
+          for proof in research/queryproof/proofs/*.v; do
+            coqc -q "$proof"
+            test -f "${proof%.v}.vo"
+          done
           echo "QUERYPROOF_COQ_NARROW_NULL_BAG_LAWS=KERNEL_CHECKED"
