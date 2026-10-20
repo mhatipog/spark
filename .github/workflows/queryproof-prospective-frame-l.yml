@@ -51,6 +51,9 @@ jobs:
           python -B tools/queryproof_state_witness_20261020/instrument_state.py
           python -B tools/queryproof_state_frame_20261020/instrument_frame.py
           bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Restore pinned source text after building the disposable JVM overlay
+        run: |
+          git restore --source=HEAD -- tools/queryproof_instrumented/RuleExecutor.scala
       - name: First exposure to frozen L01-L48 queries and rowbags
         run: python -u tools/queryproof_prospective_l_20261020/run_l.py
       - name: Summarize frozen first-run findings without private Catalyst plans
