@@ -91,12 +91,15 @@ Theorem left_outer_right_nonnull :
     left_outer_join left (filter nonnull right) =
     left_outer_join left right.
 Proof.
-  intros left right; unfold left_outer_join.
-  induction left as [|x xs IH].
+  intros left right; induction left as [|x xs IH].
   - reflexivity.
-  - simpl. unfold left_outer_step at 1 2.
+  - change (left_outer_step x (filter nonnull right) ++
+            left_outer_join xs (filter nonnull right) =
+            left_outer_step x right ++ left_outer_join xs right).
+    rewrite IH.
+    unfold left_outer_step.
     rewrite right_null_guard_preserves_matches.
-    rewrite IH. reflexivity.
+    reflexivity.
 Qed.
 
 (* A minimal NULL counterexample: filtering the preserved LEFT input is NOT safe. *)
