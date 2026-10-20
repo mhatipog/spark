@@ -1,0 +1,216 @@
+"""Sound-by-construction boundary ledger for recorded Catalyst rule executions.
+
+A batch is accepted only if its exact entry/exit states are connected by
+individually certified, contiguous changed-rule steps, or identical by syntax.
+An executor is accepted only through every directly enclosed batch boundary.
+Raw ASTs never leave this module's private in-memory scoring pass.
+"""
+import base64
+from collections import Counter, defaultdict
+import json
+from pathlib import Path
+import sys
+
+
+def decode_scope(line):
+    if not line.startswith("QUERYPROOF_SCOPE\t"):
+        return None
+    parts = line.rstrip("\n").split("\t")[1:]
+    if len(parts) != 7:
+        raise ValueError("Malformed scope marker")
+    values = [base64.b64decode(part, validate=True).decode("utf-8")
+              for part in parts]
+    case, kind, executor, batch, uid, phase, encoded_plan = values
+    plan = json.loads(encoded_plan)
+    if kind not in ("BATCH", "EXECUTOR") or phase not in ("BEGIN", "END"):
+        raise ValueError("Unknown scope kind or phase")
+    if not isinstance(plan, list):
+        raise ValueError("Scope AST must be a list")
+    return {
+        "type": "scope", "case": case, "kind": kind, "executor": executor,
+        "batch": batch, "uid": int(uid), "phase": phase, "plan": plan,
+    }
+
+
+def _chain_proof(start, end, steps):
+    if start == end:
+        return True, "EXACT_IDENTITY"
+    if not steps:
+        return False, "UNRECORDED_DELTA"
+    if not all(step["certified"] for step in steps):
+        return False, "UNKNOWN_RULE"
+    if steps[0]["old"] != start or steps[-1]["new"] != end:
+        return False, "ENDPOINT_GAP"
+    if any(a["new"] != b["old"] for a, b in zip(steps, steps[1:])):
+        return False, "INTERMEDIATE_GAP"
+    return True, "COMPLETE_CERTIFIED_CHAIN"
+
+
+def summarize_scope_stream(stream):
+    """Validate LIFO provenance, then certify batch and executor intervals."""
+    stack = []
+    completed = []
+    errors = []
+    event_count = 0
+    for index, record in enumerate(stream):
+        if record["type"] == "scope" and record["phase"] == "BEGIN":
+            kind = record["kind"]
+            parent = stack[-1]["kind"] if stack else None
+            if ((kind == "EXECUTOR" and parent not in (None, "BATCH")) or
+                    (kind == "BATCH" and parent != "EXECUTOR")):
+                errors.append("BAD_SCOPE_NESTING")
+                break
+            if stack and record["case"] != stack[-1]["case"]:
+                errors.append("INTERLEAVED_CASE")
+                break
+            entry = dict(record)
+            entry["start"] = record["plan"]
+            entry["direct_steps"] = []
+            entry["children"] = []
+            stack.append(entry)
+            continue
+
+        if record["type"] == "event":
+            event_count += 1
+            if not stack or stack[-1]["kind"] != "BATCH":
+                errors.append("EVENT_OUTSIDE_BATCH")
+                break
+            top = stack[-1]
+            if (record["case"] != top["case"] or
+                    record["executor"] != top["executor"] or
+                    record["batch"] != top["batch"]):
+                errors.append("EVENT_SCOPE_MISMATCH")
+                break
+            top["direct_steps"].append(record)
+            continue
+
+        if record["type"] != "scope" or not stack:
+            errors.append("ORPHAN_SCOPE_END")
+            break
+        current = stack.pop()
+        if any(current[key] != record[key]
+               for key in ("case", "kind", "executor", "batch", "uid")):
+            errors.append("SCOPE_END_MISMATCH")
+            break
+        if current["kind"] == "BATCH":
+            proof, reason = _chain_proof(
+                current["start"], record["plan"], current["direct_steps"])
+        else:
+            children = current["children"]
+            if current["start"] == record["plan"]:
+                proof, reason = True, "EXACT_IDENTITY"
+            elif not children:
+                proof, reason = False, "EXECUTOR_MISSING_BATCH"
+            elif not all(child["certified"] for child in children):
+                proof, reason = False, "UNKNOWN_ENCLOSED_BATCH"
+            else:
+                steps = [{
+                    "old": child["start"], "new": child["end"],
+                    "certified": child["certified"],
+                } for child in children]
+                proof, reason = _chain_proof(
+                    current["start"], record["plan"], steps)
+        current["end"] = record["plan"]
+        current["certified"] = proof
+        current["reason"] = reason
+        current["changed"] = current["start"] != current["end"]
+        if stack:
+            stack[-1]["children"].append(current)
+        completed.append(current)
+
+    if stack:
+        errors.append("UNCLOSED_SCOPE")
+    if errors:
+        return {"status": "INVALID_TRACE", "errors": sorted(set(errors)),
+                "recorded_rule_events": event_count}
+
+    batch_scopes = [s for s in completed if s["kind"] == "BATCH"]
+    executors = [s for s in completed if s["kind"] == "EXECUTOR"]
+    batches = defaultdict(lambda: Counter())
+    by_reason = Counter()
+    by_case = defaultdict(lambda: Counter())
+    for scope in completed:
+        by_reason[(scope["kind"], scope["reason"])] += 1
+        by_case[scope["case"]][scope["kind"] + "_changed"] += scope["changed"]
+        if scope["certified"] and scope["changed"]:
+            by_case[scope["case"]][scope["kind"] + "_nontrivial_proved"] += 1
+        if scope["kind"] == "BATCH":
+            key = (scope["executor"], scope["batch"])
+            batches[key]["total"] += 1
+            batches[key]["changed"] += scope["changed"]
+            batches[key]["proved_nontrivial"] += (
+                scope["changed"] and scope["certified"])
+            batches[key]["rule_events"] += len(scope["direct_steps"])
+    return {
+        "status": "RETROSPECTIVE_EXACT_CATALYST_SCOPE_LEDGER",
+        "errors": [],
+        "recorded_rule_events": event_count,
+        "scope_markers": 2 * len(completed),
+        "batch_scopes": len(batch_scopes),
+        "executor_scopes": len(executors),
+        "changed_batches": sum(s["changed"] for s in batch_scopes),
+        "certified_changed_batches": sum(
+            s["changed"] and s["certified"] for s in batch_scopes),
+        "changed_executors": sum(s["changed"] for s in executors),
+        "certified_changed_executors": sum(
+            s["changed"] and s["certified"] for s in executors),
+        "exact_identity_batches": sum(not s["changed"] for s in batch_scopes),
+        "exact_identity_executors": sum(not s["changed"] for s in executors),
+        "by_reason": {kind + ":" + reason: count
+                      for (kind, reason), count in sorted(by_reason.items())},
+        "by_batch": [{
+            "executor": key[0], "batch": key[1], **dict(value)
+        } for key, value in sorted(batches.items())],
+        "case_counts": {
+            case: dict(counts) for case, counts in sorted(by_case.items())
+        },
+        "limits": [
+            "Experimental trace only, not a guarantee for all Spark programs",
+            "Scope start/end are emitted by a disposable instrumented RuleExecutor",
+            "Changed rule records are complete only if no cap or trace errors",
+            "Equal AST endpoints certify identity, even if intermediate rules are unknown",
+            "Nested executor changes must be covered by the enclosing parent rule",
+            "No Spark order sensitivity, side effects, or non-Catalyst stages proved",
+        ],
+    }
+
+
+def score_scope_trace(private_trace_path):
+    root = Path(__file__).resolve().parent.parent.parent
+    sys.path.insert(0, str(root / "tools" / "queryproof_context_validator"))
+    sys.path.insert(0, str(root / "tools" / "queryproof_instrumented"))
+    sys.path.insert(0, str(root / "tools" / "queryproof_holdout_20261018"))
+    from rank_ast import decode
+    from run_holdout import _rule_basename
+    from grouping_repetition_certificate import certify_grouping_repetition_event
+    from generalized_projection_liveness_certificate import (
+        certify_generalized_projection_liveness_event)
+    from aggregate_framed_identity_certificate import (
+        certify_aggregate_framed_identity_event)
+
+    checks = {
+        "RemoveRepetitionFromGroupExpressions": certify_grouping_repetition_event,
+        "ColumnPruning": certify_generalized_projection_liveness_event,
+        "CollapseProject": certify_aggregate_framed_identity_event,
+    }
+    stream = []
+    marker_errors = []
+    for line in private_trace_path.read_text(errors="replace").splitlines():
+        if line.startswith("QUERYPROOF_SCOPE_ERROR\t"):
+            marker_errors.append("SCOPE_SERIALIZATION_FAILURE")
+        elif line.startswith("QUERYPROOF_AST_ERROR\t"):
+            marker_errors.append("RULE_SERIALIZATION_FAILURE")
+        elif line.startswith("QUERYPROOF_SCOPE\t"):
+            stream.append(decode_scope(line))
+        elif line.startswith("QUERYPROOF_AST\t"):
+            event = decode(line)
+            rule = _rule_basename(event["rule"])
+            result = checks[rule](event) if rule in checks else {"status": "UNKNOWN"}
+            stream.append({
+                "type": "event", "case": event["case"], "executor": event["executor"],
+                "batch": event["batch"], "old": event["old"], "new": event["new"],
+                "rule": rule, "certified": result["status"] == "EQUIVALENT_IN_FRAGMENT",
+            })
+    if marker_errors:
+        return {"status": "INVALID_TRACE", "errors": sorted(set(marker_errors))}
+    return summarize_scope_stream(stream)
