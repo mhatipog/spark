@@ -1,0 +1,90 @@
+name: QueryProof strict-tag quarantine retrospective H
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_adversarial_20261020/**
+      - .github/workflows/queryproof-strict-tags-h.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  strict-tag-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test fail-closed tag quarantine
+        run: |
+          PYTHONPATH=tools/queryproof_adversarial_20261020 \
+            python -B -m unittest discover -s tools/queryproof_adversarial_20261020 \
+            -p 'test_strict_tag_quarantine.py' -v
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official PySpark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument disposable JVM scopes and state witnesses
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Retrospective H01-H48 with a strict tag quarantine
+        run: python -u tools/queryproof_adversarial_20261020/strict_tag_quarantine.py
+      - name: Summarize evidence and fail closed if incomplete
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          p = Path("artifacts/queryproof_frames_H.json")
+          if not p.exists():
+              raise SystemExit("STRICT_TAG_AUDIT_NOT_EXECUTED")
+          report = json.loads(p.read_text())
+          coverage = report["union_coverage"]
+          frames = coverage["posthoc_frame_preservation"]
+          strict = frames["v2_strict_tag_quarantine"]
+          ledger = coverage["hierarchical_scope_ledger"]
+          print("QUERYPROOF_H_STRICT_TAGS", json.dumps(strict, sort_keys=True))
+          print("QUERYPROOF_H_ORACLE", json.dumps({
+              "executed": report["executed_cases"],
+              "worker_exit_code": report["worker_exit_code"],
+              "errors": report["error_cases"],
+              "rowbag_mismatches": report["row_oracle_mismatch_cases"],
+              "original_certified_changed_suffixes":
+                  ledger["certified_changed_optimizer_suffixes"],
+          }, sort_keys=True))
+          if report["executed_cases"] != 48 or report["worker_exit_code"] != 0:
+              raise SystemExit("INCOMPLETE_H_CONTROL")
+          if report["error_cases"] or report["row_oracle_mismatch_cases"]:
+              raise SystemExit("H_CONTROL_ORACLE_MISMATCH")
+          if strict["status"] != "COMPLETE_STRICT_TAG_AUDIT":
+              raise SystemExit("INVALID_STRICT_TAG_QUARANTINE")
+          '
+      - name: Preserve sanitized retrospective counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-strict-tag-h-retrospective
+          path: artifacts/queryproof_frames_H.json
+          retention-days: 14
+          if-no-files-found: warn
