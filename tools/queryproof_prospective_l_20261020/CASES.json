@@ -24,7 +24,8 @@
       "TWO_KEY_MIXED",
       "ARITH_ALIAS"
     ],
-    "limitations": "Synthetic generated evaluation, not third-party; actual Spark and SQLite compared only after source and frame-proof pins."
+    "limitations": "Synthetic generated evaluation, not third-party; actual Spark and SQLite compared only after source and frame-proof pins.",
+    "harness_fallback": "Top-level tables duplicates L01 only to satisfy eager Python get(default) evaluation; every case keeps its unchanged private table definition."
   },
   "cases": [
     {
@@ -5211,5 +5212,105 @@
         }
       }
     }
-  ]
+  ],
+  "tables": {
+    "integers": {
+      "columns": [
+        {
+          "name": "i",
+          "type": "integer"
+        },
+        {
+          "name": "j",
+          "type": "integer"
+        },
+        {
+          "name": "extra",
+          "type": "integer"
+        }
+      ],
+      "rows": [
+        [
+          4,
+          1,
+          -79
+        ],
+        [
+          4,
+          1,
+          -79
+        ],
+        [
+          null,
+          29,
+          -26
+        ],
+        [
+          -36,
+          null,
+          null
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          4,
+          0,
+          15
+        ],
+        [
+          -33,
+          null,
+          -42
+        ],
+        [
+          42,
+          51,
+          78
+        ],
+        [
+          85,
+          -51,
+          7
+        ],
+        [
+          -34,
+          -84,
+          -64
+        ],
+        [
+          42,
+          -25,
+          29
+        ],
+        [
+          -44,
+          -28,
+          -72
+        ],
+        [
+          -88,
+          null,
+          -46
+        ],
+        [
+          -66,
+          -78,
+          -46
+        ],
+        [
+          -51,
+          -52,
+          null
+        ],
+        [
+          -58,
+          28,
+          25
+        ]
+      ]
+    }
+  }
 }

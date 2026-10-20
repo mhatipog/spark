@@ -14,10 +14,11 @@
     "tools/queryproof_external_postgresql_join_20261019/run_external.py": "06428852dc1cc0e3e8c546a537b2775dd47db66b",
     "tools/queryproof_instrumented/RuleExecutor.scala": "a4ac5ba5f280164d9b0276703c06a288bc4309b5",
     "tools/queryproof_state_frame_20261020/run_frame.py": "5377e3f68d0e950c8db59b90ca4f05a28f13c3fd",
-    "tools/queryproof_prospective_l_20261020/CASES.json": "1e260c70d814c1a2f5a456ba4a2c24a44c6f761d",
+    "tools/queryproof_prospective_l_20261020/CASES.json": "2b63ca08cd3068ba93c8953ac9f832e956302917",
     "tools/queryproof_prospective_l_20261020/PROTOCOL.json": "23ac97e99a0f807e85280dbe19c717b9885ac06a",
     "tools/queryproof_instrumented/build_overlay.sh": "14c632ad4d4a9d95c4800501dbd1dc6a39095e38",
     "tools/queryproof_prospective_l_20261020/run_l.py": "0dd8f0c37e0553791b25984edd120a56902acc98"
   },
-  "claim": "The source/trace/verifier modules, xorshift32 L cases, and protocol were pinned before the first L SQL invocation. No post-result editing may be counted as prospective."
+  "claim": "The source/trace/verifier modules, xorshift32 L cases, and protocol were pinned before the first L SQL invocation. No post-result editing may be counted as prospective.",
+  "pre_sql_harness_repair": "First validated run stopped at 0 executed SQL cases because worker eagerly evaluated missing manifest.tables. Added redundant fallback tables only; 48 frozen SQL queries/rows unchanged, no SQL data observed before correction."
 }
