@@ -567,6 +567,8 @@ def parent():
             generalized["status"] = (
                 "RETROSPECTIVE_FIXTURE_REPAIR_DIAGNOSTIC"
                 if protocol.get("fixture_repair_after_first_run") else
+                "PROSPECTIVE_FROZEN_TARGETED_GENERATED_LIVENESS"
+                if matches and protocol.get("generated_targeted") else
                 "PROSPECTIVE_FROZEN_THIRD_PARTY_GENERALIZED_LIVENESS"
                 if matches else "RETROSPECTIVE_VERIFIER_CHANGED_AFTER_FREEZE")
             generalized["verifier_provenance"] = {
