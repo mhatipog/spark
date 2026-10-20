@@ -1,0 +1,9 @@
+{
+  "benchmark_id": "queryproof-grouping-repetition-targeted-20261020",
+  "frozen_verifier_commit": "b0c440fefae83d0935f006675d18dfa4cdc86014",
+  "verifier_module": "tools/queryproof_context_validator/grouping_repetition_certificate.py",
+  "frozen_verifier_git_blob_sha": "e9722f88bf4397d46874100c2bbcd134c2fdb454",
+  "scorer_module": "tools/queryproof_external_postgresql_join_20261019/run_external.py",
+  "frozen_scorer_git_blob_sha": "26faffbfba4d7edba36405c17e39f739e684b792",
+  "claim": "Prospective exact checker/scorer identity for 48 untouched generated, correlated, targeted cases; not independent third-party authored SQL."
+}
