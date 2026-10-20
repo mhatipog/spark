@@ -73,6 +73,40 @@ def _negative_mutations(event, checker):
     return result
 
 
+
+def _attribute_identity_diagnostics(event):
+    """Report ONLY which fields agree across matched Project and Filter refs."""
+    from collapse_project_certificate import _identity
+    new = [node for node in event["new"] if isinstance(node, dict)]
+    candidates = [
+        item[0] for p in new if p.get("class", "").endswith(".Project")
+        for item in p.get("projectList", [])
+        if isinstance(item, list) and len(item) == 1
+        and item[0].get("class", "").endswith(".AttributeReference")
+    ]
+    observations = []
+    for f in new:
+        if not f.get("class", "").endswith(".Filter"):
+            continue
+        cond = f.get("condition", [])
+        if not isinstance(cond, list) or len(cond) != 2:
+            continue
+        ref = cond[1]
+        if not isinstance(ref, dict) or not ref.get("class", "").endswith(".AttributeReference"):
+            continue
+        same = [p for p in candidates if _identity(p) == _identity(ref)]
+        observations.append({
+            "same_exprid_project_candidates": len(same),
+            "filter_keys": sorted(ref),
+            "candidate_project_keys": [sorted(p) for p in same],
+            "differing_fields": [
+                sorted(k for k in set(ref) | set(p) if ref.get(k) != p.get(k))
+                for p in same
+            ],
+        })
+    return observations
+
+
 def diagnostic(path):
     result = BASE(path)
     local = []
@@ -89,6 +123,7 @@ def diagnostic(path):
             "case": event["case"],
             "rule": rule,
             "verdict": verdict,
+            "redacted_attribute_identity_diagnostics": _attribute_identity_diagnostics(event),
             "negative_rejections": (
                 _negative_mutations(event, checker)
                 if verdict["status"] == "EQUIVALENT_IN_FRAGMENT" else {}),
