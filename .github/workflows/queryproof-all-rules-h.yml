@@ -1,0 +1,80 @@
+name: QueryProof all Catalyst rules H silent-state audit
+on:
+  push:
+    branches:
+      - research/queryproof-adversarial-tag-frame-20261020
+    paths:
+      - tools/queryproof_adversarial_20261020/replay_silent_h.py
+      - .github/workflows/queryproof-all-rules-h.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  all-rule-retrospective-h:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official PySpark 4.2
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Disposable observer before and after every rule invocation
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          python -B tools/queryproof_adversarial_20261020/instrument_silent_rules.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Replay H01-H48 with all-rule hidden-state accounting
+        run: python -u tools/queryproof_adversarial_20261020/replay_silent_h.py
+      - name: Enforce complete changed-rule, all-rule and oracle denominators
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          p=Path("artifacts/queryproof_frames_H.json")
+          if not p.exists():
+              raise SystemExit("ALL_RULE_AUDIT_NOT_EXECUTED")
+          r=json.loads(p.read_text())
+          c=r["union_coverage"]
+          a=c["posthoc_frame_preservation"]["v5_all_rule_accounting"]
+          ledger=c["hierarchical_scope_ledger"]
+          print("QUERYPROOF_H_ALL_RULE_OBSERVER",json.dumps(a,sort_keys=True))
+          if r["executed_cases"] != 48 or r["worker_exit_code"] != 0:
+              raise SystemExit("INCOMPLETE_H_EXECUTION")
+          if r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("ORACLE_MISMATCH")
+          if a["status"] != "COMPLETE_ALL_RULE_AUDIT":
+              raise SystemExit("MISSING_RULE_ACCOUNTING")
+          if a["original_conditional_candidates"] != ledger["certified_changed_optimizer_suffixes"]:
+              raise SystemExit("DENOMINATOR_DRIFT")
+          '
+      - name: Preserve sanitized counts only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-all-rule-h-silent-state-audit
+          path: artifacts/queryproof_frames_H.json
+          retention-days: 14
+          if-no-files-found: warn
