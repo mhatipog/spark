@@ -60,7 +60,7 @@ STATE_METHODS = """
         }
         s.foreach(visit)
       case p: Product =>
-        if (visited.put(p, java.lang.Boolean.TRUE) == null) {
+        if (visited.put(p.asInstanceOf[AnyRef], java.lang.Boolean.TRUE) == null) {
           p.productIterator.foreach(visit)
         }
       case _ =>
