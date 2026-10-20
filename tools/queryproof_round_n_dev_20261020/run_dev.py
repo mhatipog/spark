@@ -17,6 +17,7 @@ import run_external
 from rank_ast import decode
 from run_holdout import _rule_basename
 from scope_ledger import score_scope_trace
+from scope_ledger_v2 import score_scope_trace as score_scope_trace_v2
 from generalized_projection_liveness_certificate import certify_generalized_projection_liveness_event
 from aggregate_framed_identity_certificate import certify_aggregate_framed_identity_event
 from aggregate_identity_v2 import certify_aggregate_framed_identity_event as v2_identity
@@ -111,6 +112,7 @@ def diagnostic(path):
                 "after_operators": topology(event["new"])[:25],
             })
     scope = score_scope_trace(path)
+    scope_v2 = score_scope_trace_v2(path)
     result["round_n_posthoc_diagnostic"] = {
         "status": "POSTHOC_DEVELOPMENT_ONLY_NO_PROSPECTIVE_CREDIT",
         "replayed_cases": sorted(per_case),
