@@ -1,0 +1,9 @@
+{
+  "benchmark_id": "queryproof-grouping-repetition-fresh-round2-20261020",
+  "frozen_verifier_commit": "369200a21d3923f0fb2364f12c356e2a606bfcaf",
+  "verifier_module": "tools/queryproof_context_validator/grouping_repetition_certificate.py",
+  "frozen_verifier_git_blob_sha": "092bb0ecdf8e459a0c1cd3c712959a9d243a191f",
+  "scorer_module": "tools/queryproof_external_postgresql_join_20261019/run_external.py",
+  "frozen_scorer_git_blob_sha": "06428852dc1cc0e3e8c546a537b2775dd47db66b",
+  "claim": "New previously unexecuted H cohort, targeted generated SQL; immutable verifier and scorer blobs, finite row-oracle comparison."
+}
