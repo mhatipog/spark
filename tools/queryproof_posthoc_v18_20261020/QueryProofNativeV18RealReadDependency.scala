@@ -12,7 +12,7 @@ import java.util.Base64
 
 import org.apache.spark.sql.catalyst.plans.logical.{LocalRelation, Repartition}
 
-object QueryProofNativeV18StockOptimizerCacheJoin {
+object QueryProofNativeV18RealReadDependency {
   def captured[T](body: => T): (T, String) = {
     val saved = System.err
     val bytes = new ByteArrayOutputStream()
