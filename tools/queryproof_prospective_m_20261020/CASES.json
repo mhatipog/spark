@@ -1,0 +1,9474 @@
+{
+  "schema_version": 4,
+  "benchmark_id": "queryproof-prospective-m-adversarial-20261020",
+  "source": {
+    "repository": "Independent deterministic synthetic SQL/data instance generator; no real customer data",
+    "seed": 20261103,
+    "prng": "32-bit LCG: x=(1664525*x + 1013904223) mod 2^32, sample=x mod 127 minus 63",
+    "family_count": 12,
+    "family_repetitions": 4,
+    "target_enriched_cases": 24,
+    "generalization_challenge_cases": 24,
+    "design_frozen_before_first_M_execution": true,
+    "limitations": "Synthetic, family-correlated, not production-representative; SQL grammar deliberately mixes supported and unsupported rules"
+  },
+  "tables": {},
+  "cases": [
+    {
+      "id": "M01",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i, i ORDER BY 1;",
+      "family": "REPEAT_COUNT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_repeat_count",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              60,
+              -35,
+              59
+            ],
+            [
+              60,
+              -35,
+              59
+            ],
+            [
+              null,
+              62,
+              10
+            ],
+            [
+              33,
+              null,
+              33
+            ],
+            [
+              13,
+              -41,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              61,
+              -49,
+              -58
+            ],
+            [
+              50,
+              -24,
+              12
+            ],
+            [
+              50,
+              -24,
+              12
+            ],
+            [
+              -5,
+              -57,
+              56
+            ],
+            [
+              21,
+              52,
+              46
+            ],
+            [
+              -39,
+              21,
+              9
+            ],
+            [
+              -43,
+              57,
+              34
+            ],
+            [
+              -34,
+              -16,
+              13
+            ],
+            [
+              -27,
+              -1,
+              33
+            ],
+            [
+              56,
+              -27,
+              30
+            ],
+            [
+              -46,
+              39,
+              24
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              61,
+              6,
+              -48
+            ],
+            [
+              50,
+              28,
+              -62
+            ],
+            [
+              50,
+              55,
+              49
+            ],
+            [
+              null,
+              13,
+              -53
+            ],
+            [
+              -30,
+              null,
+              -23
+            ],
+            [
+              -13,
+              43,
+              -8
+            ],
+            [
+              -54,
+              -18,
+              -13
+            ],
+            [
+              34,
+              -31,
+              -21
+            ],
+            [
+              -37,
+              46,
+              -24
+            ],
+            [
+              -33,
+              -28,
+              34
+            ],
+            [
+              -25,
+              -34,
+              48
+            ],
+            [
+              -46,
+              12,
+              -63
+            ],
+            [
+              -63,
+              -42,
+              41
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M02",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i, i ORDER BY 1;",
+      "family": "REPEAT_COUNT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_repeat_count",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              41,
+              -7,
+              -25
+            ],
+            [
+              41,
+              -7,
+              -25
+            ],
+            [
+              null,
+              -32,
+              -61
+            ],
+            [
+              26,
+              null,
+              36
+            ],
+            [
+              60,
+              -40,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              22,
+              4,
+              28
+            ],
+            [
+              -29,
+              13,
+              -17
+            ],
+            [
+              -15,
+              -1,
+              -10
+            ],
+            [
+              1,
+              2,
+              -47
+            ],
+            [
+              -34,
+              -60,
+              56
+            ],
+            [
+              -18,
+              -10,
+              33
+            ],
+            [
+              -1,
+              -8,
+              37
+            ],
+            [
+              38,
+              -44,
+              13
+            ],
+            [
+              34,
+              -52,
+              19
+            ],
+            [
+              -54,
+              -5,
+              35
+            ],
+            [
+              -12,
+              37,
+              -10
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              22,
+              60,
+              -33
+            ],
+            [
+              -29,
+              55,
+              -42
+            ],
+            [
+              -29,
+              -28,
+              17
+            ],
+            [
+              null,
+              40,
+              38
+            ],
+            [
+              -62,
+              null,
+              -11
+            ],
+            [
+              -22,
+              12,
+              4
+            ],
+            [
+              -63,
+              -2,
+              -4
+            ],
+            [
+              -25,
+              -36,
+              19
+            ],
+            [
+              -52,
+              -20,
+              -37
+            ],
+            [
+              -61,
+              47,
+              57
+            ],
+            [
+              53,
+              6,
+              27
+            ],
+            [
+              -20,
+              -40,
+              47
+            ],
+            [
+              -17,
+              33,
+              -38
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M03",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i, i ORDER BY 1;",
+      "family": "REPEAT_COUNT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_repeat_count",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -48,
+              10,
+              -47
+            ],
+            [
+              -48,
+              10,
+              -47
+            ],
+            [
+              null,
+              -21,
+              60
+            ],
+            [
+              -24,
+              null,
+              -63
+            ],
+            [
+              -37,
+              -10,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -26,
+              33,
+              9
+            ],
+            [
+              -2,
+              17,
+              -26
+            ],
+            [
+              -6,
+              32,
+              -12
+            ],
+            [
+              -6,
+              44,
+              -22
+            ],
+            [
+              58,
+              -50,
+              -15
+            ],
+            [
+              51,
+              52,
+              51
+            ],
+            [
+              63,
+              -21,
+              -23
+            ],
+            [
+              -43,
+              -13,
+              63
+            ],
+            [
+              47,
+              -41,
+              -54
+            ],
+            [
+              0,
+              -51,
+              -4
+            ],
+            [
+              -50,
+              10,
+              -42
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -26,
+              41,
+              49
+            ],
+            [
+              -2,
+              -12,
+              -47
+            ],
+            [
+              -2,
+              59,
+              14
+            ],
+            [
+              null,
+              19,
+              -23
+            ],
+            [
+              43,
+              null,
+              -17
+            ],
+            [
+              40,
+              -60,
+              -50
+            ],
+            [
+              -45,
+              -17,
+              -32
+            ],
+            [
+              -18,
+              -15,
+              43
+            ],
+            [
+              61,
+              -40,
+              28
+            ],
+            [
+              -57,
+              14,
+              -59
+            ],
+            [
+              36,
+              37,
+              28
+            ],
+            [
+              21,
+              10,
+              33
+            ],
+            [
+              5,
+              20,
+              22
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M04",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i, i ORDER BY 1;",
+      "family": "REPEAT_COUNT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_repeat_count",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -9,
+              -23,
+              5
+            ],
+            [
+              -9,
+              -23,
+              5
+            ],
+            [
+              null,
+              -55,
+              -27
+            ],
+            [
+              5,
+              null,
+              39
+            ],
+            [
+              57,
+              -30,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              49,
+              -45,
+              -14
+            ],
+            [
+              13,
+              53,
+              -49
+            ],
+            [
+              -44,
+              34,
+              -26
+            ],
+            [
+              -25,
+              -57,
+              -9
+            ],
+            [
+              -6,
+              -49,
+              55
+            ],
+            [
+              -5,
+              -30,
+              27
+            ],
+            [
+              -37,
+              7,
+              15
+            ],
+            [
+              7,
+              -40,
+              9
+            ],
+            [
+              -51,
+              -21,
+              12
+            ],
+            [
+              -55,
+              11,
+              -15
+            ],
+            [
+              -46,
+              -27,
+              50
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              49,
+              53,
+              -14
+            ],
+            [
+              13,
+              -23,
+              21
+            ],
+            [
+              13,
+              -20,
+              -59
+            ],
+            [
+              null,
+              -48,
+              -45
+            ],
+            [
+              -2,
+              null,
+              2
+            ],
+            [
+              51,
+              -17,
+              4
+            ],
+            [
+              -1,
+              -31,
+              -37
+            ],
+            [
+              -28,
+              -11,
+              -57
+            ],
+            [
+              29,
+              -44,
+              26
+            ],
+            [
+              -41,
+              -26,
+              17
+            ],
+            [
+              -24,
+              -42,
+              62
+            ],
+            [
+              41,
+              -58,
+              20
+            ],
+            [
+              44,
+              51,
+              -28
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M05",
+      "sql": "SELECT i % 5 AS m, SUM(extra) FROM integers GROUP BY m, m, m ORDER BY 1;",
+      "family": "MOD_REPEAT_SUM",
+      "group": "TARGET_ENRICHED",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_mod_repeat_sum",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -1,
+              -49,
+              -31
+            ],
+            [
+              -1,
+              -49,
+              -31
+            ],
+            [
+              null,
+              55,
+              24
+            ],
+            [
+              -53,
+              null,
+              36
+            ],
+            [
+              -50,
+              -49,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              38,
+              5,
+              25
+            ],
+            [
+              48,
+              29,
+              48
+            ],
+            [
+              21,
+              -60,
+              7
+            ],
+            [
+              -46,
+              41,
+              29
+            ],
+            [
+              -3,
+              42,
+              14
+            ],
+            [
+              -49,
+              -22,
+              54
+            ],
+            [
+              39,
+              -23,
+              60
+            ],
+            [
+              -15,
+              30,
+              -39
+            ],
+            [
+              -56,
+              -19,
+              -47
+            ],
+            [
+              -40,
+              -50,
+              46
+            ],
+            [
+              -20,
+              -57,
+              35
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              38,
+              43,
+              41
+            ],
+            [
+              48,
+              -57,
+              58
+            ],
+            [
+              48,
+              9,
+              -48
+            ],
+            [
+              null,
+              -22,
+              38
+            ],
+            [
+              56,
+              null,
+              28
+            ],
+            [
+              50,
+              -38,
+              -19
+            ],
+            [
+              -34,
+              40,
+              48
+            ],
+            [
+              50,
+              25,
+              -1
+            ],
+            [
+              30,
+              -8,
+              53
+            ],
+            [
+              -52,
+              -4,
+              -52
+            ],
+            [
+              5,
+              51,
+              -7
+            ],
+            [
+              17,
+              -52,
+              55
+            ],
+            [
+              62,
+              14,
+              -30
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M06",
+      "sql": "SELECT i % 7 AS m, SUM(extra) FROM integers GROUP BY m, m, m ORDER BY 1;",
+      "family": "MOD_REPEAT_SUM",
+      "group": "TARGET_ENRICHED",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_mod_repeat_sum",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -52,
+              57,
+              -14
+            ],
+            [
+              -52,
+              57,
+              -14
+            ],
+            [
+              null,
+              61,
+              -28
+            ],
+            [
+              14,
+              null,
+              12
+            ],
+            [
+              7,
+              20,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              5,
+              49,
+              19
+            ],
+            [
+              1,
+              56,
+              -46
+            ],
+            [
+              24,
+              -8,
+              -38
+            ],
+            [
+              52,
+              -27,
+              40
+            ],
+            [
+              -8,
+              16,
+              -52
+            ],
+            [
+              41,
+              16,
+              34
+            ],
+            [
+              18,
+              -31,
+              -26
+            ],
+            [
+              -41,
+              -63,
+              3
+            ],
+            [
+              18,
+              62,
+              57
+            ],
+            [
+              -25,
+              -58,
+              -61
+            ],
+            [
+              12,
+              20,
+              -51
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              5,
+              49,
+              24
+            ],
+            [
+              1,
+              -60,
+              13
+            ],
+            [
+              1,
+              -48,
+              3
+            ],
+            [
+              null,
+              -15,
+              47
+            ],
+            [
+              33,
+              null,
+              -38
+            ],
+            [
+              44,
+              -34,
+              7
+            ],
+            [
+              8,
+              59,
+              26
+            ],
+            [
+              20,
+              -48,
+              -1
+            ],
+            [
+              49,
+              -34,
+              -1
+            ],
+            [
+              -21,
+              27,
+              -57
+            ],
+            [
+              -58,
+              -57,
+              -34
+            ],
+            [
+              -23,
+              48,
+              34
+            ],
+            [
+              -63,
+              38,
+              -51
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M07",
+      "sql": "SELECT i % 11 AS m, SUM(extra) FROM integers GROUP BY m, m, m ORDER BY 1;",
+      "family": "MOD_REPEAT_SUM",
+      "group": "TARGET_ENRICHED",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_mod_repeat_sum",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -39,
+              41,
+              -46
+            ],
+            [
+              -39,
+              41,
+              -46
+            ],
+            [
+              null,
+              21,
+              20
+            ],
+            [
+              36,
+              null,
+              49
+            ],
+            [
+              -27,
+              -7,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              15,
+              -32,
+              -21
+            ],
+            [
+              22,
+              -23,
+              41
+            ],
+            [
+              -2,
+              -59,
+              17
+            ],
+            [
+              60,
+              61,
+              44
+            ],
+            [
+              49,
+              -22,
+              -10
+            ],
+            [
+              11,
+              -16,
+              -34
+            ],
+            [
+              31,
+              -37,
+              3
+            ],
+            [
+              -41,
+              40,
+              -56
+            ],
+            [
+              60,
+              -42,
+              12
+            ],
+            [
+              -14,
+              -50,
+              -40
+            ],
+            [
+              -6,
+              -10,
+              54
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              15,
+              -1,
+              19
+            ],
+            [
+              22,
+              -25,
+              49
+            ],
+            [
+              22,
+              23,
+              -12
+            ],
+            [
+              null,
+              25,
+              37
+            ],
+            [
+              -36,
+              null,
+              62
+            ],
+            [
+              19,
+              -55,
+              34
+            ],
+            [
+              26,
+              -26,
+              41
+            ],
+            [
+              -3,
+              3,
+              -33
+            ],
+            [
+              -61,
+              35,
+              50
+            ],
+            [
+              25,
+              27,
+              -55
+            ],
+            [
+              -4,
+              41,
+              36
+            ],
+            [
+              -48,
+              -8,
+              -35
+            ],
+            [
+              5,
+              50,
+              -63
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M08",
+      "sql": "SELECT i % 13 AS m, SUM(extra) FROM integers GROUP BY m, m, m ORDER BY 1;",
+      "family": "MOD_REPEAT_SUM",
+      "group": "TARGET_ENRICHED",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_mod_repeat_sum",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              45,
+              34,
+              59
+            ],
+            [
+              45,
+              34,
+              59
+            ],
+            [
+              null,
+              -4,
+              20
+            ],
+            [
+              15,
+              null,
+              -37
+            ],
+            [
+              -53,
+              -55,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              3,
+              -26,
+              7
+            ],
+            [
+              -9,
+              -21,
+              27
+            ],
+            [
+              27,
+              43,
+              -59
+            ],
+            [
+              -63,
+              -3,
+              -52
+            ],
+            [
+              6,
+              -54,
+              -5
+            ],
+            [
+              23,
+              -8,
+              6
+            ],
+            [
+              17,
+              -9,
+              -23
+            ],
+            [
+              30,
+              56,
+              27
+            ],
+            [
+              -60,
+              63,
+              38
+            ],
+            [
+              0,
+              -24,
+              21
+            ],
+            [
+              -49,
+              1,
+              -36
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              3,
+              49,
+              -52
+            ],
+            [
+              -9,
+              43,
+              44
+            ],
+            [
+              -9,
+              -27,
+              31
+            ],
+            [
+              null,
+              50,
+              -59
+            ],
+            [
+              35,
+              null,
+              -9
+            ],
+            [
+              32,
+              -62,
+              5
+            ],
+            [
+              -38,
+              49,
+              34
+            ],
+            [
+              35,
+              -13,
+              -56
+            ],
+            [
+              -14,
+              62,
+              -52
+            ],
+            [
+              -57,
+              -57,
+              -50
+            ],
+            [
+              -29,
+              -27,
+              -5
+            ],
+            [
+              27,
+              18,
+              -24
+            ],
+            [
+              54,
+              42,
+              -9
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M09",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j, i ORDER BY 1, 2;",
+      "family": "REORDERED_KEYS",
+      "group": "TARGET_ENRICHED",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_reordered_keys",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -25,
+              -35,
+              -7
+            ],
+            [
+              -25,
+              -35,
+              -7
+            ],
+            [
+              null,
+              -38,
+              35
+            ],
+            [
+              5,
+              null,
+              -12
+            ],
+            [
+              -36,
+              23,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -37,
+              -56,
+              38
+            ],
+            [
+              -42,
+              -42,
+              45
+            ],
+            [
+              -3,
+              11,
+              33
+            ],
+            [
+              -4,
+              -35,
+              -7
+            ],
+            [
+              16,
+              24,
+              -16
+            ],
+            [
+              -8,
+              -21,
+              -15
+            ],
+            [
+              -29,
+              -31,
+              -22
+            ],
+            [
+              12,
+              -56,
+              26
+            ],
+            [
+              -12,
+              -9,
+              44
+            ],
+            [
+              46,
+              42,
+              11
+            ],
+            [
+              -63,
+              -11,
+              19
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -37,
+              -52,
+              -62
+            ],
+            [
+              -42,
+              35,
+              26
+            ],
+            [
+              -42,
+              -7,
+              34
+            ],
+            [
+              null,
+              17,
+              -26
+            ],
+            [
+              -2,
+              null,
+              -42
+            ],
+            [
+              -42,
+              57,
+              19
+            ],
+            [
+              -37,
+              -23,
+              -1
+            ],
+            [
+              -53,
+              56,
+              50
+            ],
+            [
+              60,
+              19,
+              59
+            ],
+            [
+              -17,
+              21,
+              -25
+            ],
+            [
+              -40,
+              49,
+              34
+            ],
+            [
+              -18,
+              51,
+              61
+            ],
+            [
+              -20,
+              -38,
+              -51
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M10",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j, i ORDER BY 1, 2;",
+      "family": "REORDERED_KEYS",
+      "group": "TARGET_ENRICHED",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_reordered_keys",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -46,
+              -9,
+              58
+            ],
+            [
+              -46,
+              -9,
+              58
+            ],
+            [
+              null,
+              -62,
+              -40
+            ],
+            [
+              -44,
+              null,
+              1
+            ],
+            [
+              19,
+              55,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -21,
+              52,
+              42
+            ],
+            [
+              -18,
+              -23,
+              44
+            ],
+            [
+              -47,
+              -53,
+              -8
+            ],
+            [
+              -33,
+              -55,
+              -14
+            ],
+            [
+              0,
+              -14,
+              35
+            ],
+            [
+              -12,
+              17,
+              -23
+            ],
+            [
+              -44,
+              -24,
+              18
+            ],
+            [
+              -19,
+              -63,
+              -23
+            ],
+            [
+              32,
+              40,
+              0
+            ],
+            [
+              -49,
+              -56,
+              54
+            ],
+            [
+              -60,
+              62,
+              -6
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -21,
+              2,
+              -55
+            ],
+            [
+              -18,
+              -20,
+              -19
+            ],
+            [
+              -18,
+              -24,
+              49
+            ],
+            [
+              null,
+              5,
+              -39
+            ],
+            [
+              -22,
+              null,
+              43
+            ],
+            [
+              62,
+              48,
+              30
+            ],
+            [
+              58,
+              0,
+              -48
+            ],
+            [
+              1,
+              2,
+              17
+            ],
+            [
+              -48,
+              43,
+              18
+            ],
+            [
+              -15,
+              60,
+              17
+            ],
+            [
+              55,
+              -14,
+              13
+            ],
+            [
+              56,
+              5,
+              -37
+            ],
+            [
+              5,
+              -60,
+              -13
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M11",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j, i ORDER BY 1, 2;",
+      "family": "REORDERED_KEYS",
+      "group": "TARGET_ENRICHED",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_reordered_keys",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -1,
+              19,
+              33
+            ],
+            [
+              -1,
+              19,
+              33
+            ],
+            [
+              null,
+              -24,
+              -50
+            ],
+            [
+              -49,
+              null,
+              15
+            ],
+            [
+              -58,
+              -8,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -25,
+              -12,
+              -24
+            ],
+            [
+              -7,
+              -39,
+              -52
+            ],
+            [
+              31,
+              -12,
+              45
+            ],
+            [
+              15,
+              22,
+              -3
+            ],
+            [
+              35,
+              -2,
+              -30
+            ],
+            [
+              38,
+              -38,
+              -42
+            ],
+            [
+              -59,
+              -26,
+              27
+            ],
+            [
+              12,
+              -11,
+              13
+            ],
+            [
+              -19,
+              -4,
+              -44
+            ],
+            [
+              10,
+              -14,
+              23
+            ],
+            [
+              34,
+              -51,
+              -7
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -25,
+              30,
+              58
+            ],
+            [
+              -7,
+              -2,
+              26
+            ],
+            [
+              -7,
+              -34,
+              -17
+            ],
+            [
+              null,
+              47,
+              -4
+            ],
+            [
+              -58,
+              null,
+              55
+            ],
+            [
+              10,
+              23,
+              51
+            ],
+            [
+              -48,
+              28,
+              -13
+            ],
+            [
+              -26,
+              8,
+              -29
+            ],
+            [
+              19,
+              -53,
+              -63
+            ],
+            [
+              42,
+              -9,
+              26
+            ],
+            [
+              51,
+              -18,
+              -49
+            ],
+            [
+              13,
+              30,
+              -30
+            ],
+            [
+              -38,
+              -10,
+              -15
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M12",
+      "sql": "SELECT i, j, SUM(extra) FROM integers GROUP BY j, i, j, i ORDER BY 1, 2;",
+      "family": "REORDERED_KEYS",
+      "group": "TARGET_ENRICHED",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_reordered_keys",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -12,
+              -55,
+              33
+            ],
+            [
+              -12,
+              -55,
+              33
+            ],
+            [
+              null,
+              29,
+              21
+            ],
+            [
+              -2,
+              null,
+              -40
+            ],
+            [
+              26,
+              -32,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -22,
+              28,
+              -22
+            ],
+            [
+              -61,
+              49,
+              -4
+            ],
+            [
+              -61,
+              49,
+              -4
+            ],
+            [
+              -48,
+              40,
+              -14
+            ],
+            [
+              -15,
+              -52,
+              39
+            ],
+            [
+              13,
+              8,
+              16
+            ],
+            [
+              46,
+              -45,
+              -1
+            ],
+            [
+              -39,
+              -29,
+              -17
+            ],
+            [
+              46,
+              52,
+              -43
+            ],
+            [
+              -18,
+              -28,
+              -49
+            ],
+            [
+              20,
+              -9,
+              32
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -22,
+              -24,
+              36
+            ],
+            [
+              -61,
+              -55,
+              -38
+            ],
+            [
+              -61,
+              29,
+              56
+            ],
+            [
+              null,
+              50,
+              -11
+            ],
+            [
+              -37,
+              null,
+              25
+            ],
+            [
+              19,
+              -43,
+              30
+            ],
+            [
+              53,
+              47,
+              5
+            ],
+            [
+              -16,
+              -45,
+              -30
+            ],
+            [
+              -37,
+              -11,
+              1
+            ],
+            [
+              28,
+              61,
+              33
+            ],
+            [
+              21,
+              -36,
+              6
+            ],
+            [
+              28,
+              7,
+              -31
+            ],
+            [
+              53,
+              -29,
+              -37
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M13",
+      "sql": "SELECT i, COUNT(j) FROM integers WHERE i IS NULL OR j >= 0 GROUP BY i, i ORDER BY 1;",
+      "family": "FILTERED_REPEAT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_filtered_repeat",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -27,
+              48,
+              -45
+            ],
+            [
+              -27,
+              48,
+              -45
+            ],
+            [
+              null,
+              -10,
+              -4
+            ],
+            [
+              -16,
+              null,
+              -49
+            ],
+            [
+              3,
+              -40,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -3,
+              53,
+              53
+            ],
+            [
+              63,
+              56,
+              33
+            ],
+            [
+              -38,
+              -11,
+              -31
+            ],
+            [
+              6,
+              -53,
+              41
+            ],
+            [
+              -13,
+              -26,
+              -46
+            ],
+            [
+              -34,
+              19,
+              -60
+            ],
+            [
+              23,
+              8,
+              -13
+            ],
+            [
+              -39,
+              -36,
+              60
+            ],
+            [
+              -60,
+              -50,
+              -14
+            ],
+            [
+              -63,
+              7,
+              28
+            ],
+            [
+              60,
+              -18,
+              40
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -3,
+              9,
+              -20
+            ],
+            [
+              63,
+              -37,
+              -41
+            ],
+            [
+              63,
+              16,
+              44
+            ],
+            [
+              null,
+              -11,
+              32
+            ],
+            [
+              -29,
+              null,
+              -27
+            ],
+            [
+              8,
+              -43,
+              33
+            ],
+            [
+              -19,
+              47,
+              35
+            ],
+            [
+              42,
+              43,
+              -57
+            ],
+            [
+              -46,
+              55,
+              41
+            ],
+            [
+              -42,
+              9,
+              -57
+            ],
+            [
+              -36,
+              -36,
+              42
+            ],
+            [
+              -51,
+              28,
+              41
+            ],
+            [
+              45,
+              46,
+              -8
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M14",
+      "sql": "SELECT i, COUNT(j) FROM integers WHERE i IS NULL OR j >= 0 GROUP BY i, i ORDER BY 1;",
+      "family": "FILTERED_REPEAT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_filtered_repeat",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -57,
+              -58,
+              -33
+            ],
+            [
+              -57,
+              -58,
+              -33
+            ],
+            [
+              null,
+              24,
+              -1
+            ],
+            [
+              -17,
+              null,
+              19
+            ],
+            [
+              53,
+              51,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              18,
+              -57,
+              -51
+            ],
+            [
+              7,
+              -9,
+              -59
+            ],
+            [
+              21,
+              12,
+              16
+            ],
+            [
+              28,
+              -33,
+              1
+            ],
+            [
+              -20,
+              -61,
+              17
+            ],
+            [
+              61,
+              46,
+              58
+            ],
+            [
+              37,
+              -10,
+              -61
+            ],
+            [
+              -23,
+              46,
+              7
+            ],
+            [
+              -39,
+              -4,
+              12
+            ],
+            [
+              35,
+              49,
+              3
+            ],
+            [
+              -23,
+              8,
+              -12
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              18,
+              3,
+              -59
+            ],
+            [
+              7,
+              52,
+              -20
+            ],
+            [
+              7,
+              47,
+              10
+            ],
+            [
+              null,
+              10,
+              41
+            ],
+            [
+              23,
+              null,
+              32
+            ],
+            [
+              5,
+              41,
+              -28
+            ],
+            [
+              -63,
+              -13,
+              -10
+            ],
+            [
+              6,
+              26,
+              53
+            ],
+            [
+              58,
+              -56,
+              25
+            ],
+            [
+              22,
+              13,
+              29
+            ],
+            [
+              42,
+              -46,
+              2
+            ],
+            [
+              -26,
+              -28,
+              -32
+            ],
+            [
+              -58,
+              48,
+              31
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M15",
+      "sql": "SELECT i, COUNT(j) FROM integers WHERE i IS NULL OR j >= 0 GROUP BY i, i ORDER BY 1;",
+      "family": "FILTERED_REPEAT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_filtered_repeat",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              17,
+              6,
+              -52
+            ],
+            [
+              17,
+              6,
+              -52
+            ],
+            [
+              null,
+              -22,
+              53
+            ],
+            [
+              -22,
+              null,
+              -42
+            ],
+            [
+              -28,
+              -19,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              41,
+              -24,
+              19
+            ],
+            [
+              -20,
+              62,
+              2
+            ],
+            [
+              -28,
+              12,
+              -57
+            ],
+            [
+              -36,
+              -11,
+              -47
+            ],
+            [
+              44,
+              35,
+              -40
+            ],
+            [
+              -61,
+              -2,
+              -53
+            ],
+            [
+              -22,
+              16,
+              -14
+            ],
+            [
+              7,
+              -42,
+              32
+            ],
+            [
+              -47,
+              58,
+              -9
+            ],
+            [
+              25,
+              12,
+              31
+            ],
+            [
+              43,
+              32,
+              32
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              41,
+              60,
+              47
+            ],
+            [
+              -20,
+              63,
+              -10
+            ],
+            [
+              -20,
+              60,
+              -9
+            ],
+            [
+              null,
+              28,
+              -45
+            ],
+            [
+              35,
+              null,
+              -59
+            ],
+            [
+              -26,
+              -24,
+              61
+            ],
+            [
+              -19,
+              43,
+              -43
+            ],
+            [
+              -33,
+              -5,
+              21
+            ],
+            [
+              -40,
+              5,
+              -11
+            ],
+            [
+              -55,
+              -59,
+              23
+            ],
+            [
+              25,
+              24,
+              -9
+            ],
+            [
+              -10,
+              14,
+              -32
+            ],
+            [
+              -28,
+              -41,
+              11
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M16",
+      "sql": "SELECT i, COUNT(j) FROM integers WHERE i IS NULL OR j >= 0 GROUP BY i, i ORDER BY 1;",
+      "family": "FILTERED_REPEAT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_filtered_repeat",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -28,
+              -11,
+              -41
+            ],
+            [
+              -28,
+              -11,
+              -41
+            ],
+            [
+              null,
+              3,
+              -38
+            ],
+            [
+              -26,
+              null,
+              52
+            ],
+            [
+              30,
+              63,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              30,
+              24,
+              25
+            ],
+            [
+              -20,
+              40,
+              -5
+            ],
+            [
+              -53,
+              10,
+              50
+            ],
+            [
+              -11,
+              -33,
+              16
+            ],
+            [
+              24,
+              25,
+              14
+            ],
+            [
+              9,
+              59,
+              -24
+            ],
+            [
+              -7,
+              -25,
+              37
+            ],
+            [
+              39,
+              -50,
+              38
+            ],
+            [
+              -63,
+              -45,
+              31
+            ],
+            [
+              5,
+              -47,
+              -54
+            ],
+            [
+              -15,
+              21,
+              -6
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              30,
+              12,
+              43
+            ],
+            [
+              -20,
+              4,
+              -18
+            ],
+            [
+              -20,
+              4,
+              -41
+            ],
+            [
+              null,
+              -26,
+              -32
+            ],
+            [
+              40,
+              null,
+              -21
+            ],
+            [
+              15,
+              44,
+              13
+            ],
+            [
+              15,
+              -27,
+              -19
+            ],
+            [
+              -45,
+              -25,
+              -4
+            ],
+            [
+              -38,
+              -59,
+              -29
+            ],
+            [
+              -4,
+              -50,
+              -18
+            ],
+            [
+              -3,
+              -57,
+              -19
+            ],
+            [
+              -23,
+              -46,
+              27
+            ],
+            [
+              21,
+              -42,
+              25
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M17",
+      "sql": "SELECT i % 5 AS m, MAX(extra) FROM integers GROUP BY m, m ORDER BY 1;",
+      "family": "MOD_REPEAT_MAX",
+      "group": "TARGET_ENRICHED",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_mod_repeat_max",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              28,
+              -51,
+              -31
+            ],
+            [
+              28,
+              -51,
+              -31
+            ],
+            [
+              null,
+              54,
+              -32
+            ],
+            [
+              27,
+              null,
+              -35
+            ],
+            [
+              28,
+              -62,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              53,
+              54,
+              -58
+            ],
+            [
+              -26,
+              -25,
+              -4
+            ],
+            [
+              10,
+              -26,
+              -16
+            ],
+            [
+              -42,
+              -6,
+              1
+            ],
+            [
+              19,
+              33,
+              -52
+            ],
+            [
+              22,
+              26,
+              20
+            ],
+            [
+              -41,
+              -51,
+              61
+            ],
+            [
+              -4,
+              -13,
+              18
+            ],
+            [
+              15,
+              62,
+              49
+            ],
+            [
+              53,
+              -41,
+              -51
+            ],
+            [
+              16,
+              -38,
+              58
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              53,
+              -41,
+              -28
+            ],
+            [
+              -26,
+              -63,
+              -62
+            ],
+            [
+              -26,
+              27,
+              54
+            ],
+            [
+              null,
+              -3,
+              -59
+            ],
+            [
+              59,
+              null,
+              -7
+            ],
+            [
+              -53,
+              1,
+              -15
+            ],
+            [
+              13,
+              60,
+              -16
+            ],
+            [
+              21,
+              -50,
+              -23
+            ],
+            [
+              -52,
+              5,
+              -21
+            ],
+            [
+              42,
+              58,
+              -47
+            ],
+            [
+              6,
+              45,
+              8
+            ],
+            [
+              -4,
+              -60,
+              33
+            ],
+            [
+              45,
+              33,
+              -5
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M18",
+      "sql": "SELECT i % 7 AS m, MAX(extra) FROM integers GROUP BY m, m ORDER BY 1;",
+      "family": "MOD_REPEAT_MAX",
+      "group": "TARGET_ENRICHED",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_mod_repeat_max",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -50,
+              59,
+              -26
+            ],
+            [
+              -50,
+              59,
+              -26
+            ],
+            [
+              null,
+              17,
+              40
+            ],
+            [
+              31,
+              null,
+              -11
+            ],
+            [
+              21,
+              -21,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              35,
+              22,
+              8
+            ],
+            [
+              10,
+              -49,
+              -14
+            ],
+            [
+              25,
+              -13,
+              -58
+            ],
+            [
+              -21,
+              -61,
+              25
+            ],
+            [
+              -11,
+              4,
+              -28
+            ],
+            [
+              20,
+              19,
+              -11
+            ],
+            [
+              46,
+              -27,
+              0
+            ],
+            [
+              -47,
+              -21,
+              -46
+            ],
+            [
+              30,
+              51,
+              56
+            ],
+            [
+              -38,
+              -49,
+              42
+            ],
+            [
+              0,
+              62,
+              -44
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              35,
+              35,
+              38
+            ],
+            [
+              10,
+              -17,
+              26
+            ],
+            [
+              10,
+              54,
+              58
+            ],
+            [
+              null,
+              -1,
+              31
+            ],
+            [
+              -51,
+              null,
+              56
+            ],
+            [
+              -55,
+              -57,
+              -58
+            ],
+            [
+              18,
+              -44,
+              32
+            ],
+            [
+              27,
+              27,
+              -32
+            ],
+            [
+              18,
+              -35,
+              -34
+            ],
+            [
+              51,
+              43,
+              -31
+            ],
+            [
+              -20,
+              -55,
+              60
+            ],
+            [
+              -35,
+              54,
+              -37
+            ],
+            [
+              20,
+              -2,
+              22
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M19",
+      "sql": "SELECT i % 11 AS m, MAX(extra) FROM integers GROUP BY m, m ORDER BY 1;",
+      "family": "MOD_REPEAT_MAX",
+      "group": "TARGET_ENRICHED",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_mod_repeat_max",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              21,
+              -51,
+              -52
+            ],
+            [
+              21,
+              -51,
+              -52
+            ],
+            [
+              null,
+              40,
+              10
+            ],
+            [
+              51,
+              null,
+              61
+            ],
+            [
+              -57,
+              46,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -50,
+              60,
+              -45
+            ],
+            [
+              32,
+              54,
+              -12
+            ],
+            [
+              0,
+              -36,
+              18
+            ],
+            [
+              -2,
+              58,
+              -16
+            ],
+            [
+              35,
+              13,
+              43
+            ],
+            [
+              -57,
+              -61,
+              42
+            ],
+            [
+              -56,
+              3,
+              34
+            ],
+            [
+              28,
+              23,
+              -20
+            ],
+            [
+              -39,
+              -51,
+              -43
+            ],
+            [
+              16,
+              47,
+              48
+            ],
+            [
+              -11,
+              9,
+              -4
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -50,
+              61,
+              -19
+            ],
+            [
+              32,
+              55,
+              3
+            ],
+            [
+              32,
+              -33,
+              -51
+            ],
+            [
+              null,
+              6,
+              26
+            ],
+            [
+              -62,
+              null,
+              7
+            ],
+            [
+              19,
+              27,
+              63
+            ],
+            [
+              -16,
+              59,
+              -11
+            ],
+            [
+              -37,
+              -29,
+              3
+            ],
+            [
+              33,
+              -54,
+              -47
+            ],
+            [
+              27,
+              3,
+              26
+            ],
+            [
+              -40,
+              -34,
+              -27
+            ],
+            [
+              12,
+              -29,
+              -3
+            ],
+            [
+              -17,
+              22,
+              6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M20",
+      "sql": "SELECT i % 13 AS m, MAX(extra) FROM integers GROUP BY m, m ORDER BY 1;",
+      "family": "MOD_REPEAT_MAX",
+      "group": "TARGET_ENRICHED",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_mod_repeat_max",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -5,
+              46,
+              60
+            ],
+            [
+              -5,
+              46,
+              60
+            ],
+            [
+              null,
+              -40,
+              50
+            ],
+            [
+              -19,
+              null,
+              42
+            ],
+            [
+              -15,
+              -21,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              -62,
+              21
+            ],
+            [
+              -5,
+              61,
+              -29
+            ],
+            [
+              30,
+              62,
+              -34
+            ],
+            [
+              2,
+              11,
+              27
+            ],
+            [
+              -23,
+              19,
+              44
+            ],
+            [
+              -52,
+              -4,
+              1
+            ],
+            [
+              35,
+              -14,
+              28
+            ],
+            [
+              -4,
+              -6,
+              -32
+            ],
+            [
+              22,
+              53,
+              22
+            ],
+            [
+              63,
+              40,
+              49
+            ],
+            [
+              0,
+              32,
+              -46
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              0,
+              12,
+              44
+            ],
+            [
+              -5,
+              23,
+              30
+            ],
+            [
+              -5,
+              57,
+              -7
+            ],
+            [
+              null,
+              -26,
+              -10
+            ],
+            [
+              5,
+              null,
+              -39
+            ],
+            [
+              -56,
+              45,
+              -36
+            ],
+            [
+              30,
+              18,
+              -14
+            ],
+            [
+              25,
+              24,
+              42
+            ],
+            [
+              -45,
+              -39,
+              -4
+            ],
+            [
+              0,
+              -22,
+              -63
+            ],
+            [
+              -52,
+              -40,
+              -7
+            ],
+            [
+              -31,
+              43,
+              37
+            ],
+            [
+              -4,
+              35,
+              29
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M21",
+      "sql": "SELECT m, COUNT(*) FROM (SELECT i % 5 AS m, j FROM integers WHERE j IS NOT NULL) t GROUP BY m, m ORDER BY 1;",
+      "family": "NESTED_PROJECT_REPEAT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_nested_project_repeat",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -3,
+              -12,
+              19
+            ],
+            [
+              -3,
+              -12,
+              19
+            ],
+            [
+              null,
+              54,
+              -20
+            ],
+            [
+              -13,
+              null,
+              -39
+            ],
+            [
+              -47,
+              49,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -49,
+              2,
+              -54
+            ],
+            [
+              -30,
+              28,
+              62
+            ],
+            [
+              -53,
+              -30,
+              -43
+            ],
+            [
+              -19,
+              -58,
+              50
+            ],
+            [
+              -39,
+              -20,
+              -50
+            ],
+            [
+              -34,
+              -30,
+              -28
+            ],
+            [
+              35,
+              -12,
+              -33
+            ],
+            [
+              -14,
+              -27,
+              5
+            ],
+            [
+              -50,
+              -14,
+              -11
+            ],
+            [
+              -19,
+              -58,
+              -30
+            ],
+            [
+              16,
+              32,
+              -40
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -49,
+              8,
+              7
+            ],
+            [
+              -30,
+              24,
+              2
+            ],
+            [
+              -30,
+              -53,
+              -42
+            ],
+            [
+              null,
+              -42,
+              -49
+            ],
+            [
+              18,
+              null,
+              -48
+            ],
+            [
+              -27,
+              -29,
+              -46
+            ],
+            [
+              -43,
+              38,
+              20
+            ],
+            [
+              -18,
+              45,
+              -11
+            ],
+            [
+              11,
+              63,
+              1
+            ],
+            [
+              27,
+              33,
+              -29
+            ],
+            [
+              -53,
+              -51,
+              10
+            ],
+            [
+              -54,
+              10,
+              -45
+            ],
+            [
+              4,
+              -11,
+              -30
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M22",
+      "sql": "SELECT m, COUNT(*) FROM (SELECT i % 7 AS m, j FROM integers WHERE j IS NOT NULL) t GROUP BY m, m ORDER BY 1;",
+      "family": "NESTED_PROJECT_REPEAT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_nested_project_repeat",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              7,
+              11,
+              13
+            ],
+            [
+              7,
+              11,
+              13
+            ],
+            [
+              null,
+              -47,
+              -42
+            ],
+            [
+              55,
+              null,
+              2
+            ],
+            [
+              -10,
+              -13,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              4,
+              -43,
+              -6
+            ],
+            [
+              19,
+              23,
+              11
+            ],
+            [
+              63,
+              -39,
+              -24
+            ],
+            [
+              29,
+              21,
+              -54
+            ],
+            [
+              41,
+              -47,
+              15
+            ],
+            [
+              50,
+              -28,
+              -27
+            ],
+            [
+              -24,
+              -8,
+              -33
+            ],
+            [
+              38,
+              7,
+              20
+            ],
+            [
+              -43,
+              59,
+              -29
+            ],
+            [
+              -32,
+              -54,
+              -10
+            ],
+            [
+              44,
+              -61,
+              41
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              4,
+              -5,
+              49
+            ],
+            [
+              19,
+              42,
+              -20
+            ],
+            [
+              19,
+              39,
+              5
+            ],
+            [
+              null,
+              -35,
+              -43
+            ],
+            [
+              -7,
+              null,
+              17
+            ],
+            [
+              -20,
+              -53,
+              6
+            ],
+            [
+              3,
+              -23,
+              52
+            ],
+            [
+              -11,
+              -60,
+              -21
+            ],
+            [
+              -13,
+              31,
+              -23
+            ],
+            [
+              -17,
+              -55,
+              -46
+            ],
+            [
+              20,
+              -38,
+              9
+            ],
+            [
+              13,
+              -22,
+              23
+            ],
+            [
+              47,
+              22,
+              -24
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M23",
+      "sql": "SELECT m, COUNT(*) FROM (SELECT i % 11 AS m, j FROM integers WHERE j IS NOT NULL) t GROUP BY m, m ORDER BY 1;",
+      "family": "NESTED_PROJECT_REPEAT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_nested_project_repeat",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              24,
+              56,
+              -48
+            ],
+            [
+              24,
+              56,
+              -48
+            ],
+            [
+              null,
+              61,
+              53
+            ],
+            [
+              2,
+              null,
+              -3
+            ],
+            [
+              -25,
+              -3,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              11,
+              24,
+              -6
+            ],
+            [
+              38,
+              -34,
+              28
+            ],
+            [
+              38,
+              -34,
+              28
+            ],
+            [
+              -1,
+              -34,
+              15
+            ],
+            [
+              28,
+              38,
+              -58
+            ],
+            [
+              -31,
+              -17,
+              -23
+            ],
+            [
+              2,
+              -6,
+              -25
+            ],
+            [
+              61,
+              35,
+              -54
+            ],
+            [
+              0,
+              62,
+              57
+            ],
+            [
+              48,
+              -59,
+              -17
+            ],
+            [
+              -15,
+              -34,
+              3
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              11,
+              18,
+              -40
+            ],
+            [
+              38,
+              13,
+              -43
+            ],
+            [
+              38,
+              57,
+              39
+            ],
+            [
+              null,
+              29,
+              37
+            ],
+            [
+              48,
+              null,
+              25
+            ],
+            [
+              -48,
+              -41,
+              11
+            ],
+            [
+              44,
+              -3,
+              55
+            ],
+            [
+              -4,
+              58,
+              22
+            ],
+            [
+              -12,
+              -55,
+              13
+            ],
+            [
+              44,
+              57,
+              -42
+            ],
+            [
+              16,
+              33,
+              -47
+            ],
+            [
+              30,
+              12,
+              -45
+            ],
+            [
+              41,
+              -28,
+              -35
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M24",
+      "sql": "SELECT m, COUNT(*) FROM (SELECT i % 13 AS m, j FROM integers WHERE j IS NOT NULL) t GROUP BY m, m ORDER BY 1;",
+      "family": "NESTED_PROJECT_REPEAT",
+      "group": "TARGET_ENRICHED",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_nested_project_repeat",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              43,
+              -34,
+              49
+            ],
+            [
+              43,
+              -34,
+              49
+            ],
+            [
+              null,
+              -32,
+              -49
+            ],
+            [
+              12,
+              null,
+              59
+            ],
+            [
+              -35,
+              18,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -60,
+              -32,
+              13
+            ],
+            [
+              20,
+              44,
+              14
+            ],
+            [
+              13,
+              43,
+              36
+            ],
+            [
+              -55,
+              -37,
+              -28
+            ],
+            [
+              7,
+              59,
+              -50
+            ],
+            [
+              17,
+              -11,
+              -23
+            ],
+            [
+              -5,
+              46,
+              -45
+            ],
+            [
+              4,
+              6,
+              42
+            ],
+            [
+              14,
+              -28,
+              3
+            ],
+            [
+              52,
+              -25,
+              -17
+            ],
+            [
+              62,
+              19,
+              -31
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -60,
+              1,
+              3
+            ],
+            [
+              20,
+              -27,
+              43
+            ],
+            [
+              20,
+              -38,
+              -7
+            ],
+            [
+              null,
+              31,
+              25
+            ],
+            [
+              -55,
+              null,
+              5
+            ],
+            [
+              -43,
+              52,
+              -12
+            ],
+            [
+              18,
+              -12,
+              40
+            ],
+            [
+              13,
+              -33,
+              -53
+            ],
+            [
+              8,
+              -2,
+              -58
+            ],
+            [
+              -10,
+              -40,
+              58
+            ],
+            [
+              59,
+              -18,
+              -62
+            ],
+            [
+              -52,
+              34,
+              21
+            ],
+            [
+              51,
+              -18,
+              6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M25",
+      "sql": "SELECT i, COUNT(j) FROM integers GROUP BY i ORDER BY 1;",
+      "family": "NO_REPEAT_CONTROL",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_no_repeat_control",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -29,
+              -17,
+              -2
+            ],
+            [
+              -29,
+              -17,
+              -2
+            ],
+            [
+              null,
+              -31,
+              -10
+            ],
+            [
+              42,
+              null,
+              49
+            ],
+            [
+              -29,
+              1,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              13,
+              -35,
+              57
+            ],
+            [
+              20,
+              -5,
+              21
+            ],
+            [
+              0,
+              49,
+              -54
+            ],
+            [
+              38,
+              54,
+              59
+            ],
+            [
+              -60,
+              33,
+              -60
+            ],
+            [
+              50,
+              0,
+              23
+            ],
+            [
+              51,
+              12,
+              26
+            ],
+            [
+              48,
+              53,
+              21
+            ],
+            [
+              -17,
+              -15,
+              -18
+            ],
+            [
+              -11,
+              25,
+              -51
+            ],
+            [
+              26,
+              46,
+              -31
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              13,
+              -8,
+              -47
+            ],
+            [
+              20,
+              18,
+              19
+            ],
+            [
+              20,
+              -15,
+              -20
+            ],
+            [
+              null,
+              -15,
+              9
+            ],
+            [
+              -46,
+              null,
+              18
+            ],
+            [
+              -60,
+              -21,
+              -47
+            ],
+            [
+              3,
+              -20,
+              -28
+            ],
+            [
+              -25,
+              -18,
+              -43
+            ],
+            [
+              29,
+              31,
+              -19
+            ],
+            [
+              -1,
+              30,
+              59
+            ],
+            [
+              21,
+              27,
+              -51
+            ],
+            [
+              43,
+              35,
+              23
+            ],
+            [
+              -55,
+              -5,
+              12
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M26",
+      "sql": "SELECT i, COUNT(j) FROM integers GROUP BY i ORDER BY 1;",
+      "family": "NO_REPEAT_CONTROL",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_no_repeat_control",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -31,
+              -8,
+              -4
+            ],
+            [
+              -31,
+              -8,
+              -4
+            ],
+            [
+              null,
+              50,
+              15
+            ],
+            [
+              46,
+              null,
+              41
+            ],
+            [
+              15,
+              47,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              28,
+              4,
+              6
+            ],
+            [
+              -10,
+              48,
+              17
+            ],
+            [
+              63,
+              37,
+              -63
+            ],
+            [
+              29,
+              -25,
+              3
+            ],
+            [
+              18,
+              13,
+              -30
+            ],
+            [
+              -40,
+              -13,
+              -2
+            ],
+            [
+              -9,
+              31,
+              45
+            ],
+            [
+              14,
+              -53,
+              -10
+            ],
+            [
+              -47,
+              1,
+              7
+            ],
+            [
+              -36,
+              3,
+              -60
+            ],
+            [
+              -55,
+              -38,
+              21
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              28,
+              -40,
+              62
+            ],
+            [
+              -10,
+              36,
+              -14
+            ],
+            [
+              -10,
+              -24,
+              25
+            ],
+            [
+              null,
+              -16,
+              -53
+            ],
+            [
+              -51,
+              null,
+              -47
+            ],
+            [
+              54,
+              -55,
+              42
+            ],
+            [
+              -54,
+              -13,
+              38
+            ],
+            [
+              -1,
+              6,
+              -4
+            ],
+            [
+              6,
+              28,
+              -58
+            ],
+            [
+              -22,
+              -54,
+              -14
+            ],
+            [
+              -35,
+              -10,
+              -24
+            ],
+            [
+              -37,
+              -49,
+              9
+            ],
+            [
+              -25,
+              40,
+              50
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M27",
+      "sql": "SELECT i, COUNT(j) FROM integers GROUP BY i ORDER BY 1;",
+      "family": "NO_REPEAT_CONTROL",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_no_repeat_control",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -11,
+              60,
+              10
+            ],
+            [
+              -11,
+              60,
+              10
+            ],
+            [
+              null,
+              -47,
+              -36
+            ],
+            [
+              22,
+              null,
+              -28
+            ],
+            [
+              -40,
+              34,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              44,
+              -2,
+              58
+            ],
+            [
+              63,
+              2,
+              -61
+            ],
+            [
+              53,
+              22,
+              19
+            ],
+            [
+              57,
+              5,
+              39
+            ],
+            [
+              57,
+              40,
+              -49
+            ],
+            [
+              -57,
+              33,
+              -46
+            ],
+            [
+              43,
+              0,
+              58
+            ],
+            [
+              45,
+              -60,
+              -26
+            ],
+            [
+              17,
+              -21,
+              -5
+            ],
+            [
+              -32,
+              -19,
+              -44
+            ],
+            [
+              31,
+              28,
+              42
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              44,
+              -3,
+              -58
+            ],
+            [
+              63,
+              49,
+              6
+            ],
+            [
+              63,
+              50,
+              -49
+            ],
+            [
+              null,
+              42,
+              -50
+            ],
+            [
+              15,
+              null,
+              33
+            ],
+            [
+              -46,
+              -7,
+              -20
+            ],
+            [
+              28,
+              45,
+              37
+            ],
+            [
+              -38,
+              -39,
+              -1
+            ],
+            [
+              40,
+              27,
+              -61
+            ],
+            [
+              -33,
+              43,
+              35
+            ],
+            [
+              -23,
+              46,
+              20
+            ],
+            [
+              -31,
+              -6,
+              19
+            ],
+            [
+              -56,
+              5,
+              -63
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M28",
+      "sql": "SELECT i, COUNT(j) FROM integers GROUP BY i ORDER BY 1;",
+      "family": "NO_REPEAT_CONTROL",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_no_repeat_control",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -41,
+              57,
+              50
+            ],
+            [
+              -41,
+              57,
+              50
+            ],
+            [
+              null,
+              -63,
+              26
+            ],
+            [
+              24,
+              null,
+              55
+            ],
+            [
+              -57,
+              -17,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              22,
+              -43,
+              26
+            ],
+            [
+              32,
+              17,
+              -38
+            ],
+            [
+              6,
+              25,
+              44
+            ],
+            [
+              57,
+              -54,
+              -52
+            ],
+            [
+              43,
+              59,
+              -4
+            ],
+            [
+              -14,
+              55,
+              -6
+            ],
+            [
+              -10,
+              -10,
+              59
+            ],
+            [
+              -61,
+              -1,
+              35
+            ],
+            [
+              -8,
+              57,
+              -26
+            ],
+            [
+              -39,
+              -23,
+              9
+            ],
+            [
+              29,
+              -6,
+              -7
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              22,
+              62,
+              24
+            ],
+            [
+              32,
+              46,
+              -28
+            ],
+            [
+              32,
+              -50,
+              -1
+            ],
+            [
+              null,
+              44,
+              -3
+            ],
+            [
+              3,
+              null,
+              28
+            ],
+            [
+              60,
+              47,
+              -63
+            ],
+            [
+              57,
+              28,
+              -32
+            ],
+            [
+              41,
+              34,
+              39
+            ],
+            [
+              24,
+              -59,
+              -38
+            ],
+            [
+              -30,
+              52,
+              -40
+            ],
+            [
+              30,
+              -32,
+              46
+            ],
+            [
+              28,
+              25,
+              -10
+            ],
+            [
+              48,
+              -32,
+              -14
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M29",
+      "sql": "SELECT l.i, COUNT(*) FROM integers l INNER JOIN right_values r ON l.i = r.i GROUP BY l.i, l.i ORDER BY 1;",
+      "family": "INNER_JOIN_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_inner_join_repeat",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -54,
+              -60,
+              13
+            ],
+            [
+              -54,
+              -60,
+              13
+            ],
+            [
+              null,
+              -39,
+              57
+            ],
+            [
+              -39,
+              null,
+              5
+            ],
+            [
+              44,
+              -5,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              21,
+              33,
+              9
+            ],
+            [
+              -49,
+              -57,
+              57
+            ],
+            [
+              22,
+              41,
+              21
+            ],
+            [
+              -54,
+              19,
+              -44
+            ],
+            [
+              7,
+              38,
+              -35
+            ],
+            [
+              -49,
+              39,
+              -7
+            ],
+            [
+              10,
+              30,
+              -18
+            ],
+            [
+              4,
+              53,
+              -22
+            ],
+            [
+              -43,
+              35,
+              22
+            ],
+            [
+              33,
+              -2,
+              34
+            ],
+            [
+              -16,
+              43,
+              51
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              21,
+              -29,
+              -59
+            ],
+            [
+              -49,
+              -61,
+              -9
+            ],
+            [
+              -49,
+              44,
+              -32
+            ],
+            [
+              null,
+              22,
+              12
+            ],
+            [
+              -40,
+              null,
+              -10
+            ],
+            [
+              36,
+              -52,
+              -26
+            ],
+            [
+              19,
+              53,
+              -9
+            ],
+            [
+              -9,
+              -3,
+              28
+            ],
+            [
+              -33,
+              7,
+              -38
+            ],
+            [
+              37,
+              -23,
+              56
+            ],
+            [
+              3,
+              36,
+              10
+            ],
+            [
+              46,
+              -27,
+              -25
+            ],
+            [
+              12,
+              -4,
+              43
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M30",
+      "sql": "SELECT l.i, COUNT(*) FROM integers l INNER JOIN right_values r ON l.i = r.i GROUP BY l.i, l.i ORDER BY 1;",
+      "family": "INNER_JOIN_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_inner_join_repeat",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              6,
+              -45,
+              -37
+            ],
+            [
+              6,
+              -45,
+              -37
+            ],
+            [
+              null,
+              29,
+              2
+            ],
+            [
+              -7,
+              null,
+              -57
+            ],
+            [
+              -48,
+              -41,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -16,
+              -10,
+              -4
+            ],
+            [
+              -49,
+              -59,
+              -2
+            ],
+            [
+              -10,
+              3,
+              54
+            ],
+            [
+              -63,
+              44,
+              -26
+            ],
+            [
+              -17,
+              11,
+              -24
+            ],
+            [
+              25,
+              -49,
+              5
+            ],
+            [
+              -28,
+              34,
+              -39
+            ],
+            [
+              -25,
+              7,
+              -7
+            ],
+            [
+              -19,
+              -17,
+              -56
+            ],
+            [
+              -59,
+              16,
+              49
+            ],
+            [
+              -21,
+              9,
+              -11
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -16,
+              53,
+              17
+            ],
+            [
+              -49,
+              -54,
+              -16
+            ],
+            [
+              -49,
+              -31,
+              -5
+            ],
+            [
+              null,
+              -21,
+              -24
+            ],
+            [
+              -32,
+              null,
+              -37
+            ],
+            [
+              -12,
+              -31,
+              53
+            ],
+            [
+              30,
+              -43,
+              -29
+            ],
+            [
+              -60,
+              12,
+              -20
+            ],
+            [
+              52,
+              -42,
+              30
+            ],
+            [
+              -15,
+              54,
+              -40
+            ],
+            [
+              -33,
+              13,
+              -61
+            ],
+            [
+              -37,
+              2,
+              -10
+            ],
+            [
+              49,
+              -29,
+              -17
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M31",
+      "sql": "SELECT l.i, COUNT(*) FROM integers l INNER JOIN right_values r ON l.i = r.i GROUP BY l.i, l.i ORDER BY 1;",
+      "family": "INNER_JOIN_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_inner_join_repeat",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              62,
+              -38,
+              -48
+            ],
+            [
+              62,
+              -38,
+              -48
+            ],
+            [
+              null,
+              -33,
+              47
+            ],
+            [
+              -37,
+              null,
+              -3
+            ],
+            [
+              2,
+              16,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -16,
+              -50,
+              25
+            ],
+            [
+              -27,
+              -34,
+              -49
+            ],
+            [
+              51,
+              41,
+              -38
+            ],
+            [
+              39,
+              36,
+              -1
+            ],
+            [
+              -23,
+              11,
+              12
+            ],
+            [
+              -59,
+              -15,
+              -45
+            ],
+            [
+              -53,
+              46,
+              -40
+            ],
+            [
+              13,
+              25,
+              36
+            ],
+            [
+              -22,
+              -45,
+              -39
+            ],
+            [
+              -52,
+              -30,
+              22
+            ],
+            [
+              46,
+              4,
+              9
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -16,
+              -36,
+              -10
+            ],
+            [
+              -27,
+              -11,
+              37
+            ],
+            [
+              -27,
+              -26,
+              -5
+            ],
+            [
+              null,
+              58,
+              5
+            ],
+            [
+              31,
+              null,
+              53
+            ],
+            [
+              -32,
+              -54,
+              -30
+            ],
+            [
+              19,
+              26,
+              -34
+            ],
+            [
+              -3,
+              9,
+              11
+            ],
+            [
+              55,
+              -8,
+              32
+            ],
+            [
+              2,
+              7,
+              9
+            ],
+            [
+              26,
+              -46,
+              18
+            ],
+            [
+              58,
+              -38,
+              15
+            ],
+            [
+              61,
+              -12,
+              -4
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M32",
+      "sql": "SELECT l.i, COUNT(*) FROM integers l INNER JOIN right_values r ON l.i = r.i GROUP BY l.i, l.i ORDER BY 1;",
+      "family": "INNER_JOIN_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_inner_join_repeat",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -56,
+              -52,
+              -30
+            ],
+            [
+              -56,
+              -52,
+              -30
+            ],
+            [
+              null,
+              -23,
+              -25
+            ],
+            [
+              -59,
+              null,
+              -29
+            ],
+            [
+              19,
+              9,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              6,
+              -56,
+              -57
+            ],
+            [
+              -1,
+              -14,
+              -10
+            ],
+            [
+              -9,
+              40,
+              38
+            ],
+            [
+              -26,
+              -6,
+              5
+            ],
+            [
+              -44,
+              -52,
+              -19
+            ],
+            [
+              -20,
+              -42,
+              -61
+            ],
+            [
+              43,
+              -3,
+              -8
+            ],
+            [
+              13,
+              62,
+              12
+            ],
+            [
+              23,
+              2,
+              -32
+            ],
+            [
+              55,
+              -32,
+              38
+            ],
+            [
+              0,
+              21,
+              48
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              6,
+              -2,
+              55
+            ],
+            [
+              -1,
+              -53,
+              -12
+            ],
+            [
+              -1,
+              -16,
+              -41
+            ],
+            [
+              null,
+              8,
+              -4
+            ],
+            [
+              40,
+              null,
+              -45
+            ],
+            [
+              49,
+              54,
+              10
+            ],
+            [
+              -46,
+              49,
+              35
+            ],
+            [
+              12,
+              -58,
+              30
+            ],
+            [
+              60,
+              14,
+              -30
+            ],
+            [
+              6,
+              -7,
+              -46
+            ],
+            [
+              4,
+              -4,
+              -5
+            ],
+            [
+              -32,
+              34,
+              55
+            ],
+            [
+              46,
+              32,
+              -13
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M33",
+      "sql": "SELECT l.i, COUNT(r.j) FROM integers l LEFT JOIN right_values r ON l.i = r.i GROUP BY l.i, l.i ORDER BY 1;",
+      "family": "LEFT_JOIN_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_left_join_repeat",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -25,
+              -33,
+              36
+            ],
+            [
+              -25,
+              -33,
+              36
+            ],
+            [
+              null,
+              27,
+              57
+            ],
+            [
+              -41,
+              null,
+              -27
+            ],
+            [
+              33,
+              30,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -2,
+              1,
+              52
+            ],
+            [
+              -4,
+              58,
+              -34
+            ],
+            [
+              -11,
+              17,
+              -35
+            ],
+            [
+              -38,
+              53,
+              41
+            ],
+            [
+              -46,
+              -46,
+              -6
+            ],
+            [
+              -57,
+              -37,
+              52
+            ],
+            [
+              21,
+              49,
+              -37
+            ],
+            [
+              5,
+              -54,
+              -29
+            ],
+            [
+              8,
+              56,
+              39
+            ],
+            [
+              35,
+              -15,
+              -49
+            ],
+            [
+              -58,
+              63,
+              0
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -2,
+              54,
+              -18
+            ],
+            [
+              -4,
+              0,
+              62
+            ],
+            [
+              -4,
+              -1,
+              -16
+            ],
+            [
+              null,
+              -10,
+              26
+            ],
+            [
+              50,
+              null,
+              13
+            ],
+            [
+              30,
+              40,
+              21
+            ],
+            [
+              -60,
+              33,
+              -44
+            ],
+            [
+              -43,
+              8,
+              -60
+            ],
+            [
+              39,
+              -17,
+              -6
+            ],
+            [
+              -11,
+              -58,
+              -6
+            ],
+            [
+              -34,
+              22,
+              -28
+            ],
+            [
+              27,
+              8,
+              -9
+            ],
+            [
+              -51,
+              35,
+              18
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M34",
+      "sql": "SELECT l.i, COUNT(r.j) FROM integers l LEFT JOIN right_values r ON l.i = r.i GROUP BY l.i, l.i ORDER BY 1;",
+      "family": "LEFT_JOIN_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_left_join_repeat",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              10,
+              -48,
+              63
+            ],
+            [
+              10,
+              -48,
+              63
+            ],
+            [
+              null,
+              -24,
+              -50
+            ],
+            [
+              -19,
+              null,
+              14
+            ],
+            [
+              15,
+              31,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              14,
+              28,
+              9
+            ],
+            [
+              -19,
+              -47,
+              3
+            ],
+            [
+              -19,
+              -47,
+              3
+            ],
+            [
+              -34,
+              3,
+              -54
+            ],
+            [
+              21,
+              -51,
+              42
+            ],
+            [
+              -52,
+              32,
+              -23
+            ],
+            [
+              -18,
+              -11,
+              38
+            ],
+            [
+              -14,
+              56,
+              0
+            ],
+            [
+              35,
+              -34,
+              -30
+            ],
+            [
+              -44,
+              28,
+              -20
+            ],
+            [
+              7,
+              -54,
+              -41
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              14,
+              -27,
+              -57
+            ],
+            [
+              -19,
+              -22,
+              -18
+            ],
+            [
+              -19,
+              -39,
+              60
+            ],
+            [
+              null,
+              17,
+              29
+            ],
+            [
+              -53,
+              null,
+              -17
+            ],
+            [
+              57,
+              31,
+              0
+            ],
+            [
+              35,
+              32,
+              13
+            ],
+            [
+              16,
+              -32,
+              20
+            ],
+            [
+              9,
+              -52,
+              -46
+            ],
+            [
+              -29,
+              60,
+              -13
+            ],
+            [
+              11,
+              -58,
+              53
+            ],
+            [
+              -19,
+              33,
+              -27
+            ],
+            [
+              3,
+              -54,
+              37
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M35",
+      "sql": "SELECT l.i, COUNT(r.j) FROM integers l LEFT JOIN right_values r ON l.i = r.i GROUP BY l.i, l.i ORDER BY 1;",
+      "family": "LEFT_JOIN_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_left_join_repeat",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -48,
+              28,
+              2
+            ],
+            [
+              -48,
+              28,
+              2
+            ],
+            [
+              null,
+              -3,
+              -54
+            ],
+            [
+              -56,
+              null,
+              60
+            ],
+            [
+              -42,
+              -62,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -59,
+              -34,
+              -39
+            ],
+            [
+              11,
+              2,
+              4
+            ],
+            [
+              -29,
+              43,
+              -44
+            ],
+            [
+              -40,
+              -31,
+              -42
+            ],
+            [
+              14,
+              -2,
+              37
+            ],
+            [
+              15,
+              -19,
+              15
+            ],
+            [
+              56,
+              44,
+              -28
+            ],
+            [
+              49,
+              26,
+              39
+            ],
+            [
+              -21,
+              45,
+              1
+            ],
+            [
+              13,
+              -15,
+              47
+            ],
+            [
+              -15,
+              -62,
+              -54
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -59,
+              37,
+              28
+            ],
+            [
+              11,
+              40,
+              -30
+            ],
+            [
+              11,
+              40,
+              -31
+            ],
+            [
+              null,
+              -1,
+              -12
+            ],
+            [
+              -14,
+              null,
+              -62
+            ],
+            [
+              34,
+              31,
+              2
+            ],
+            [
+              -30,
+              32,
+              -16
+            ],
+            [
+              -47,
+              54,
+              42
+            ],
+            [
+              -1,
+              -36,
+              -43
+            ],
+            [
+              -61,
+              -35,
+              35
+            ],
+            [
+              15,
+              13,
+              56
+            ],
+            [
+              -9,
+              -13,
+              39
+            ],
+            [
+              -44,
+              1,
+              -40
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M36",
+      "sql": "SELECT l.i, COUNT(r.j) FROM integers l LEFT JOIN right_values r ON l.i = r.i GROUP BY l.i, l.i ORDER BY 1;",
+      "family": "LEFT_JOIN_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_left_join_repeat",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -40,
+              -16,
+              2
+            ],
+            [
+              -40,
+              -16,
+              2
+            ],
+            [
+              null,
+              -6,
+              35
+            ],
+            [
+              -18,
+              null,
+              -50
+            ],
+            [
+              -20,
+              -27,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -1,
+              -61,
+              18
+            ],
+            [
+              -14,
+              -51,
+              10
+            ],
+            [
+              -41,
+              -58,
+              35
+            ],
+            [
+              -63,
+              11,
+              -53
+            ],
+            [
+              -53,
+              -53,
+              -52
+            ],
+            [
+              -59,
+              49,
+              -53
+            ],
+            [
+              58,
+              -56,
+              8
+            ],
+            [
+              41,
+              22,
+              -53
+            ],
+            [
+              59,
+              52,
+              -53
+            ],
+            [
+              20,
+              58,
+              -18
+            ],
+            [
+              41,
+              -41,
+              -29
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -1,
+              23,
+              46
+            ],
+            [
+              -14,
+              28,
+              19
+            ],
+            [
+              -14,
+              39,
+              -43
+            ],
+            [
+              null,
+              25,
+              51
+            ],
+            [
+              44,
+              null,
+              42
+            ],
+            [
+              5,
+              -25,
+              2
+            ],
+            [
+              32,
+              -30,
+              -21
+            ],
+            [
+              22,
+              9,
+              45
+            ],
+            [
+              -39,
+              -22,
+              -21
+            ],
+            [
+              16,
+              33,
+              31
+            ],
+            [
+              28,
+              -49,
+              -4
+            ],
+            [
+              26,
+              -46,
+              52
+            ],
+            [
+              -22,
+              -59,
+              12
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M37",
+      "sql": "SELECT i, COUNT(*) FROM (SELECT i FROM integers UNION ALL SELECT i FROM right_values) u GROUP BY i, i ORDER BY 1;",
+      "family": "UNION_ALL_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_union_all_repeat",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              55,
+              -19,
+              -35
+            ],
+            [
+              55,
+              -19,
+              -35
+            ],
+            [
+              null,
+              57,
+              8
+            ],
+            [
+              61,
+              null,
+              -30
+            ],
+            [
+              -41,
+              -44,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              16,
+              61,
+              -16
+            ],
+            [
+              42,
+              30,
+              -62
+            ],
+            [
+              -7,
+              12,
+              21
+            ],
+            [
+              -36,
+              51,
+              33
+            ],
+            [
+              18,
+              61,
+              -17
+            ],
+            [
+              21,
+              -32,
+              57
+            ],
+            [
+              -16,
+              -33,
+              -20
+            ],
+            [
+              6,
+              -27,
+              59
+            ],
+            [
+              44,
+              8,
+              54
+            ],
+            [
+              -60,
+              22,
+              0
+            ],
+            [
+              54,
+              59,
+              61
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              16,
+              7,
+              12
+            ],
+            [
+              42,
+              -3,
+              -24
+            ],
+            [
+              42,
+              35,
+              -19
+            ],
+            [
+              null,
+              59,
+              -55
+            ],
+            [
+              -11,
+              null,
+              8
+            ],
+            [
+              23,
+              13,
+              -10
+            ],
+            [
+              -50,
+              -50,
+              -47
+            ],
+            [
+              -43,
+              51,
+              45
+            ],
+            [
+              63,
+              -60,
+              36
+            ],
+            [
+              23,
+              53,
+              27
+            ],
+            [
+              -41,
+              -5,
+              -28
+            ],
+            [
+              14,
+              28,
+              38
+            ],
+            [
+              33,
+              -63,
+              -42
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M38",
+      "sql": "SELECT i, COUNT(*) FROM (SELECT i FROM integers UNION ALL SELECT i FROM right_values) u GROUP BY i, i ORDER BY 1;",
+      "family": "UNION_ALL_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_union_all_repeat",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              1,
+              37,
+              -47
+            ],
+            [
+              1,
+              37,
+              -47
+            ],
+            [
+              null,
+              -18,
+              -35
+            ],
+            [
+              13,
+              null,
+              24
+            ],
+            [
+              12,
+              -10,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              4,
+              -6,
+              -40
+            ],
+            [
+              54,
+              -48,
+              40
+            ],
+            [
+              -21,
+              26,
+              -39
+            ],
+            [
+              2,
+              63,
+              45
+            ],
+            [
+              7,
+              41,
+              -20
+            ],
+            [
+              -26,
+              -29,
+              14
+            ],
+            [
+              -51,
+              -43,
+              33
+            ],
+            [
+              61,
+              35,
+              -1
+            ],
+            [
+              44,
+              35,
+              -63
+            ],
+            [
+              -1,
+              48,
+              -36
+            ],
+            [
+              44,
+              20,
+              1
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              4,
+              61,
+              -4
+            ],
+            [
+              54,
+              58,
+              -39
+            ],
+            [
+              54,
+              -10,
+              -40
+            ],
+            [
+              null,
+              28,
+              63
+            ],
+            [
+              45,
+              null,
+              31
+            ],
+            [
+              31,
+              27,
+              61
+            ],
+            [
+              7,
+              -6,
+              -36
+            ],
+            [
+              23,
+              -15,
+              -29
+            ],
+            [
+              6,
+              -30,
+              17
+            ],
+            [
+              59,
+              17,
+              16
+            ],
+            [
+              27,
+              7,
+              24
+            ],
+            [
+              51,
+              -44,
+              -45
+            ],
+            [
+              37,
+              57,
+              -5
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M39",
+      "sql": "SELECT i, COUNT(*) FROM (SELECT i FROM integers UNION ALL SELECT i FROM right_values) u GROUP BY i, i ORDER BY 1;",
+      "family": "UNION_ALL_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_union_all_repeat",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              0,
+              57,
+              56
+            ],
+            [
+              0,
+              57,
+              56
+            ],
+            [
+              null,
+              -29,
+              24
+            ],
+            [
+              52,
+              null,
+              -28
+            ],
+            [
+              32,
+              12,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -60,
+              -50,
+              40
+            ],
+            [
+              42,
+              -19,
+              7
+            ],
+            [
+              -42,
+              12,
+              -38
+            ],
+            [
+              -33,
+              -55,
+              15
+            ],
+            [
+              27,
+              -22,
+              44
+            ],
+            [
+              53,
+              -8,
+              44
+            ],
+            [
+              32,
+              -32,
+              23
+            ],
+            [
+              -30,
+              -29,
+              -26
+            ],
+            [
+              5,
+              50,
+              -21
+            ],
+            [
+              0,
+              6,
+              -58
+            ],
+            [
+              9,
+              -22,
+              7
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -60,
+              -19,
+              57
+            ],
+            [
+              42,
+              21,
+              -16
+            ],
+            [
+              42,
+              -10,
+              35
+            ],
+            [
+              null,
+              60,
+              37
+            ],
+            [
+              -50,
+              null,
+              -51
+            ],
+            [
+              -59,
+              1,
+              12
+            ],
+            [
+              42,
+              -55,
+              -2
+            ],
+            [
+              -56,
+              53,
+              -49
+            ],
+            [
+              -17,
+              24,
+              23
+            ],
+            [
+              -40,
+              -50,
+              -45
+            ],
+            [
+              36,
+              -37,
+              -54
+            ],
+            [
+              -18,
+              -25,
+              26
+            ],
+            [
+              51,
+              -20,
+              -1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M40",
+      "sql": "SELECT i, COUNT(*) FROM (SELECT i FROM integers UNION ALL SELECT i FROM right_values) u GROUP BY i, i ORDER BY 1;",
+      "family": "UNION_ALL_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_union_all_repeat",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -45,
+              27,
+              6
+            ],
+            [
+              -45,
+              27,
+              6
+            ],
+            [
+              null,
+              -46,
+              63
+            ],
+            [
+              63,
+              null,
+              -50
+            ],
+            [
+              46,
+              25,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -34,
+              -32,
+              4
+            ],
+            [
+              0,
+              57,
+              -7
+            ],
+            [
+              10,
+              25,
+              -16
+            ],
+            [
+              -15,
+              -53,
+              -32
+            ],
+            [
+              -13,
+              7,
+              -32
+            ],
+            [
+              -11,
+              -47,
+              12
+            ],
+            [
+              30,
+              -40,
+              -1
+            ],
+            [
+              -6,
+              7,
+              48
+            ],
+            [
+              46,
+              31,
+              61
+            ],
+            [
+              -42,
+              -61,
+              12
+            ],
+            [
+              -44,
+              38,
+              -8
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -34,
+              -42,
+              4
+            ],
+            [
+              0,
+              26,
+              -2
+            ],
+            [
+              0,
+              22,
+              -51
+            ],
+            [
+              null,
+              56,
+              2
+            ],
+            [
+              0,
+              null,
+              -13
+            ],
+            [
+              17,
+              -17,
+              -6
+            ],
+            [
+              52,
+              -51,
+              -19
+            ],
+            [
+              -57,
+              -8,
+              -44
+            ],
+            [
+              43,
+              60,
+              -26
+            ],
+            [
+              10,
+              -45,
+              -46
+            ],
+            [
+              62,
+              11,
+              4
+            ],
+            [
+              16,
+              -7,
+              61
+            ],
+            [
+              -51,
+              -19,
+              8
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M41",
+      "sql": "SELECT DISTINCT i, j FROM integers WHERE j IS NULL OR i > 0 ORDER BY 1, 2;",
+      "family": "DISTINCT_CONTROL",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_distinct_control",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -44,
+              21,
+              16
+            ],
+            [
+              -44,
+              21,
+              16
+            ],
+            [
+              null,
+              -4,
+              19
+            ],
+            [
+              38,
+              null,
+              3
+            ],
+            [
+              -31,
+              4,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              19,
+              28,
+              62
+            ],
+            [
+              7,
+              -9,
+              -33
+            ],
+            [
+              18,
+              19,
+              -47
+            ],
+            [
+              -41,
+              46,
+              -9
+            ],
+            [
+              -38,
+              33,
+              42
+            ],
+            [
+              -36,
+              60,
+              -54
+            ],
+            [
+              -53,
+              -41,
+              40
+            ],
+            [
+              27,
+              57,
+              46
+            ],
+            [
+              -18,
+              59,
+              52
+            ],
+            [
+              43,
+              -2,
+              59
+            ],
+            [
+              -17,
+              -14,
+              26
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              19,
+              -23,
+              -29
+            ],
+            [
+              7,
+              40,
+              -48
+            ],
+            [
+              7,
+              13,
+              29
+            ],
+            [
+              null,
+              34,
+              53
+            ],
+            [
+              38,
+              null,
+              -24
+            ],
+            [
+              22,
+              -32,
+              -18
+            ],
+            [
+              63,
+              -32,
+              0
+            ],
+            [
+              14,
+              17,
+              58
+            ],
+            [
+              61,
+              -20,
+              1
+            ],
+            [
+              31,
+              -2,
+              31
+            ],
+            [
+              51,
+              -20,
+              -24
+            ],
+            [
+              -11,
+              57,
+              6
+            ],
+            [
+              -47,
+              45,
+              46
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M42",
+      "sql": "SELECT DISTINCT i, j FROM integers WHERE j IS NULL OR i > 0 ORDER BY 1, 2;",
+      "family": "DISTINCT_CONTROL",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_distinct_control",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              37,
+              -59,
+              -53
+            ],
+            [
+              37,
+              -59,
+              -53
+            ],
+            [
+              null,
+              55,
+              12
+            ],
+            [
+              -18,
+              null,
+              -1
+            ],
+            [
+              38,
+              -18,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -57,
+              -58,
+              -5
+            ],
+            [
+              36,
+              -51,
+              -50
+            ],
+            [
+              -60,
+              -60,
+              18
+            ],
+            [
+              25,
+              28,
+              49
+            ],
+            [
+              44,
+              19,
+              -30
+            ],
+            [
+              45,
+              13,
+              59
+            ],
+            [
+              -18,
+              -1,
+              62
+            ],
+            [
+              -49,
+              30,
+              -44
+            ],
+            [
+              -61,
+              52,
+              11
+            ],
+            [
+              60,
+              63,
+              -25
+            ],
+            [
+              -62,
+              -23,
+              47
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -57,
+              15,
+              32
+            ],
+            [
+              36,
+              -20,
+              -2
+            ],
+            [
+              36,
+              19,
+              10
+            ],
+            [
+              null,
+              -55,
+              -59
+            ],
+            [
+              58,
+              null,
+              32
+            ],
+            [
+              15,
+              -57,
+              30
+            ],
+            [
+              14,
+              15,
+              -40
+            ],
+            [
+              -2,
+              -31,
+              17
+            ],
+            [
+              -7,
+              19,
+              8
+            ],
+            [
+              52,
+              21,
+              -24
+            ],
+            [
+              59,
+              12,
+              -24
+            ],
+            [
+              -57,
+              16,
+              11
+            ],
+            [
+              47,
+              -7,
+              41
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M43",
+      "sql": "SELECT DISTINCT i, j FROM integers WHERE j IS NULL OR i > 0 ORDER BY 1, 2;",
+      "family": "DISTINCT_CONTROL",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_distinct_control",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -34,
+              -33,
+              20
+            ],
+            [
+              -34,
+              -33,
+              20
+            ],
+            [
+              null,
+              46,
+              48
+            ],
+            [
+              61,
+              null,
+              -15
+            ],
+            [
+              -8,
+              19,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              8,
+              1,
+              -39
+            ],
+            [
+              53,
+              -19,
+              -37
+            ],
+            [
+              14,
+              -30,
+              -54
+            ],
+            [
+              46,
+              -47,
+              0
+            ],
+            [
+              -28,
+              43,
+              -37
+            ],
+            [
+              -28,
+              -30,
+              -9
+            ],
+            [
+              22,
+              -33,
+              51
+            ],
+            [
+              -31,
+              -20,
+              36
+            ],
+            [
+              19,
+              -52,
+              38
+            ],
+            [
+              -8,
+              33,
+              49
+            ],
+            [
+              -8,
+              56,
+              41
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              8,
+              -53,
+              -23
+            ],
+            [
+              53,
+              0,
+              -14
+            ],
+            [
+              53,
+              -34,
+              49
+            ],
+            [
+              null,
+              -36,
+              -17
+            ],
+            [
+              29,
+              null,
+              48
+            ],
+            [
+              33,
+              31,
+              36
+            ],
+            [
+              -57,
+              -62,
+              -23
+            ],
+            [
+              55,
+              -46,
+              -21
+            ],
+            [
+              15,
+              -9,
+              3
+            ],
+            [
+              -50,
+              -42,
+              -47
+            ],
+            [
+              25,
+              43,
+              1
+            ],
+            [
+              -32,
+              15,
+              48
+            ],
+            [
+              -3,
+              31,
+              22
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M44",
+      "sql": "SELECT DISTINCT i, j FROM integers WHERE j IS NULL OR i > 0 ORDER BY 1, 2;",
+      "family": "DISTINCT_CONTROL",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_distinct_control",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -26,
+              12,
+              -41
+            ],
+            [
+              -26,
+              12,
+              -41
+            ],
+            [
+              null,
+              -58,
+              -50
+            ],
+            [
+              32,
+              null,
+              38
+            ],
+            [
+              58,
+              -63,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              6,
+              -8,
+              25
+            ],
+            [
+              3,
+              -13,
+              21
+            ],
+            [
+              -40,
+              -2,
+              -27
+            ],
+            [
+              22,
+              -11,
+              43
+            ],
+            [
+              -7,
+              42,
+              -30
+            ],
+            [
+              -34,
+              -9,
+              27
+            ],
+            [
+              45,
+              -44,
+              -19
+            ],
+            [
+              -17,
+              23,
+              13
+            ],
+            [
+              5,
+              23,
+              30
+            ],
+            [
+              -38,
+              0,
+              53
+            ],
+            [
+              -56,
+              -31,
+              -17
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              6,
+              -52,
+              42
+            ],
+            [
+              3,
+              -7,
+              45
+            ],
+            [
+              3,
+              14,
+              10
+            ],
+            [
+              null,
+              45,
+              61
+            ],
+            [
+              15,
+              null,
+              -46
+            ],
+            [
+              52,
+              26,
+              8
+            ],
+            [
+              18,
+              -16,
+              18
+            ],
+            [
+              -60,
+              29,
+              -24
+            ],
+            [
+              32,
+              -57,
+              -49
+            ],
+            [
+              -62,
+              20,
+              15
+            ],
+            [
+              -50,
+              -20,
+              27
+            ],
+            [
+              45,
+              -3,
+              -39
+            ],
+            [
+              27,
+              -47,
+              -55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M45",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i HAVING COUNT(*) >= 2 ORDER BY 1;",
+      "family": "HAVING_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 5,
+      "source_file": "generated/queryproof/m_having_repeat",
+      "source_query_ordinal": 1,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -25,
+              37,
+              -48
+            ],
+            [
+              -25,
+              37,
+              -48
+            ],
+            [
+              null,
+              47,
+              -11
+            ],
+            [
+              -53,
+              null,
+              -27
+            ],
+            [
+              51,
+              47,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              6,
+              -46,
+              28
+            ],
+            [
+              26,
+              -59,
+              -31
+            ],
+            [
+              26,
+              -59,
+              -31
+            ],
+            [
+              60,
+              -25,
+              45
+            ],
+            [
+              -21,
+              -58,
+              -62
+            ],
+            [
+              48,
+              35,
+              -50
+            ],
+            [
+              -8,
+              7,
+              -28
+            ],
+            [
+              -5,
+              -2,
+              -54
+            ],
+            [
+              15,
+              17,
+              20
+            ],
+            [
+              -47,
+              21,
+              10
+            ],
+            [
+              41,
+              -32,
+              -55
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              6,
+              62,
+              25
+            ],
+            [
+              26,
+              24,
+              -23
+            ],
+            [
+              26,
+              -7,
+              -53
+            ],
+            [
+              null,
+              58,
+              -37
+            ],
+            [
+              -7,
+              null,
+              50
+            ],
+            [
+              -44,
+              41,
+              -45
+            ],
+            [
+              -26,
+              40,
+              36
+            ],
+            [
+              52,
+              58,
+              10
+            ],
+            [
+              -3,
+              -14,
+              -53
+            ],
+            [
+              -32,
+              11,
+              -44
+            ],
+            [
+              -4,
+              -60,
+              37
+            ],
+            [
+              -14,
+              37,
+              -32
+            ],
+            [
+              14,
+              -6,
+              43
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M46",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i HAVING COUNT(*) >= 2 ORDER BY 1;",
+      "family": "HAVING_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 7,
+      "source_file": "generated/queryproof/m_having_repeat",
+      "source_query_ordinal": 2,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              58,
+              41,
+              -51
+            ],
+            [
+              58,
+              41,
+              -51
+            ],
+            [
+              null,
+              32,
+              46
+            ],
+            [
+              -60,
+              null,
+              44
+            ],
+            [
+              -56,
+              -8,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -48,
+              -36,
+              -8
+            ],
+            [
+              -40,
+              8,
+              -4
+            ],
+            [
+              53,
+              36,
+              59
+            ],
+            [
+              -27,
+              2,
+              9
+            ],
+            [
+              2,
+              30,
+              27
+            ],
+            [
+              11,
+              34,
+              -41
+            ],
+            [
+              -63,
+              -47,
+              -43
+            ],
+            [
+              -50,
+              -37,
+              55
+            ],
+            [
+              11,
+              54,
+              1
+            ],
+            [
+              62,
+              -56,
+              63
+            ],
+            [
+              -19,
+              60,
+              -28
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -48,
+              -50,
+              44
+            ],
+            [
+              -40,
+              46,
+              -26
+            ],
+            [
+              -40,
+              11,
+              32
+            ],
+            [
+              null,
+              -20,
+              -40
+            ],
+            [
+              17,
+              null,
+              18
+            ],
+            [
+              -39,
+              -32,
+              14
+            ],
+            [
+              38,
+              -61,
+              -20
+            ],
+            [
+              -7,
+              -23,
+              33
+            ],
+            [
+              -62,
+              -62,
+              -19
+            ],
+            [
+              10,
+              -38,
+              -37
+            ],
+            [
+              13,
+              -24,
+              50
+            ],
+            [
+              -42,
+              26,
+              -9
+            ],
+            [
+              0,
+              -26,
+              45
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M47",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i HAVING COUNT(*) >= 2 ORDER BY 1;",
+      "family": "HAVING_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 11,
+      "source_file": "generated/queryproof/m_having_repeat",
+      "source_query_ordinal": 3,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              28,
+              50,
+              -13
+            ],
+            [
+              28,
+              50,
+              -13
+            ],
+            [
+              null,
+              -46,
+              -9
+            ],
+            [
+              -24,
+              null,
+              21
+            ],
+            [
+              12,
+              -5,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              -29,
+              4,
+              -27
+            ],
+            [
+              34,
+              -46,
+              -56
+            ],
+            [
+              56,
+              -39,
+              58
+            ],
+            [
+              54,
+              -9,
+              -36
+            ],
+            [
+              63,
+              55,
+              -42
+            ],
+            [
+              40,
+              45,
+              17
+            ],
+            [
+              -13,
+              -61,
+              21
+            ],
+            [
+              28,
+              -56,
+              61
+            ],
+            [
+              33,
+              -63,
+              63
+            ],
+            [
+              25,
+              -21,
+              43
+            ],
+            [
+              -14,
+              -51,
+              60
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -29,
+              -23,
+              -4
+            ],
+            [
+              34,
+              -13,
+              -10
+            ],
+            [
+              34,
+              -36,
+              58
+            ],
+            [
+              null,
+              -5,
+              -57
+            ],
+            [
+              -24,
+              null,
+              33
+            ],
+            [
+              -35,
+              38,
+              50
+            ],
+            [
+              46,
+              53,
+              -58
+            ],
+            [
+              24,
+              -38,
+              -18
+            ],
+            [
+              0,
+              2,
+              -29
+            ],
+            [
+              61,
+              -3,
+              40
+            ],
+            [
+              51,
+              -29,
+              -17
+            ],
+            [
+              22,
+              -48,
+              -27
+            ],
+            [
+              54,
+              51,
+              49
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "M48",
+      "sql": "SELECT i, COUNT(*) FROM integers GROUP BY i, i HAVING COUNT(*) >= 2 ORDER BY 1;",
+      "family": "HAVING_REPEAT",
+      "group": "GENERALIZATION_CHALLENGE",
+      "modulus": 13,
+      "source_file": "generated/queryproof/m_having_repeat",
+      "source_query_ordinal": 4,
+      "tables": {
+        "integers": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              -2,
+              -28,
+              -35
+            ],
+            [
+              -2,
+              -28,
+              -35
+            ],
+            [
+              null,
+              -1,
+              0
+            ],
+            [
+              -23,
+              null,
+              5
+            ],
+            [
+              -35,
+              -15,
+              null
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              32,
+              -61,
+              -16
+            ],
+            [
+              -19,
+              -45,
+              40
+            ],
+            [
+              -56,
+              -14,
+              44
+            ],
+            [
+              44,
+              17,
+              -6
+            ],
+            [
+              -56,
+              18,
+              -36
+            ],
+            [
+              -43,
+              -44,
+              0
+            ],
+            [
+              -55,
+              38,
+              -50
+            ],
+            [
+              5,
+              -60,
+              -55
+            ],
+            [
+              -24,
+              -27,
+              0
+            ],
+            [
+              18,
+              -63,
+              44
+            ],
+            [
+              46,
+              -33,
+              14
+            ]
+          ]
+        },
+        "right_values": {
+          "columns": [
+            {
+              "name": "i",
+              "type": "integer"
+            },
+            {
+              "name": "j",
+              "type": "integer"
+            },
+            {
+              "name": "extra",
+              "type": "integer"
+            }
+          ],
+          "rows": [
+            [
+              32,
+              -31,
+              -24
+            ],
+            [
+              -19,
+              -59,
+              -22
+            ],
+            [
+              -19,
+              -6,
+              -8
+            ],
+            [
+              null,
+              53,
+              12
+            ],
+            [
+              48,
+              null,
+              19
+            ],
+            [
+              -27,
+              -32,
+              -23
+            ],
+            [
+              6,
+              -21,
+              -54
+            ],
+            [
+              17,
+              -14,
+              19
+            ],
+            [
+              50,
+              22,
+              29
+            ],
+            [
+              -44,
+              -24,
+              9
+            ],
+            [
+              50,
+              -41,
+              -26
+            ],
+            [
+              -8,
+              3,
+              22
+            ],
+            [
+              3,
+              -10,
+              30
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}
