@@ -1,0 +1,63 @@
+name: QueryProof 48-case retrospective grouping diagnostics
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - tools/queryproof_grouping_repetition_20261020/run_failure_analysis.py
+      - .github/workflows/queryproof-grouping-diagnostic-48.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  development-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official PySpark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument disposable Spark Catalyst
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Diagnose previous 48 cases as retrospective only
+        run: python -u tools/queryproof_grouping_repetition_20261020/run_failure_analysis.py
+      - name: Print sanitized grouping AST shapes and denominator
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          f = Path("artifacts/queryproof_grouping_repetition_diagnostic48.json")
+          if not f.exists():
+              raise SystemExit("Missing diagnostic output")
+          r = json.loads(f.read_text())
+          print("DIAGNOSTIC_GROUPING", json.dumps(r["grouping_repetition"], sort_keys=True))
+          print("DIAGNOSTIC_CASES", r["executed_cases"])
+          print("DIAGNOSTIC_EVENTS", r["trace"]["trace_events"])
+          if r["worker_exit_code"] != 0 or r["executed_cases"] != 48:
+              raise SystemExit("Incomplete diagnostic replay")
+          if r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("Oracle mismatch")
+          '
+      - name: Save sanitized development-only diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-grouping-48-retrospective-diagnostic
+          path: artifacts/queryproof_grouping_repetition_diagnostic48.json
+          retention-days: 14
+          if-no-files-found: warn
