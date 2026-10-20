@@ -135,3 +135,50 @@ Next priorities, in order:
 5. Seek external peer review and potential upstream integration only after
    independent-author and chain-level evidence; do not conflate this branch
    with the unrelated upstream correctness PR #59445.
+
+
+## Post-checkpoint sanitized rule inventory and successor target
+
+A workflow-only diagnostic replay of the same frozen 60-case corpus (with the
+unchanged pinned verifier) logged the complete named-rule denominator:
+[rule-inventory replay](https://github.com/mhatipog/spark/actions/runs/39377411390).
+
+| Named transition source | Count | Current evidence |
+| --- | ---: | --- |
+| Analyzer phase/batch boundary | 288 | UNKNOWN; not an individually certified rewrite |
+| Optimizer phase/batch boundary | 60 | UNKNOWN; not an individually certified rewrite |
+| ColumnPruning | 60 | 60 prospective local proof certificates |
+| RemoveLiteralFromGroupExpressions | 24 | UNKNOWN |
+| CollapseProject | 18 | 12 retrospective aggregate-framed identity certificates; 6 abstentions |
+| AnsiTypeCoercion | 18 | UNKNOWN |
+| NullPropagation | 18 | UNKNOWN |
+| ResolveTimeZone | 18 | UNKNOWN |
+| RemoveRepetitionFromGroupExpressions | 12 | UNKNOWN |
+
+Across the 168 events not labeled as Analyzer/Optimizer boundaries, the new
+family covers 60 (35.7%) in this deliberately enriched generated corpus. This
+is descriptive *within the sample*, never a production coverage estimate.
+
+We inspected the exact Spark 4.2 optimizer implementation in
+sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/Optimizer.scala,
+around lines 3561 and 3639. The strongest next standalone lemma is duplicate
+grouping-key idempotence: under an otherwise identical Aggregate, deleting a
+repeat of an identical, deterministic grouping expression preserves the
+equivalence classes of input rows and hence aggregate bag output. The
+RemoveRepetitionFromGroupExpressions rule produced 12 observed events and
+could become a second provable local family if strict resolved-expression
+and unchanged-child checks succeed on frozen actual ASTs.
+
+**Important trap for the adjacent RemoveLiteralFromGroupExpressions rule:**
+Spark deliberately retains one literal grouping expression when *all* group
+keys are constant. Removing the final constant would convert GROUP BY constant
+into a scalar aggregate and change behavior on **empty input** (historical
+SPARK-17114). Any future proof must distinguish mixed literal/nonliteral
+keys from the all-literal case, preserve the empty-bag semantics, and reject
+a naive last-grouping-key deletion. This is an especially valuable adversarial
+test and illustrates why prospective proof construction matters.
+
+The more consequential long-term result would be composing these isolated
+certificates with trustworthy intermediate plan boundary evidence into a
+complete optimizer-chain proof; the trace wrappers are not independently
+certified merely because some contained steps pass.
