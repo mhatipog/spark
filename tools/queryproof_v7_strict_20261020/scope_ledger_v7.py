@@ -1,4 +1,6 @@
-"""V7 strict chain ledger. Every recorded effective rule step must be certified.\nThis is retrospective structural accounting, not a semantic correctness proof.\n"""
+"""V7 strict chain ledger. Every effective rule step must be certified.
+This is retrospective structural accounting, not a semantic correctness proof.
+"""
 """Round V6 posthoc DEVELOPMENT boundary ledger (derived from frozen V5) (v5, join grouping + filters) for recorded Catalyst rule executions.
 
 A batch is accepted only if its exact entry/exit states are connected by
