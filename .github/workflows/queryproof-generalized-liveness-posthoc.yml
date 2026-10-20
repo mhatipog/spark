@@ -1,0 +1,69 @@
+name: QueryProof A10 real-AST development diagnosis
+on:
+  push:
+    branches:
+      - research/queryproof-generalized-liveness-20261020
+    paths:
+      - .github/workflows/queryproof-generalized-liveness-posthoc.yml
+      - tools/queryproof_context_validator/generalized_projection_liveness_certificate.py
+      - tools/queryproof_external_duckdb_generalized_liveness_20261020/run_generalized_old_A_posthoc.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prior-a10-development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_external_duckdb_column_liveness_20261019
+            tools/queryproof_external_duckdb_generalized_liveness_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official Spark 4.2
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Instrument disposable Catalyst wheel
+        run: bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Re-evaluate prior A01–A15 under changed development theorem
+        run: python -u tools/queryproof_external_duckdb_generalized_liveness_20261020/run_generalized_old_A_posthoc.py
+      - name: Confirm all results retain retrospective status
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          f = Path("artifacts/queryproof_generalized_old_A_replay_DIAGNOSTIC.json")
+          if not f.exists():
+              raise SystemExit("Missing real-AST development score")
+          r = json.loads(f.read_text())
+          p = r["generalized_column_liveness"]
+          print("POSTHOC_GENERALIZED_A10", p)
+          print("POSTHOC_ORIGINAL_FROZEN", r["retrospective_column_liveness"])
+          print("POSTHOC_TRACE_EVENTS", r["trace"]["trace_events"])
+          if p["status"] != "RETROSPECTIVE_UNPINNED":
+              raise SystemExit("Development scores cannot be prospective")
+          if r["executed_cases"] != 15 or r["worker_exit_code"] != 0:
+              raise SystemExit("Incomplete old source replay")
+          if r["error_cases"] or r["row_oracle_mismatch_cases"]:
+              raise SystemExit("Cross-engine result disagreement")
+          if r["trace"]["decode_failures"] or r["trace"]["instrumentation_failures"]:
+              raise SystemExit("Trace capture incomplete")
+          '
+      - name: Archive redacted development scores
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-old-A10-development-only
+          path: artifacts/queryproof_generalized_old_A_replay_DIAGNOSTIC.json
+          retention-days: 14
