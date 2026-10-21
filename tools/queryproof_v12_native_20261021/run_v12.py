@@ -173,6 +173,20 @@ def verify(raw_before,raw_after,record):
         "unknown_hidden_effects":True, # never derive semantic noninterference
     }
 
+def verify_exprid_fields(raw_before, raw_after, record):
+    """Narrower native VALUE fields equivalence keyed by Catalyst ExprId.
+
+    Contrasts with *strict JVM object identity* above. This says nothing
+    about qualifier changes, tag/cache transitions, or other hidden state.
+    """
+    insist(record["effective"],"NATIVE_EVENT_NOT_EFFECTIVE")
+    insist(record["exprid_source_fields_preserved"],
+           "SOURCE_NATIVE_EXPRID_VALUE_FIELDS_CHANGED_OR_CONFLICT")
+    old=compare_one(raw_before,record["pre"])
+    new=compare_one(raw_after,record["post"])
+    return {"case_observation":"EXACT_JVM_EXPRID_VALUEFIELDS_PRESERVED",
+            "before":old,"after":new,"hidden_state_sound":False}
+
 def parse_events(path):
     ast=defaultdict(list)
     native=defaultdict(list)
@@ -182,9 +196,9 @@ def parse_events(path):
             f=read_b64(line,"QUERYPROOF_AST",7)
             ast[key(f)].append(dict(raw_before=f[5],raw_after=f[6]))
         elif line.startswith("QUERYPROOF_NATIVE_V12\t"):
-            f=read_b64(line,"QUERYPROOF_NATIVE_V12",10)
-            insist(f[5] in ("true","false") and f[8] in ("true","false"),
-                   "NATIVE_BOOL_FIELD_MALFORMED")
+            f=read_b64(line,"QUERYPROOF_NATIVE_V12",11)
+            insist(f[5] in ("true","false") and f[8] in ("true","false") and
+                   f[10] in ("true","false"),"NATIVE_BOOL_FIELD_MALFORMED")
             d=f[9].split(",")
             insist(len(d)==4 and all(t.isdigit() for t in d[:3]) and
                    d[3] in ("true","false"),"MALFORMED_JVM_NATIVE_DIAGNOSTICS")
@@ -200,6 +214,7 @@ def parse_events(path):
                 "post":native_frame(f[7]),
                 "exact_native_fields_unchanged":f[8]=="true",
                 "diagnostic":diagnostic,
+                "exprid_source_fields_preserved":f[10]=="true",
             })
         elif line.startswith("QUERYPROOF_NATIVE_V12_UNKNOWN\t"):
             f=read_b64(line,"QUERYPROOF_NATIVE_V12_UNKNOWN",7)
@@ -212,6 +227,8 @@ def score_v12(path):
     ast,native,unknown=parse_events(path)
     accepted=[]
     rejected=[]
+    exprid_accepted=[]
+    exprid_rejected=[]
     for witness in expected_witnesses:
         case=witness["case"]
         matching=[(k,x) for k,series in ast.items() if k[0]==case and
@@ -225,6 +242,13 @@ def score_v12(path):
         if len(group)!=1:
             rejected.append({"case":case,"reason":"NATIVE_WITNESS_MISSING_OR_DUPLICATE"})
             continue
+        try:
+            field_attestation=verify_exprid_fields(
+                raw["raw_before"],raw["raw_after"],group[0])
+        except AttestationRejected as exc:
+            exprid_rejected.append({"case":case,"reason":str(exc)})
+        else:
+            exprid_accepted.append({"case":case,**field_attestation})
         try:
             attestation=verify(raw["raw_before"],raw["raw_after"],group[0])
         except AttestationRejected as exc:
@@ -250,6 +274,10 @@ def score_v12(path):
         "source_metadata_attested_cases":sorted(x["case"] for x in accepted),
         "source_metadata_attested_count":len(accepted),
         "unattested_cases":rejected,
+        "native_exprid_valuefields_attested_cases":sorted(
+            x["case"] for x in exprid_accepted),
+        "native_exprid_valuefields_attested_count":len(exprid_accepted),
+        "native_exprid_valuefields_unattested_cases":exprid_rejected,
         "native_variant_stable_but_unattested_cases":sorted([
             x["case"] for x in rejected
             if x.get("native_identity_diagnostic",{})
@@ -259,6 +287,8 @@ def score_v12(path):
         "attestations":accepted,
         "limits":[
             "Attests actual JVM AttributeReference metadata and identities pre/post rule",
+            "Exact native JVM metadata/name/type/nullability equality keyed by ExprId is checked separately from strict JVM object identity",
+            "Qualifier differences are NOT proved semantically inert for later optimizer rules",
             "Real JVM pre/post NamedExpression fields and Metadata equality required",
             "JVM observation excludes unmodelled state, tags, mutable caches, and SQLConf",
             "A hash binds raw observed JSON bytes but does not prove injective source encoding",
