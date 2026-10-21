@@ -26,6 +26,11 @@ private[rules] object QueryProofNativeV12 {
   import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 
   private val seen = new java.util.concurrent.atomic.AtomicInteger(0)
+  private final case class SourceBinding(
+      name: String, datatype: String, nullable: Boolean,
+      qualifier: Seq[String], metadata: org.apache.spark.sql.types.Metadata)
+  private final case class SourceSnap(
+      encoded: String, bindings: Map[String, SourceBinding])
   private val encoder = java.util.Base64.getEncoder
   private def b64(s: String): String =
     encoder.encodeToString(s.getBytes(java.nio.charset.StandardCharsets.UTF_8))
@@ -38,11 +43,21 @@ private[rules] object QueryProofNativeV12 {
   private def unknown(why: String): Nothing =
     throw new IllegalArgumentException("UNKNOWN_" + why)
 
-  private def frame(plan: TreeNode[_]): String = plan match {
+  private def frame(plan: TreeNode[_]): SourceSnap = plan match {
     case root: LogicalPlan =>
       val attrs = scala.collection.mutable.ArrayBuffer.empty[JValue]
       val aliases = scala.collection.mutable.ArrayBuffer.empty[JValue]
+      val bindings = scala.collection.mutable.Map.empty[String, SourceBinding]
       var nonemptyMetadata = 0
+      def register(kind: String, a: org.apache.spark.sql.catalyst.expressions.NamedExpression): Unit = {
+        val key = kind + ":" + a.exprId.id.toString + ":" + a.exprId.jvmId.toString
+        val binding = SourceBinding(
+          a.name, a.dataType.json, a.nullable, a.qualifier, a.metadata)
+        bindings.get(key).foreach { existing =>
+          if (existing != binding) unknown("CONFLICTING_NATIVE_EXPR_ID")
+        }
+        bindings(key) = binding
+      }
       var tagsPresent = 0
       var planNodes = 0
       var expressionNodes = 0
@@ -54,6 +69,7 @@ private[rules] object QueryProofNativeV12 {
         if (a.name.length > 4096 || a.metadata.json.length > 65536 ||
             a.dataType.json.length > 16384) unknown("SOURCE_FIELD_BUDGET")
         if (!a.metadata.isEmpty) nonemptyMetadata += 1
+        register("attribute", a)
         attrs += JObject(List(
           "path" -> JString(path),
           "expr_id" -> JInt(BigInt(a.exprId.id)),
@@ -75,6 +91,7 @@ private[rules] object QueryProofNativeV12 {
             if (aliases.size >= 10000) unknown("ALIAS_BUDGET")
             if (a.metadata.json.length > 65536) unknown("ALIAS_METADATA_BUDGET")
             if (!a.metadata.isEmpty) nonemptyMetadata += 1
+            register("alias", a)
             aliases += JObject(List(
               "path" -> JString(path),
               "expr_id" -> JInt(BigInt(a.exprId.id)),
@@ -120,7 +137,7 @@ private[rules] object QueryProofNativeV12 {
         "aliases" -> JArray(aliases.toList)))
       val data = compact(render(payload))
       if (data.length > 4000000) unknown("NATIVE_FRAME_BUDGET")
-      data
+      SourceSnap(data, bindings.toMap)
     case _ => unknown("NON_LOGICAL_PLAN")
   }
 
@@ -131,7 +148,7 @@ private[rules] object QueryProofNativeV12 {
     case _ => "UNKNOWN_CAPTURE_EXCEPTION_" + e.getClass.getSimpleName
   }
 
-  type Snapshot = Option[Either[String, String]]
+  type Snapshot = Option[Either[String, SourceSnap]]
   def begin[TreeType <: TreeNode[_]](rule: String, plan: TreeType): Snapshot = {
     if (!java.lang.Boolean.getBoolean("queryproof.ast.v12.enabled") ||
         !rule.endsWith("InferFiltersFromConstraints")) None
@@ -158,8 +175,13 @@ private[rules] object QueryProofNativeV12 {
       case Right(preFrame) =>
         try {
           val postFrame = frame(after)
+          // Actual JVM Metadata equality; a digest collision alone cannot pass.
+          // Unobserved tag/cache/SQLConf changes remain outside the observation.
+          val sourceFieldsExactlyUnchanged = preFrame.bindings == postFrame.bindings
           System.err.println("QUERYPROOF_NATIVE_V12\t" +
-            (prefix ++ Seq(preFrame, postFrame)).map(b64).mkString("\t"))
+            (prefix ++ Seq(preFrame.encoded, postFrame.encoded,
+                           sourceFieldsExactlyUnchanged.toString))
+              .map(b64).mkString("\t"))
         } catch {
           case scala.util.control.NonFatal(e) =>
             System.err.println("QUERYPROOF_NATIVE_V12_UNKNOWN\t" +
