@@ -14,8 +14,8 @@ def sample():
     native={"schema":SCHEMA,
             "json_sha256":hashlib.sha256(raw.encode()).hexdigest(),
             "source_plan_nodes":1,"source_expression_nodes":1,
-            "source_attribute_occurrences":1,
-            "nonempty_metadata_occurrences":0,"tagged_nodes":0,
+            "source_attribute_occurrences":1,"source_alias_occurrences":0,
+            "nonempty_metadata_occurrences":0,"tagged_nodes":0,"aliases":[],
             "attributes":[{
                 "path":"/root/expr0",
                 "expr_id":13,"jvm_id":"trusted-jvm",
@@ -43,7 +43,16 @@ class NativeBindingAdversarial(unittest.TestCase):
         raw,f=sample()
         f["attributes"][0]["metadata_empty"]=False
         f["nonempty_metadata_occurrences"]=1
-        self.rejected(raw,f,"SOURCE_NATIVE_METADATA_NOT_EMPTY")
+        self.rejected(raw,f,"SOURCE_NATIVE_ATTRIBUTE_METADATA_NOT_EMPTY")
+    def test_nonempty_alias_metadata_must_reject(self):
+        raw,f=sample()
+        f["source_alias_occurrences"]=1
+        f["aliases"]=[{"path":"/root/expr1","expr_id":77,
+                       "jvm_id":"trusted-jvm","metadata_empty":False,
+                       "metadata_sha256":hashlib.sha256(b"{'k':1}").hexdigest()}]
+        f["nonempty_metadata_occurrences"]=1
+        self.rejected(raw,native_frame(json.dumps(f)),
+                      "SOURCE_NATIVE_ALIAS_METADATA_NOT_EMPTY")
     def test_native_metadata_counter_conflict(self):
         raw,f=sample()
         f["nonempty_metadata_occurrences"]=1
