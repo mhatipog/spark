@@ -1,5 +1,11 @@
 name: QueryProof V17 frozen held-out cohort (IFFC + PushDownPredicates)
 on:
+  # Runs only when the separate run-request marker (outside the frozen set) is pushed.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_v17_heldout_20261021/RUN_REQUEST
   workflow_dispatch:
 permissions:
   contents: read
