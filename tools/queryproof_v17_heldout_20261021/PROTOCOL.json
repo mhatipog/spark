@@ -56,6 +56,6 @@
   "tools/queryproof_scopes_20261020/instrument_scopes.py": "d6c058623c7b2c92232df6d68d5cc750c07b5d56",
   "research/queryproof/proofs/QueryProofDeepGuard.v": "cdaecacb8a012ddd662860f03586451bc5112bde",
   "research/queryproof/proofs/QueryProofDeepRewrite.v": "d41f0db0619e2bb298e5cb0d028373dd166bf7a6",
-  ".github/workflows/queryproof-v17-heldout.yml": "98b05aae40056a1a7d85c02548af1e16aa7fcfbf"
+  ".github/workflows/queryproof-v17-heldout.yml": "598ff04e824c88e329f359aa1b18ffdc9a59178d"
  }
 }
