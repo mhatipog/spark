@@ -173,8 +173,14 @@ private[rules] object QueryProofNativeV12 {
 
   type Snapshot = Option[Either[String, SourceSnap]]
   def begin[TreeType <: TreeNode[_]](rule: String, plan: TreeType): Snapshot = {
+    val nativeProductionRule = rule.endsWith("InferFiltersFromConstraints")
+    val diagnosticRule = java.lang.Boolean.getBoolean(
+      "queryproof.ast.v12.test.enabled") &&
+      (rule.endsWith("ChangeOnlyMetadataV12") ||
+       rule.endsWith("SetOnlyTagV12") ||
+       rule.endsWith("TransientTagV12"))
     if (!java.lang.Boolean.getBoolean("queryproof.ast.v12.enabled") ||
-        !rule.endsWith("InferFiltersFromConstraints")) None
+        !(nativeProductionRule || diagnosticRule)) None
     else Some(try { Right(frame(plan)) }
               catch { case scala.util.control.NonFatal(e) => Left(reason(e)) })
   }
