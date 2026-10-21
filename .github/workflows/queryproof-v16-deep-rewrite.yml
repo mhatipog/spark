@@ -1,0 +1,75 @@
+name: QueryProof V16 kernel-decided IFFC and PushDownPredicates certificates
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - research/queryproof/proofs/QueryProofDeepGuard.v
+      - research/queryproof/proofs/QueryProofDeepRewrite.v
+      - tools/queryproof_v16_rewrite_dev_20261021/**
+      - tools/queryproof_v15_deep_guard_20261021/**
+      - .github/workflows/queryproof-v16-deep-rewrite.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-v16-deep-rewrite
+  cancel-in-progress: false
+jobs:
+  deep-rewrite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/queryproof/proofs
+            tools/queryproof_v15_deep_guard_20261021
+            tools/queryproof_v16_rewrite_dev_20261021
+            tools/queryproof_instrumented
+            tools/queryproof_scopes_20261020
+            tools/queryproof_prospective_w_20261020
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Coq 8.18 and check both theorems are axiom-free
+        run: |
+          command -v coqc || { sudo apt-get update -qq && sudo apt-get install -y -qq coq; }
+          coqc --version
+          cd research/queryproof/proofs
+          coqc -q QueryProofDeepGuard.v | tee /tmp/a1.txt
+          coqc -q QueryProofDeepRewrite.v | tee /tmp/a2.txt
+          grep -q "Closed under the global context" /tmp/a1.txt
+          grep -q "Closed under the global context" /tmp/a2.txt
+      - name: Install official Spark 4.2.0 and the disposable AST trace overlay
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Capture raw W32 rule traces (historical development data)
+        run: |
+          python -B tools/queryproof_v15_deep_guard_20261021/capture_w32.py \
+            tools/queryproof_prospective_w_20261020/CASES.json "" traces
+      - name: Kernel-decide every effective event and every adversarial mutant
+        env:
+          COQC: coqc
+        run: |
+          mkdir -p artifacts
+          python -B tools/queryproof_v15_deep_guard_20261021/run_v15.py traces/*.stderr \
+            --report artifacts/queryproof_v15_deep_guard.json --keep artifacts/v15_coq
+      - name: Archive report and generated kernel-checked instances
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v16-deep-rewrite
+          path: |
+            artifacts/queryproof_v16_w32.json
+            artifacts/queryproof_v16_dev.json
+            artifacts/v16_w32_coq/V15Kernel.v
+            artifacts/v16_dev_coq/V15Kernel.v
+          retention-days: 30
+          if-no-files-found: warn

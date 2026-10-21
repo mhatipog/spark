@@ -1,6 +1,7 @@
 """V15: kernel-decided deep guard certificates on real Catalyst events.
 
 Usage: python run_v15.py TRACE [TRACE ...] --report OUT.json [--keep DIR]
+       [--deps A.v,B.v --checker check2 --sound check2_sound]   (V16)
 
 For every effective QUERYPROOF_AST event (any rule) the printer emits OLD/NEW
 terms; events outside the grammar are UNKNOWN. The Coq kernel then DECIDES
@@ -45,7 +46,7 @@ def events(paths):
 # ---- JSON-level adversarial mutants (applied to accepted IFFC events) ----
 
 def _join(nodes):
-    return next(n for n in nodes if n["class"].endswith("plans.logical.Join"))
+    return next((n for n in nodes if n["class"].endswith("plans.logical.Join")), None)
 
 
 def _guards(nodes):
@@ -68,6 +69,8 @@ def m_wrong_attribute(old, new):
 
 
 def m_null_safe(old, new):
+    if _join(old) is None or _join(new) is None:
+        return None
     for plan in (old, new):
         c = _join(plan)["condition"]
         if not c or c[0]["class"] not in (CAT + "expressions.LessThan",
@@ -78,6 +81,8 @@ def m_null_safe(old, new):
 
 
 def m_left_outer(old, new):
+    if _join(old) is None or _join(new) is None:
+        return None
     if _join(old)["joinType"]["object"] != CAT + "plans.Inner$":
         return None
     for plan in (old, new):
@@ -94,6 +99,8 @@ def m_swap_guards(old, new):
 
 
 def m_or_condition(old, new):
+    if _join(old) is None or _join(new) is None:
+        return None
     for plan in (old, new):
         j = _join(plan)
         if not j["condition"]:
@@ -109,12 +116,51 @@ def m_frame_edit(old, new):
     return old, new
 
 
+def _cond_key(n):
+    return json.dumps(n["condition"], sort_keys=True)
+
+
+def m_drop_pushed_filter(old, new):
+    """Delete a NEW filter whose condition also filters OLD (a moved filter)."""
+    old_conds = {_cond_key(n) for n in old if n["class"].endswith("plans.logical.Filter")}
+    for i, n in enumerate(new):
+        if n["class"].endswith("plans.logical.Filter") and _cond_key(n) in old_conds:
+            del new[i]
+            return old, new
+    return None
+
+
+def m_unimplied_conjunct(old, new):
+    """Strengthen a NEW filter with IsNotNull of an attribute it does not reject."""
+    attrs = [a[0] for n in new if n["class"].endswith("LogicalRDD") for a in n["output"]]
+    for n in new:
+        if not n["class"].endswith("plans.logical.Filter"):
+            continue
+        used = {json.dumps(x.get("exprId"), sort_keys=True) for x in n["condition"]
+                if x.get("class") == ATTR}
+        other = next((a for a in attrs
+                      if json.dumps(a["exprId"], sort_keys=True) not in used), None)
+        if other is None:
+            return None
+        n["condition"] = ([{"class": CAT + "expressions.And", "num-children": 2,
+                            "left": 0, "right": 1}] + n["condition"] +
+                          [{"class": ISNOTNULL, "num-children": 1, "child": 0},
+                           copy.deepcopy(other)])
+        return old, new
+    return None
+
+
 MUTANTS = {"wrong_guard_attribute": m_wrong_attribute,
            "null_safe_join": m_null_safe,
            "left_outer_preserved_guard": m_left_outer,
            "swapped_guard_sides": m_swap_guards,
            "or_join_condition": m_or_condition,
            "frame_edit": m_frame_edit}
+# Families applied to accepted events of rules other than IFFC (V16).
+PUSH_MUTANTS = {"wrong_filter_attribute": m_wrong_attribute,
+                "drop_pushed_filter": m_drop_pushed_filter,
+                "unimplied_conjunct": m_unimplied_conjunct,
+                "frame_edit": m_frame_edit}
 
 
 # ---- Coq ----
@@ -122,7 +168,7 @@ MUTANTS = {"wrong_guard_attribute": m_wrong_attribute,
 def coq(source, workdir, name):
     path = Path(workdir) / f"{name}.v"
     path.write_text(source)
-    r = subprocess.run([COQC, "-q", "-Q", str(workdir), "QP", str(path)],
+    r = subprocess.run([COQC, "-q", "-R", str(workdir), "QP", str(path)],
                        capture_output=True, text=True, cwd=workdir)
     if r.returncode != 0:
         raise RuntimeError(f"COQ_FAILED {name}\n{r.stdout}\n{r.stderr}")
@@ -134,7 +180,12 @@ def main():
     ap.add_argument("traces", nargs="+")
     ap.add_argument("--report", required=True)
     ap.add_argument("--keep")
+    ap.add_argument("--deps", default="QueryProofDeepGuard.v")
+    ap.add_argument("--checker", default="check")
+    ap.add_argument("--sound", default="check_sound")
     args = ap.parse_args()
+    deps = args.deps.split(",")
+    module = " ".join(d[:-2] for d in deps)
 
     items, unknown = [], []
     for e in events(args.traces):
@@ -151,18 +202,17 @@ def main():
     with tempfile.TemporaryDirectory(prefix="qp-v15-") as tmp:
         work = (Path(args.keep) if args.keep else Path(tmp)).resolve()
         work.mkdir(parents=True, exist_ok=True)
-        (work / "QueryProofDeepGuard.v").write_text(
-            (PROOFS / "QueryProofDeepGuard.v").read_text())
-        coq_out = coq((work / "QueryProofDeepGuard.v").read_text(), work, "QueryProofDeepGuard")
-        assert "Closed under the global context" in coq_out, "AXIOMS_IN_CHECK_SOUND"
+        for dep in deps:
+            coq_out = coq((PROOFS / dep).read_text(), work, dep[:-2])
+            assert "Closed under the global context" in coq_out, "AXIOMS_IN_" + dep
 
         def decide(batch, name):
-            body = ["From QP Require Import QueryProofDeepGuard.",
+            body = [f"From QP Require Import {module}.",
                     "From Coq Require Import ZArith List. Import ListNotations.", ""]
             for i, it in enumerate(batch):
                 body.append(f"Definition o{i} := {it['old']}.")
                 body.append(f"Definition n{i} := {it['new']}.")
-                body.append(f"Eval vm_compute in check o{i} n{i}.")
+                body.append(f"Eval vm_compute in {args.checker} o{i} n{i}.")
             out = coq("\n".join(body) + "\n", work, name)
             verdicts = re.findall(r"=\s*(true|false)\s*\n\s*:\s*bool", out)
             assert len(verdicts) == len(batch), "VERDICT_COUNT_MISMATCH"
@@ -173,9 +223,10 @@ def main():
 
         mutants, mutant_unknown = [], []
         for it in items:
-            if not (it["accepted"] and it["rule"] == IFFC):
+            if not it["accepted"]:
                 continue
-            for label, fn in MUTANTS.items():
+            families = MUTANTS if it["rule"] == IFFC else PUSH_MUTANTS
+            for label, fn in families.items():
                 o, n = copy.deepcopy(it["raw"][0]), copy.deepcopy(it["raw"][1])
                 pair = fn(o, n)
                 if pair is None:
@@ -186,22 +237,23 @@ def main():
                     mutant_unknown.append({"case": it["case"], "mutant": label,
                                            "reason": str(exc)})
                     continue
-                mutants.append({"case": it["case"], "mutant": label, "old": mo, "new": mn})
+                mutants.append({"case": it["case"], "rule": it["rule"], "mutant": label,
+                                "old": mo, "new": mn})
         for m, v in zip(mutants, decide(mutants, "V15DecideMutants") if mutants else []):
             m["accepted"] = v
 
         # Pass 2: every verdict becomes a kernel-checked statement.
-        body = ["From QP Require Import QueryProofDeepGuard.",
+        body = [f"From QP Require Import {module}.",
                 "From Coq Require Import ZArith List. Import ListNotations.", ""]
         for prefix, batch in (("ev", items), ("mut", mutants)):
             for i, it in enumerate(batch):
                 verdict = "true" if it["accepted"] else "false"
                 body += [f"Definition {prefix}_o{i} := {it['old']}.",
                          f"Definition {prefix}_n{i} := {it['new']}.",
-                         f"Example {prefix}_{i} : check {prefix}_o{i} {prefix}_n{i} = {verdict}.",
+                         f"Example {prefix}_{i} : {args.checker} {prefix}_o{i} {prefix}_n{i} = {verdict}.",
                          "Proof. vm_compute. reflexivity. Qed."]
                 if it["accepted"]:
-                    body += [f"Definition {prefix}_{i}_sound := check_sound _ _ {prefix}_{i}."]
+                    body += [f"Definition {prefix}_{i}_sound := {args.sound} _ _ {prefix}_{i}."]
         coq("\n".join(body) + "\n", work, "V15Kernel")
 
     def counts(xs, key):
@@ -221,7 +273,9 @@ def main():
         "iffc_events_total": sum(1 for x in items + unknown if x["rule"] == IFFC),
         "iffc_accepted_cases": sorted({it["case"] for it in accepted if it["rule"] == IFFC}),
         "mutants_total": len(mutants),
-        "mutants_accepted": [{k: m[k] for k in ("case", "mutant")} for m in mutants if m["accepted"]],
+        "checker": args.checker,
+        "mutants_accepted": [{k: m[k] for k in ("case", "rule", "mutant")}
+                             for m in mutants if m["accepted"]],
         "mutants_rejected_by_kind": counts([m for m in mutants if not m["accepted"]], "mutant"),
         "mutants_unsupported": mutant_unknown,
         "limits": [

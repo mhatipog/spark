@@ -149,7 +149,10 @@ class Printer:
         child, child_out = self._plan(kids[0])
         if cls == CAT + "plans.logical.Project":
             plist = [tree(e)[0] for e in node["projectList"]]
-            if all(p.get("class") == ATTR for p in plist):
+            interpreted = all(p.get("class") == ATTR for p in plist)
+            if interpreted and set(node) != {"class", "num-children", "projectList", "child"}:
+                raise Unsupported("PROJECT_FIELDS")
+            if interpreted:
                 ids = self.ids_of(node["projectList"])
                 return f"(PProject {coq_list(ids)} {child})", ids
             out = self.named_ids(node["projectList"])
