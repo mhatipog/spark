@@ -41,6 +41,7 @@ private[rules] object QueryProofNativeV12 {
   private def frame(plan: TreeNode[_]): String = plan match {
     case root: LogicalPlan =>
       val attrs = scala.collection.mutable.ArrayBuffer.empty[JValue]
+      val aliases = scala.collection.mutable.ArrayBuffer.empty[JValue]
       var nonemptyMetadata = 0
       var tagsPresent = 0
       var planNodes = 0
@@ -71,7 +72,15 @@ private[rules] object QueryProofNativeV12 {
         e match {
           case a: AttributeReference => appendAttribute(a, path)
           case a: Alias =>
+            if (aliases.size >= 10000) unknown("ALIAS_BUDGET")
+            if (a.metadata.json.length > 65536) unknown("ALIAS_METADATA_BUDGET")
             if (!a.metadata.isEmpty) nonemptyMetadata += 1
+            aliases += JObject(List(
+              "path" -> JString(path),
+              "expr_id" -> JInt(BigInt(a.exprId.id)),
+              "jvm_id" -> JString(a.exprId.jvmId.toString),
+              "metadata_empty" -> JBool(a.metadata.isEmpty),
+              "metadata_sha256" -> JString(hash(a.metadata.json))))
           case _ =>
         }
         if (e.innerChildren.nonEmpty) unknown("EXPRESSION_INNER_CHILDREN")
@@ -104,9 +113,11 @@ private[rules] object QueryProofNativeV12 {
         "source_plan_nodes" -> JInt(BigInt(planNodes)),
         "source_expression_nodes" -> JInt(BigInt(expressionNodes)),
         "source_attribute_occurrences" -> JInt(BigInt(attrs.size)),
+        "source_alias_occurrences" -> JInt(BigInt(aliases.size)),
         "nonempty_metadata_occurrences" -> JInt(BigInt(nonemptyMetadata)),
         "tagged_nodes" -> JInt(BigInt(tagsPresent)),
-        "attributes" -> JArray(attrs.toList)))
+        "attributes" -> JArray(attrs.toList),
+        "aliases" -> JArray(aliases.toList)))
       val data = compact(render(payload))
       if (data.length > 4000000) unknown("NATIVE_FRAME_BUDGET")
       data
