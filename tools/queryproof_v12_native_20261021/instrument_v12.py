@@ -30,11 +30,15 @@ private[rules] object QueryProofNativeV12 {
       kind: String, exprId: Long, jvmId: String, name: String,
       datatype: String, nullable: Boolean, qualifier: Seq[String],
       metadata: org.apache.spark.sql.types.Metadata)
+  final case class SourceValueFields(
+      name: String, datatype: String, nullable: Boolean,
+      metadata: org.apache.spark.sql.types.Metadata)
   final case class SourceSnap(
       encoded: String,
       bindings: java.util.IdentityHashMap[
         org.apache.spark.sql.catalyst.expressions.NamedExpression, SourceBinding],
-      variants: Set[SourceBinding])
+      variants: Set[SourceBinding],
+      exprIdValueFields: Map[String, SourceValueFields])
   private val encoder = java.util.Base64.getEncoder
   private def b64(s: String): String =
     encoder.encodeToString(s.getBytes(java.nio.charset.StandardCharsets.UTF_8))
@@ -53,6 +57,7 @@ private[rules] object QueryProofNativeV12 {
       val aliases = scala.collection.mutable.ArrayBuffer.empty[JValue]
       val bindings = new java.util.IdentityHashMap[
         org.apache.spark.sql.catalyst.expressions.NamedExpression, SourceBinding]()
+      val semanticFields = scala.collection.mutable.Map.empty[String, SourceValueFields]
       var nonemptyMetadata = 0
       def register(kind: String, a: org.apache.spark.sql.catalyst.expressions.NamedExpression): Unit = {
         val binding = SourceBinding(
@@ -62,6 +67,16 @@ private[rules] object QueryProofNativeV12 {
           unknown("IN_PLACE_MUTATION_DURING_CAPTURE")
         }
         bindings.put(a, binding)
+        // Only source VALUE-relevant fields are grouped by ExprId. A
+        // qualifier is a resolution hint: it is NOT silently equated to
+        // Metadata or the resulting SQL value. Inconsistent metadata,
+        // name, type or nullability for a shared ExprId rejects the frame.
+        val stableKey = kind + ":" + a.exprId.id.toString + ":" + a.exprId.jvmId.toString
+        val values = SourceValueFields(a.name, a.dataType.json, a.nullable, a.metadata)
+        semanticFields.get(stableKey).foreach { prior =>
+          if (prior != values) unknown("CONFLICTING_EXPRID_VALUE_FIELDS")
+        }
+        semanticFields(stableKey) = values
       }
       var tagsPresent = 0
       var planNodes = 0
@@ -145,7 +160,7 @@ private[rules] object QueryProofNativeV12 {
       val collected = scala.collection.mutable.Set.empty[SourceBinding]
       val iterator = bindings.values().iterator()
       while (iterator.hasNext) { collected += iterator.next() }
-      SourceSnap(data, bindings, collected.toSet)
+      SourceSnap(data, bindings, collected.toSet, semanticFields.toMap)
     case _ => unknown("NON_LOGICAL_PLAN")
   }
 
@@ -211,12 +226,15 @@ private[rules] object QueryProofNativeV12 {
               newlyIntroducedVariants += 1
             }
           }
+          val nativeExprIdValuesPreserved =
+            preFrame.exprIdValueFields == postFrame.exprIdValueFields
           val diagnostic = Seq(missingOldObjects, changedOldObjects,
             newlyIntroducedVariants, (preFrame.variants == postFrame.variants)
               .toString).mkString(",")
           System.err.println("QUERYPROOF_NATIVE_V12\t" +
             (prefix ++ Seq(preFrame.encoded, postFrame.encoded,
-                           sourceFieldsExactlyUnchanged.toString, diagnostic))
+                           sourceFieldsExactlyUnchanged.toString, diagnostic,
+                           nativeExprIdValuesPreserved.toString))
               .map(b64).mkString("\t"))
         } catch {
           case scala.util.control.NonFatal(e) =>
