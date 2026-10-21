@@ -27,10 +27,14 @@ private[rules] object QueryProofNativeV12 {
 
   private val seen = new java.util.concurrent.atomic.AtomicInteger(0)
   final case class SourceBinding(
-      name: String, datatype: String, nullable: Boolean,
-      qualifier: Seq[String], metadata: org.apache.spark.sql.types.Metadata)
+      kind: String, exprId: Long, jvmId: String, name: String,
+      datatype: String, nullable: Boolean, qualifier: Seq[String],
+      metadata: org.apache.spark.sql.types.Metadata)
   final case class SourceSnap(
-      encoded: String, bindings: Map[String, SourceBinding])
+      encoded: String,
+      bindings: java.util.IdentityHashMap[
+        org.apache.spark.sql.catalyst.expressions.NamedExpression, SourceBinding],
+      variants: Set[SourceBinding])
   private val encoder = java.util.Base64.getEncoder
   private def b64(s: String): String =
     encoder.encodeToString(s.getBytes(java.nio.charset.StandardCharsets.UTF_8))
@@ -47,16 +51,17 @@ private[rules] object QueryProofNativeV12 {
     case root: LogicalPlan =>
       val attrs = scala.collection.mutable.ArrayBuffer.empty[JValue]
       val aliases = scala.collection.mutable.ArrayBuffer.empty[JValue]
-      val bindings = scala.collection.mutable.Map.empty[String, SourceBinding]
+      val bindings = new java.util.IdentityHashMap[
+        org.apache.spark.sql.catalyst.expressions.NamedExpression, SourceBinding]()
       var nonemptyMetadata = 0
       def register(kind: String, a: org.apache.spark.sql.catalyst.expressions.NamedExpression): Unit = {
-        val key = kind + ":" + a.exprId.id.toString + ":" + a.exprId.jvmId.toString
         val binding = SourceBinding(
-          a.name, a.dataType.json, a.nullable, a.qualifier, a.metadata)
-        bindings.get(key).foreach { existing =>
-          if (existing != binding) unknown("CONFLICTING_NATIVE_EXPR_ID")
+          kind, a.exprId.id, a.exprId.jvmId.toString, a.name,
+          a.dataType.json, a.nullable, a.qualifier, a.metadata)
+        if (bindings.containsKey(a) && bindings.get(a) != binding) {
+          unknown("IN_PLACE_MUTATION_DURING_CAPTURE")
         }
-        bindings(key) = binding
+        bindings.put(a, binding)
       }
       var tagsPresent = 0
       var planNodes = 0
@@ -137,7 +142,10 @@ private[rules] object QueryProofNativeV12 {
         "aliases" -> JArray(aliases.toList)))
       val data = compact(render(payload))
       if (data.length > 4000000) unknown("NATIVE_FRAME_BUDGET")
-      SourceSnap(data, bindings.toMap)
+      val collected = scala.collection.mutable.Set.empty[SourceBinding]
+      val iterator = bindings.values().iterator()
+      while (iterator.hasNext) { collected += iterator.next() }
+      SourceSnap(data, bindings, collected.toSet)
     case _ => unknown("NON_LOGICAL_PLAN")
   }
 
@@ -177,7 +185,25 @@ private[rules] object QueryProofNativeV12 {
           val postFrame = frame(after)
           // Actual JVM Metadata equality; a digest collision alone cannot pass.
           // Unobserved tag/cache/SQLConf changes remain outside the observation.
-          val sourceFieldsExactlyUnchanged = preFrame.bindings == postFrame.bindings
+          var sourceFieldsExactlyUnchanged = true
+          val oldIter = preFrame.bindings.entrySet().iterator()
+          // Native JVM object identity + exact metadata equality for every
+          // pre-existing NamedExpression, not ExprId-only aggregation.
+          while (oldIter.hasNext) {
+            val original = oldIter.next()
+            if (!postFrame.bindings.containsKey(original.getKey) ||
+                postFrame.bindings.get(original.getKey) != original.getValue) {
+              sourceFieldsExactlyUnchanged = false
+            }
+          }
+          // Newly instantiated guard references must be exact native field
+          // variants already observed on the original plan.
+          val newIter = postFrame.bindings.values().iterator()
+          while (newIter.hasNext) {
+            if (!preFrame.variants.contains(newIter.next())) {
+              sourceFieldsExactlyUnchanged = false
+            }
+          }
           System.err.println("QUERYPROOF_NATIVE_V12\t" +
             (prefix ++ Seq(preFrame.encoded, postFrame.encoded,
                            sourceFieldsExactlyUnchanged.toString))
