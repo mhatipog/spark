@@ -1,0 +1,35 @@
+{
+ "protocol_id": "queryproof-v18-validated-heldout-20261021",
+ "nature": "PROSPECTIVE held-out cohort (new seed 20261022, 150 queries, fresh data). Generated from the seed and frozen by git blob SHA before any Spark, Coq or SQLite execution of these queries.",
+ "changes_from_v17": [
+  "Mutants are classified by an independent SQLite differential (differential.py), not assumed wrong by construction.",
+  "Join-kind and OR mutants target the join whose input received the new guard; LEFT OUTER only when that guard is on the preserved (left) side.",
+  "The OR mutant is `c OR (a = a)` (V17's `c OR c` was equivalent to c).",
+  "Other-rule acceptances are reported, not predicted."
+ ],
+ "checker": "check2 / check2_sound (QueryProofDeepRewrite.v over QueryProofDeepGuard.v), unchanged since V16",
+ "spark": "official pyspark==4.2.0 wheel with the disposable AST trace overlay",
+ "unit": "one effective rule event (old != new) in the captured Catalyst trace",
+ "definitions": {
+  "ACCEPTED / REJECTED": "kernel-checked `check2 old new = true / false`",
+  "UNKNOWN": "the printer cannot express the event; counts as NOT accepted",
+  "coverage(rule)": "ACCEPTED / all effective events of that rule (UNKNOWN in the denominator)",
+  "differential": "the exact kernel terms are translated to SQL and run in SQLite on 40 random NULL- and duplicate-rich databases per pair (values -2..2 or NULL at p=0.3, 0-6 rows per leaf, duplicates); opaque operator k = projection plus a k-dependent row filter that keeps NULL rows (one admissible interpretation under check2_sound)",
+  "VALIDATED_WRONG": "some trial gives different result bags",
+  "ILL_SCOPED": "a side references an attribute its input does not output (not a valid plan)",
+  "NOT_SHOWN_WRONG": "no trial differs; excluded from H1 and reported",
+  "OUTSIDE": "not evaluable by the differential"
+ },
+ "hypotheses": {
+  "H0a_no_accepted_event_differs": {"statement": "No ACCEPTED event differs in the SQLite differential (independent cross-check of check2_sound plus printer against SQL semantics)."},
+  "H0b_evaluable_fraction": {"threshold": 0.8, "statement": "At least 80% of ACCEPTED events are evaluable by the differential."},
+  "H1_no_invalid_mutant_accepted": {"primary": true, "statement": "No VALIDATED_WRONG or ILL_SCOPED mutant is accepted."},
+  "H1b_power": {"threshold": 150, "statement": "At least 150 mutants are VALIDATED_WRONG, so H1 is not vacuous."},
+  "H2_iffc_coverage": {"threshold": 0.6, "statement": "InferFiltersFromConstraints coverage >= 0.60."},
+  "H3_pdp_coverage": {"threshold": 0.5, "statement": "PushDownPredicates coverage >= 0.50."},
+  "H5_oracle_agreement": {"statement": "Spark and SQLite query result bags agree on every query both engines execute."}
+ },
+ "reported_without_prediction": ["accepted events of other rules", "accepted mutants that are NOT_SHOWN_WRONG", "UNKNOWN reasons", "exact SQL overlap with the V17 cohort"],
+ "reporting": "All counts are reported whether or not thresholds are met. Failures and infrastructure reruns stay on record.",
+ "frozen_git_blob_sha": {}
+}

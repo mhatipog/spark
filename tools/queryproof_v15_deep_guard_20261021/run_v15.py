@@ -80,13 +80,46 @@ def m_null_safe(old, new):
     return old, new
 
 
+def _joins(nodes):
+    return [n for n in nodes if n["class"].endswith("plans.logical.Join")]
+
+
+def _guarded_join(old, new):
+    """(preorder join index, side) of the join whose input received a new
+    IsNotNull-guard Filter in NEW, or None (V18 targeting)."""
+    old_conds = {_cond_key(n) for n in old if n["class"].endswith("plans.logical.Filter")}
+    found = []
+
+    def walk(t):
+        node, kids = t
+        if node["class"].endswith("plans.logical.Join"):
+            index = len(found)
+            found.append(None)
+            for side, (child, _) in zip(("left", "right"), kids):
+                if (found[index] is None and child["class"].endswith("plans.logical.Filter")
+                        and child["condition"][0]["class"] in (ISNOTNULL, CAT + "expressions.And")
+                        and _cond_key(child) not in old_conds):
+                    found[index] = side
+        for kid in kids:
+            walk(kid)
+    walk(tree(new))
+    hit = next(((i, s) for i, s in enumerate(found) if s is not None), None)
+    if hit is None or len(_joins(old)) != len(found):
+        return None
+    return hit
+
+
 def m_left_outer(old, new):
-    if _join(old) is None or _join(new) is None:
+    """Make the guarded join LEFT OUTER, only when the new guard is on its left."""
+    hit = _guarded_join(old, new)
+    if hit is None or hit[1] != "left":
         return None
-    if _join(old)["joinType"]["object"] != CAT + "plans.Inner$":
-        return None
+    i = hit[0]
     for plan in (old, new):
-        _join(plan)["joinType"]["object"] = CAT + "plans.LeftOuter$"
+        if _joins(plan)[i]["joinType"]["object"] != CAT + "plans.Inner$":
+            return None
+    for plan in (old, new):
+        _joins(plan)[i]["joinType"]["object"] = CAT + "plans.LeftOuter$"
     return old, new
 
 
@@ -99,16 +132,32 @@ def m_swap_guards(old, new):
 
 
 def m_or_condition(old, new):
-    if _join(old) is None or _join(new) is None:
+    """ON := c OR (a = a) on the guarded join, with `a` an attribute of c that is
+    not the guarded one: rows whose guarded attribute is NULL can now match,
+    so the guard becomes unjustified. (V17's `c OR c` was equivalent to c.)"""
+    hit = _guarded_join(old, new)
+    if hit is None:
         return None
+    guard = next(n for n in _guarded_filters(new) if True)
+    guarded = {json.dumps(x.get("exprId"), sort_keys=True)
+               for x in guard["condition"] if x.get("class") == ATTR}
+    cond = _joins(old)[hit[0]]["condition"]
+    other = next((x for x in cond if x.get("class") == ATTR and
+                  json.dumps(x.get("exprId"), sort_keys=True) not in guarded), None)
+    if not cond or other is None:
+        return None
+    eq = [{"class": CAT + "expressions.EqualTo", "num-children": 2, "left": 0, "right": 1},
+          copy.deepcopy(other), copy.deepcopy(other)]
     for plan in (old, new):
-        j = _join(plan)
-        if not j["condition"]:
-            return None
-        c = j["condition"]
-        j["condition"] = [{"class": CAT + "expressions.Or", "num-children": 2,
-                           "left": 0, "right": 1}] + copy.deepcopy(c) + copy.deepcopy(c)
+        j = _joins(plan)[hit[0]]
+        j["condition"] = ([{"class": CAT + "expressions.Or", "num-children": 2,
+                            "left": 0, "right": 1}] + copy.deepcopy(j["condition"]) + eq)
     return old, new
+
+
+def _guarded_filters(new):
+    return [n for n in new if n["class"].endswith("plans.logical.Filter")
+            and n["condition"][0]["class"] in (ISNOTNULL, CAT + "expressions.And")]
 
 
 def m_frame_edit(old, new):
@@ -277,6 +326,10 @@ def main():
         "rejected_events": [{k: it[k] for k in ("case", "rule", "batch", "iteration")}
                             for it in items if not it["accepted"]],
         "mutants_by_rule": counts(mutants, "rule"),
+        # Ordered like ev_<i> / mut_<i> in the generated kernel file.
+        "event_index": [{k: it[k] for k in ("case", "rule", "accepted")} for it in items],
+        "mutant_index": [{k: m[k] for k in ("case", "rule", "mutant", "accepted")}
+                         for m in mutants],
         "iffc_events_total": sum(1 for x in items + unknown if x["rule"] == IFFC),
         "iffc_accepted_cases": sorted({it["case"] for it in accepted if it["rule"] == IFFC}),
         "mutants_total": len(mutants),
