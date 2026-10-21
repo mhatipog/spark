@@ -1,0 +1,26 @@
+{
+  "protocol_id": "queryproof-v14-stored-identity-20261021",
+  "frozen_before_w32_execution": true,
+  "nature": "RETROSPECTIVE diagnostic on historical W32 development data; not prospective, not an acceptance tier",
+  "question": "Is V12's 0/4 strict JVM-identity attestation on W17-W20 caused by the rule replacing stored source objects, or by LogicalPlan.output re-deriving Alias attributes on every call?",
+  "predictions": {
+    "H1": "For each of W17-W20: SELF stored missing == 0, SELF derived missing == V12 missing_prior_objects (observed 2), pre/post stored missing == 0 and changed == 0.",
+    "H2": "For each of W17-W20: pre/post stored identity missing == 0, changed == 0, and every fresh stored NamedExpression has fields already observed in the pre-rule plan (fresh_unseen == 0)."
+  },
+  "falsifiers": [
+    "Any W17-W20 case with stored missing > 0 or changed > 0 refutes the benign explanation for that case.",
+    "SELF derived missing != V12 missing refutes H1 as a complete explanation.",
+    "Missing or duplicate V14 record for a witness is UNKNOWN, never counted."
+  ],
+  "controls_required_first": [
+    "Real InferFiltersFromConstraints on synthetic aliased strict inner join: V12 strict rejects, V14 stored clean, SELF derived == V12 missing.",
+    "V12 ChangeOnlyMetadataV12 adversary: V14 stored identity shows missing/changed and fresh_unseen > 0.",
+    "V12 tag-only and transient-tag adversaries: V14 stored identity unchanged (documented blind spot)."
+  ],
+  "limits": [
+    "Stored identity covers NamedExpressions reachable through QueryPlan.expressions only.",
+    "Tags, mutable caches, SQLConf and lazy-val forcing by the observer itself are NOT observed.",
+    "Identity preservation is evidence about source binding, not a semantic proof.",
+    "W32 has been examined before; this is development data."
+  ]
+}

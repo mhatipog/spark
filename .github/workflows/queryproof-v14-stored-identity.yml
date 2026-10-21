@@ -1,0 +1,117 @@
+name: QueryProof V14 stored-vs-derived native identity diagnostic
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_v14_stored_identity_20261021/**
+      - .github/workflows/queryproof-v14-stored-identity.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-v14-stored-identity
+  cancel-in-progress: false
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_v14_stored_identity_20261021
+            tools/queryproof_v12_native_20261021
+            tools/queryproof_v11_independent_20261021
+            tools/queryproof_v10_guard_kernel_20261021
+            tools/queryproof_v9_inequality_20261020
+            tools/queryproof_v7_strict_20261020
+            tools/queryproof_posthoc_v6_20261020
+            tools/queryproof_posthoc_y_20261020
+            tools/queryproof_posthoc_x_20261020
+            tools/queryproof_prospective_w_20261020
+            tools/queryproof_join_filters_u_dev_20261020
+            tools/queryproof_join_suffix_s_dev_20261020
+            tools/queryproof_join_pruning_q_dev_20261020
+            tools/queryproof_round_n_dev_20261020
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify historical W32 input is still frozen
+        run: |
+          python -B -c '
+          import json,subprocess
+          from pathlib import Path
+          protocol=json.loads(Path("tools/queryproof_prospective_w_20261020/PROTOCOL.json").read_text())
+          for p,expected in protocol["frozen_git_blob_shas"].items():
+              actual=subprocess.run(["git","hash-object",p],capture_output=True,text=True,check=True).stdout.strip()
+              assert actual==expected, f"FROZEN_W_COMPONENT_MODIFIED {p}"
+          print("QUERYPROOF_V14_FROZEN_W_SOURCE_CHECK_OK")
+          '
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Restore disposable sensors (V13 stack plus V14)
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          python -B tools/queryproof_adversarial_20261020/instrument_silent_rules.py
+          python -B tools/queryproof_adversarial_20261020/instrument_tag_taxonomy.py
+          python -B tools/queryproof_v7_strict_20261020/instrument_overflow.py
+          python -B tools/queryproof_v12_native_20261021/instrument_v12.py
+          python -B tools/queryproof_v14_stored_identity_20261021/instrument_v14.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Controls first (real InferFiltersFromConstraints, metadata and tag adversaries)
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_v14_test_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "artifacts/queryproof_classes:$JARS/*" \
+            -d artifacts/queryproof_v14_test_classes \
+            tools/queryproof_v12_native_20261021/QueryProofNativeV12AdversarialWitness.scala \
+            tools/queryproof_v14_stored_identity_20261021/QueryProofNativeV14Controls.scala
+          CP="artifacts/queryproof_v14_test_classes:artifacts/queryproof_classes:$JARS/*"
+          java -Xmx3g -cp "$CP" org.apache.spark.sql.catalyst.rules.QueryProofNativeV12AdversarialWitness
+          java -Xmx3g -cp "$CP" org.apache.spark.sql.catalyst.rules.QueryProofNativeV14Controls
+      - name: Real W32 replay with V12 and V14 native observers
+        env:
+          JAVA_TOOL_OPTIONS: -Dqueryproof.ast.v12.enabled=true -Dqueryproof.ast.v14.enabled=true
+        run: python -u tools/queryproof_v14_stored_identity_20261021/run_v14.py
+      - name: Report frozen hypotheses H1/H2 (diagnostic; does not gate acceptance)
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          r=json.loads(Path("artifacts/queryproof_v14_stored_identity.json").read_text())
+          assert r["executed_cases"]==32 and r["worker_exit_code"]==0
+          assert not r["error_cases"] and not r["row_oracle_mismatch_cases"]
+          u=r["union_coverage"]
+          assert u["v9_direct_inequality_dev"]["v9_strict_count"]==24
+          v=u["v14_stored_identity"]
+          print("QUERYPROOF_V14_RESULT", json.dumps(v, sort_keys=True))
+          '
+      - name: Archive V14 diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v14-stored-identity
+          path: artifacts/queryproof_v14_stored_identity.json
+          retention-days: 30
+          if-no-files-found: warn
