@@ -32,7 +32,7 @@ private[rules] object QueryProofNativeV12 {
   private def hash(s: String): String = {
     val md = java.security.MessageDigest.getInstance("SHA-256")
     md.digest(s.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-      .map(b => f"\u0024{b & 0xff}%02x").mkString
+      .map(b => "%02x".format(b & 0xff)).mkString
   }
 
   private def unknown(why: String): Nothing =
