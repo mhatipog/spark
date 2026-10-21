@@ -182,14 +182,24 @@ def parse_events(path):
             f=read_b64(line,"QUERYPROOF_AST",7)
             ast[key(f)].append(dict(raw_before=f[5],raw_after=f[6]))
         elif line.startswith("QUERYPROOF_NATIVE_V12\t"):
-            f=read_b64(line,"QUERYPROOF_NATIVE_V12",9)
+            f=read_b64(line,"QUERYPROOF_NATIVE_V12",10)
             insist(f[5] in ("true","false") and f[8] in ("true","false"),
                    "NATIVE_BOOL_FIELD_MALFORMED")
+            d=f[9].split(",")
+            insist(len(d)==4 and all(t.isdigit() for t in d[:3]) and
+                   d[3] in ("true","false"),"MALFORMED_JVM_NATIVE_DIAGNOSTICS")
+            diagnostic={
+                "missing_prior_objects":int(d[0]),
+                "changed_prior_objects":int(d[1]),
+                "new_native_field_variants":int(d[2]),
+                "source_variant_sets_equal":d[3]=="true",
+            }
             native[key(f)].append({
                 "effective":f[5]=="true",
                 "pre":native_frame(f[6]),
                 "post":native_frame(f[7]),
                 "exact_native_fields_unchanged":f[8]=="true",
+                "diagnostic":diagnostic,
             })
         elif line.startswith("QUERYPROOF_NATIVE_V12_UNKNOWN\t"):
             f=read_b64(line,"QUERYPROOF_NATIVE_V12_UNKNOWN",7)
@@ -230,6 +240,7 @@ def score_v12(path):
                     "source_aliases":len(frame["aliases"]),
                 }
             rejected.append({"case":case,"reason":str(exc),
+                             "native_identity_diagnostic":group[0]["diagnostic"],
                              "pre":diagnosis(group[0]["pre"]),
                              "post":diagnosis(group[0]["post"])})
         else:
@@ -239,6 +250,10 @@ def score_v12(path):
         "source_metadata_attested_cases":sorted(x["case"] for x in accepted),
         "source_metadata_attested_count":len(accepted),
         "unattested_cases":rejected,
+        "native_variant_stable_but_unattested_cases":sorted([
+            x["case"] for x in rejected
+            if x.get("native_identity_diagnostic",{})
+                .get("source_variant_sets_equal",False)]),
         "native_unknown_markers":dict(unknown),
         "all_live_coq_witnesses":len(expected_witnesses),
         "attestations":accepted,
