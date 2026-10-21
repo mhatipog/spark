@@ -186,14 +186,20 @@ private[rules] object QueryProofNativeV12 {
           // Actual JVM Metadata equality; a digest collision alone cannot pass.
           // Unobserved tag/cache/SQLConf changes remain outside the observation.
           var sourceFieldsExactlyUnchanged = true
+          var missingOldObjects = 0
+          var changedOldObjects = 0
+          var newlyIntroducedVariants = 0
           val oldIter = preFrame.bindings.entrySet().iterator()
           // Native JVM object identity + exact metadata equality for every
           // pre-existing NamedExpression, not ExprId-only aggregation.
           while (oldIter.hasNext) {
             val original = oldIter.next()
-            if (!postFrame.bindings.containsKey(original.getKey) ||
-                postFrame.bindings.get(original.getKey) != original.getValue) {
+            if (!postFrame.bindings.containsKey(original.getKey)) {
               sourceFieldsExactlyUnchanged = false
+              missingOldObjects += 1
+            } else if (postFrame.bindings.get(original.getKey) != original.getValue) {
+              sourceFieldsExactlyUnchanged = false
+              changedOldObjects += 1
             }
           }
           // Newly instantiated guard references must be exact native field
@@ -202,11 +208,15 @@ private[rules] object QueryProofNativeV12 {
           while (newIter.hasNext) {
             if (!preFrame.variants.contains(newIter.next())) {
               sourceFieldsExactlyUnchanged = false
+              newlyIntroducedVariants += 1
             }
           }
+          val diagnostic = Seq(missingOldObjects, changedOldObjects,
+            newlyIntroducedVariants, (preFrame.variants == postFrame.variants)
+              .toString).mkString(",")
           System.err.println("QUERYPROOF_NATIVE_V12\t" +
             (prefix ++ Seq(preFrame.encoded, postFrame.encoded,
-                           sourceFieldsExactlyUnchanged.toString))
+                           sourceFieldsExactlyUnchanged.toString, diagnostic))
               .map(b64).mkString("\t"))
         } catch {
           case scala.util.control.NonFatal(e) =>
