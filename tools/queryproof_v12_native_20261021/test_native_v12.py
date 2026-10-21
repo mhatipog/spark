@@ -37,13 +37,21 @@ class NativeBindingAdversarial(unittest.TestCase):
         raw,f=sample()
         self.assertEqual(compare_one(raw,native_frame(json.dumps(f)))
                          ["verified_json_attribute_bindings"],1)
-        self.assertTrue(verify(raw,raw,{"pre":f,"post":f,"effective":True})
+        self.assertTrue(verify(raw,raw,{"pre":f,"post":f,"effective":True,
+                                      "exact_native_fields_unchanged":True})
                         ["unknown_hidden_effects"])
-    def test_erased_metadata_must_fail_closed(self):
+    def test_nonempty_metadata_requires_jvm_exact_equality(self):
         raw,f=sample()
         f["attributes"][0]["metadata_empty"]=False
         f["nonempty_metadata_occurrences"]=1
-        self.rejected(raw,f,"SOURCE_NATIVE_ATTRIBUTE_METADATA_NOT_EMPTY")
+        self.assertEqual(compare_one(raw,native_frame(json.dumps(f)))
+                         ["native_nonempty_metadata_occurrences"],1)
+        with self.assertRaises(AttestationRejected):
+            verify(raw,raw,{"pre":f,"post":f,"effective":True,
+                            "exact_native_fields_unchanged":False})
+        self.assertTrue(verify(raw,raw,{
+            "pre":f,"post":f,"effective":True,
+            "exact_native_fields_unchanged":True})["unknown_hidden_effects"])
     def test_nonempty_alias_metadata_must_reject(self):
         raw,f=sample()
         f["source_alias_occurrences"]=1
@@ -51,8 +59,11 @@ class NativeBindingAdversarial(unittest.TestCase):
                        "jvm_id":"trusted-jvm","metadata_empty":False,
                        "metadata_sha256":hashlib.sha256(b"{'k':1}").hexdigest()}]
         f["nonempty_metadata_occurrences"]=1
-        self.rejected(raw,native_frame(json.dumps(f)),
-                      "SOURCE_NATIVE_ALIAS_METADATA_NOT_EMPTY")
+        self.assertEqual(compare_one(raw,native_frame(json.dumps(f)))
+                         ["native_nonempty_metadata_occurrences"],1)
+        with self.assertRaises(AttestationRejected):
+            verify(raw,raw,{"pre":f,"post":f,"effective":True,
+                            "exact_native_fields_unchanged":False})
     def test_native_metadata_counter_conflict(self):
         raw,f=sample()
         f["nonempty_metadata_occurrences"]=1
@@ -87,11 +98,13 @@ class NativeBindingAdversarial(unittest.TestCase):
         f2["attributes"][0]["metadata_empty"]=False
         f2["nonempty_metadata_occurrences"]=1
         with self.assertRaises(AttestationRejected):
-            verify(raw,raw,{"pre":f,"post":f2,"effective":True})
+            verify(raw,raw,{"pre":f,"post":f2,"effective":True,
+                            "exact_native_fields_unchanged":False})
     def test_ineffective_rule_must_not_count(self):
         raw,f=sample()
         with self.assertRaises(AttestationRejected):
-            verify(raw,raw,{"pre":f,"post":f,"effective":False})
+            verify(raw,raw,{"pre":f,"post":f,"effective":False,
+                            "exact_native_fields_unchanged":True})
     def test_duplicate_path_rejected(self):
         _,f=sample()
         f["attributes"].append(copy.deepcopy(f["attributes"][0]))
