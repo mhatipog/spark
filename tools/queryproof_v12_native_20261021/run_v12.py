@@ -240,7 +240,9 @@ def score_v12(path):
         k, raw=matching[0]
         group=native.get(k,[])
         if len(group)!=1:
-            rejected.append({"case":case,"reason":"NATIVE_WITNESS_MISSING_OR_DUPLICATE"})
+            missing={"case":case,"reason":"NATIVE_WITNESS_MISSING_OR_DUPLICATE"}
+            rejected.append(missing)
+            exprid_rejected.append(missing)
             continue
         try:
             field_attestation=verify_exprid_fields(
