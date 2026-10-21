@@ -58,11 +58,15 @@ def native_frame(frame_text):
         insist(isinstance(result.get(field),str) and
                HEX_SHA.fullmatch(result[field]),"INVALID_SHA256")
     for field in ("source_plan_nodes","source_expression_nodes",
-                  "source_attribute_occurrences",
+                  "source_attribute_occurrences","source_alias_occurrences",
                   "nonempty_metadata_occurrences","tagged_nodes"):
         insist(type(result.get(field)) is int and 0<=result[field]<=30000,
                "INVALID_NATIVE_FRAME_COUNTER_"+field)
     attrs=result.get("attributes")
+    aliases=result.get("aliases")
+    insist(isinstance(aliases,list) and
+           len(aliases)==result["source_alias_occurrences"],
+           "NATIVE_ALIASES_MISSING")
     insist(isinstance(attrs,list) and
            result["source_attribute_occurrences"]==len(attrs) and len(attrs)>0,
            "NATIVE_ATTRIBUTES_MISSING")
@@ -85,6 +89,19 @@ def native_frame(frame_text):
                HEX_SHA.fullmatch(a["name_sha256"]) and
                HEX_SHA.fullmatch(a["metadata_sha256"]),
                "BAD_NATIVE_ATTRIBUTE_TYPES")
+    for a in aliases:
+        insist(isinstance(a,dict) and set(a)=={
+            "path","expr_id","jvm_id","metadata_empty","metadata_sha256"},
+            "NATIVE_ALIAS_FIELDS")
+        insist(isinstance(a["path"],str) and a["path"].startswith("/root/") and
+               a["path"] not in paths and len(a["path"])<512,
+               "NATIVE_ALIAS_PATH_COLLISION")
+        paths.add(a["path"])
+        insist(type(a["expr_id"]) is int and isinstance(a["jvm_id"],str) and
+               type(a["metadata_empty"]) is bool and
+               isinstance(a["metadata_sha256"],str) and
+               HEX_SHA.fullmatch(a["metadata_sha256"]),
+               "MALFORMED_NATIVE_ALIAS")
     return result
 
 def walk_json_objects(value):
@@ -128,14 +145,17 @@ def compare_one(raw_json,native):
     source={sig_native(a) for a in native["attributes"]}
     insist(serialized and serialized<=source,
            "NATIVE_SOURCE_ATTRIBUTE_BINDING_NOT_COVERING_JSON")
+    alias_nonempty=sum(not a["metadata_empty"] for a in native["aliases"])
+    attribute_nonempty=sum(not a["metadata_empty"] for a in native["attributes"])
     insist(native["nonempty_metadata_occurrences"]==
-           sum(not a["metadata_empty"] for a in native["attributes"]),
+           attribute_nonempty + alias_nonempty,
            "NATIVE_METADATA_COUNT_CONTRADICTION")
-    insist(native["nonempty_metadata_occurrences"]==0,
-           "SOURCE_NATIVE_METADATA_NOT_EMPTY")
+    insist(attribute_nonempty==0, "SOURCE_NATIVE_ATTRIBUTE_METADATA_NOT_EMPTY")
+    insist(alias_nonempty==0, "SOURCE_NATIVE_ALIAS_METADATA_NOT_EMPTY")
     return {
         "verified_json_attribute_bindings":len(serialized),
         "source_attribute_occurrences":len(native["attributes"]),
+        "source_alias_occurrences":len(native["aliases"]),
         "metadata_empty":True,
         "native_tagged_nodes":native["tagged_nodes"],
     }
@@ -193,7 +213,20 @@ def score_v12(path):
         try:
             attestation=verify(raw["raw_before"],raw["raw_after"],group[0])
         except AttestationRejected as exc:
-            rejected.append({"case":case,"reason":str(exc)})
+            def diagnosis(frame):
+                return {
+                    "all_nonempty_metadata":frame["nonempty_metadata_occurrences"],
+                    "nonempty_attrs":sum(not x["metadata_empty"]
+                                          for x in frame["attributes"]),
+                    "nonempty_aliases":sum(not x["metadata_empty"]
+                                            for x in frame["aliases"]),
+                    "tagged_nodes":frame["tagged_nodes"],
+                    "source_attributes":len(frame["attributes"]),
+                    "source_aliases":len(frame["aliases"]),
+                }
+            rejected.append({"case":case,"reason":str(exc),
+                             "pre":diagnosis(group[0]["pre"]),
+                             "post":diagnosis(group[0]["post"])})
         else:
             accepted.append({"case":case,**attestation})
     report["v12_native_metadata_binding"]={
