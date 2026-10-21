@@ -35,7 +35,8 @@ jobs:
           '
       - name: Compile all lemmas in Coq kernel
         run: |
-          for proof in research/queryproof/proofs/*.v; do
+          cd research/queryproof/proofs
+          for proof in *.v; do
             coqc -q "$proof"
             test -f "${proof%.v}.vo"
           done
