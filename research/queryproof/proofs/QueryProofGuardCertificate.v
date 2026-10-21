@@ -151,7 +151,7 @@ Definition execute (c : GuardCertificate) (xs ys : list Nullable) : PairBag :=
   end.
 
 Lemma inner_guard_flags :
-  forall k gl gr left right, strict k = true ->
+  forall k (gl gr : bool) left right, strict k = true ->
     inner k (if gl then filter present left else left)
             (if gr then filter present right else right) =
     inner k left right.
@@ -165,7 +165,7 @@ Proof.
 Qed.
 
 Lemma outer_guard_flag :
-  forall k gr left right, strict k = true ->
+  forall k (gr : bool) left right, strict k = true ->
     left_outer k left (if gr then filter present right else right) =
     left_outer k left right.
 Proof.
