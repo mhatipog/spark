@@ -20,6 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
+            research/queryproof/proofs
             tools/queryproof_v14_stored_identity_20261021
             tools/queryproof_v12_native_20261021
             tools/queryproof_v11_independent_20261021
