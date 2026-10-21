@@ -101,6 +101,8 @@ jobs:
           (cd research/queryproof/proofs &&
            coqc -q QueryProofGuardCertificate.v &&
            coqc -q QueryProofGuardPair.v &&
+           coqc -q QueryProofGuardPayload.v &&
+           coqc -q QueryProofGuardPairPayload.v &&
            coqc -q QueryProofV10LiveInstances.v &&
            coqc -q QueryProofV13LivePairs.v)
           echo "QUERYPROOF_V13_LIVE_PLAN_PAIR_CERTIFICATES_COQ_KERNEL_CHECKED"
