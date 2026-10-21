@@ -54,7 +54,14 @@ Proof.
   apply negb_true_iff in Hlo.
   apply negb_true_iff in Hro.
   subst kn jn lo ro.
-  simpl.
+  cbn [guarded_left guarded_right].
+  replace
+    (execute {| comparison := ko; join_kind := jo;
+                filter_left := false; filter_right := false |} left right)
+    with
+    (execute {| comparison := ko; join_kind := jo;
+                filter_left := ln; filter_right := rn |} left right)
+    by reflexivity.
   symmetry.
   apply checked_certificate_sound.
   exact Hnew.
