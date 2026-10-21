@@ -48,8 +48,7 @@ Proof.
   apply andb_true_iff in H as [Hpre Hnew].
   apply andb_true_iff in Hpre as [Hpre Hro].
   apply andb_true_iff in Hpre as [Hpre Hlo].
-  apply andb_true_iff in Hpre as [Hpre Hkind].
-  apply andb_true_iff in Hpre as [Hcmp Hrest].
+  apply andb_true_iff in Hpre as [Hcmp Hkind].
   apply comparator_equal_sound in Hcmp.
   apply kind_equal_sound in Hkind.
   apply negb_true_iff in Hlo.
