@@ -14,13 +14,48 @@
   "mutant ACCEPTED": "kernel says check2 = true on the mutant; this is a safety failure"
  },
  "hypotheses": {
-  "H1_zero_mutants_accepted": {"primary": true, "statement": "No mutant of any accepted event is accepted, for either rule."},
-  "H2_iffc_coverage": {"threshold": 0.60, "statement": "Coverage of InferFiltersFromConstraints events >= 0.60."},
-  "H3_pdp_coverage": {"threshold": 0.50, "statement": "Coverage of PushDownPredicates events >= 0.50."},
-  "H4_no_other_rule_accepted": {"statement": "No effective event of any other rule is accepted (any such acceptance would still be sound by check2_sound, but it would be unexpected)."},
-  "H5_oracle_agreement": {"statement": "Spark and independent SQLite result bags agree on every query both engines execute (pipeline sanity, not a checker test)."}
+  "H1_zero_mutants_accepted": {
+   "primary": true,
+   "statement": "No mutant of any accepted event is accepted, for either rule."
+  },
+  "H2_iffc_coverage": {
+   "threshold": 0.6,
+   "statement": "Coverage of InferFiltersFromConstraints events >= 0.60."
+  },
+  "H3_pdp_coverage": {
+   "threshold": 0.5,
+   "statement": "Coverage of PushDownPredicates events >= 0.50."
+  },
+  "H4_no_other_rule_accepted": {
+   "statement": "No effective event of any other rule is accepted (any such acceptance would still be sound by check2_sound, but it would be unexpected)."
+  },
+  "H5_oracle_agreement": {
+   "statement": "Spark and independent SQLite result bags agree on every query both engines execute (pipeline sanity, not a checker test)."
+  }
  },
- "expected_unknown_sources": ["arithmetic (Add)", "IN lists", "IS NULL", "casts", "aliased projections and aggregates under pushed filters", "analysis-phase View/Unresolved plans"],
+ "expected_unknown_sources": [
+  "arithmetic (Add)",
+  "IN lists",
+  "IS NULL",
+  "casts",
+  "aliased projections and aggregates under pushed filters",
+  "analysis-phase View/Unresolved plans"
+ ],
  "reporting": "All counts are reported whether or not thresholds are met. Failures and infrastructure reruns stay on record. UNKNOWN is never counted as accepted.",
- "frozen_git_blob_sha": {}
+ "frozen_git_blob_sha": {
+  "tools/queryproof_v17_heldout_20261021/gen_cohort.py": "ed0d62ad70e65877ed982aaad4e875ea4abd04a6",
+  "tools/queryproof_v17_heldout_20261021/COHORT.json": "299ef1d8ff1e6caecf4a2ce30f2d7881fea2f889",
+  "tools/queryproof_v17_heldout_20261021/capture_cohort.py": "24ea7c130c46608b72fcdb15a7d31114e15b7490",
+  "tools/queryproof_v17_heldout_20261021/oracle_sqlite.py": "2c488132b4316c4282bfc8fc4abd29167d89e744",
+  "tools/queryproof_v17_heldout_20261021/summarize.py": "b76e2569b240a2ccfea13f3b2e9c311b964ad2e5",
+  "tools/queryproof_v15_deep_guard_20261021/print_terms.py": "b64895333841eba4dfa83a6f99d4e3c65be4d631",
+  "tools/queryproof_v15_deep_guard_20261021/run_v15.py": "765019a340ff692c23a4a4b81eba3ee1f731228a",
+  "tools/queryproof_instrumented/rank_ast.py": "fd27d5baa89fff73925f2a5846bbb85da01ae12c",
+  "tools/queryproof_instrumented/RuleExecutor.scala": "a4ac5ba5f280164d9b0276703c06a288bc4309b5",
+  "tools/queryproof_instrumented/build_overlay.sh": "14c632ad4d4a9d95c4800501dbd1dc6a39095e38",
+  "tools/queryproof_scopes_20261020/instrument_scopes.py": "d6c058623c7b2c92232df6d68d5cc750c07b5d56",
+  "research/queryproof/proofs/QueryProofDeepGuard.v": "cdaecacb8a012ddd662860f03586451bc5112bde",
+  "research/queryproof/proofs/QueryProofDeepRewrite.v": "d41f0db0619e2bb298e5cb0d028373dd166bf7a6",
+  ".github/workflows/queryproof-v17-heldout.yml": "98b05aae40056a1a7d85c02548af1e16aa7fcfbf"
+ }
 }
