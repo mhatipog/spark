@@ -26,10 +26,10 @@ private[rules] object QueryProofNativeV12 {
   import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 
   private val seen = new java.util.concurrent.atomic.AtomicInteger(0)
-  private final case class SourceBinding(
+  final case class SourceBinding(
       name: String, datatype: String, nullable: Boolean,
       qualifier: Seq[String], metadata: org.apache.spark.sql.types.Metadata)
-  private final case class SourceSnap(
+  final case class SourceSnap(
       encoded: String, bindings: Map[String, SourceBinding])
   private val encoder = java.util.Base64.getEncoder
   private def b64(s: String): String =
