@@ -150,22 +150,25 @@ def compare_one(raw_json,native):
     insist(native["nonempty_metadata_occurrences"]==
            attribute_nonempty + alias_nonempty,
            "NATIVE_METADATA_COUNT_CONTRADICTION")
-    insist(attribute_nonempty==0, "SOURCE_NATIVE_ATTRIBUTE_METADATA_NOT_EMPTY")
-    insist(alias_nonempty==0, "SOURCE_NATIVE_ALIAS_METADATA_NOT_EMPTY")
+    # Nonempty native metadata is permitted ONLY because a separate
+    # JVM-side exact Metadata.equals witness now establishes invariance.
+    # A metadata digest by itself is not a proof of native equality.
     return {
         "verified_json_attribute_bindings":len(serialized),
         "source_attribute_occurrences":len(native["attributes"]),
         "source_alias_occurrences":len(native["aliases"]),
-        "metadata_empty":True,
+        "native_nonempty_metadata_occurrences":native["nonempty_metadata_occurrences"],
         "native_tagged_nodes":native["tagged_nodes"],
     }
 
 def verify(raw_before,raw_after,record):
     insist(record["effective"],"NATIVE_EVENT_NOT_EFFECTIVE")
+    insist(record["exact_native_fields_unchanged"],
+           "JVM_SOURCE_FIELDS_OR_METADATA_CHANGED")
     old=compare_one(raw_before,record["pre"])
     new=compare_one(raw_after,record["post"])
     return {
-        "source_attribute_observation":"META_EMPTY_NATIVE_SOURCE",
+        "source_attribute_observation":"EXACT_NATIVE_SOURCE_FIELDS_UNCHANGED",
         "before":old,"after":new,
         "unknown_hidden_effects":True, # never derive semantic noninterference
     }
@@ -179,12 +182,14 @@ def parse_events(path):
             f=read_b64(line,"QUERYPROOF_AST",7)
             ast[key(f)].append(dict(raw_before=f[5],raw_after=f[6]))
         elif line.startswith("QUERYPROOF_NATIVE_V12\t"):
-            f=read_b64(line,"QUERYPROOF_NATIVE_V12",8)
-            insist(f[5] in ("true","false"),"NATIVE_EFFECT_FLAG_MALFORMED")
+            f=read_b64(line,"QUERYPROOF_NATIVE_V12",9)
+            insist(f[5] in ("true","false") and f[8] in ("true","false"),
+                   "NATIVE_BOOL_FIELD_MALFORMED")
             native[key(f)].append({
                 "effective":f[5]=="true",
                 "pre":native_frame(f[6]),
                 "post":native_frame(f[7]),
+                "exact_native_fields_unchanged":f[8]=="true",
             })
         elif line.startswith("QUERYPROOF_NATIVE_V12_UNKNOWN\t"):
             f=read_b64(line,"QUERYPROOF_NATIVE_V12_UNKNOWN",7)
@@ -239,6 +244,7 @@ def score_v12(path):
         "attestations":accepted,
         "limits":[
             "Attests actual JVM AttributeReference metadata and identities pre/post rule",
+            "Real JVM pre/post NamedExpression fields and Metadata equality required",
             "JVM observation excludes unmodelled state, tags, mutable caches, and SQLConf",
             "A hash binds raw observed JSON bytes but does not prove injective source encoding",
             "Source-visitor completeness and JVM-to-Coq meaning are NOT machine proved",
