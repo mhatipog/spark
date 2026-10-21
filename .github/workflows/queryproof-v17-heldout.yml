@@ -1,0 +1,81 @@
+name: QueryProof V17 frozen held-out cohort (IFFC + PushDownPredicates)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-v17-heldout
+  cancel-in-progress: false
+jobs:
+  heldout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/queryproof/proofs
+            tools/queryproof_v17_heldout_20261021
+            tools/queryproof_v15_deep_guard_20261021
+            tools/queryproof_instrumented
+            tools/queryproof_scopes_20261020
+            .github/workflows/queryproof-v17-heldout.yml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify every frozen component and regenerate the cohort from its seed
+        run: |
+          echo "QUERYPROOF_V17_RUN_COMMIT=${GITHUB_SHA}"
+          python -B tools/queryproof_v17_heldout_20261021/freeze.py verify
+      - name: Install Coq 8.18 and check both theorems are axiom-free
+        run: |
+          command -v coqc || { sudo apt-get update -qq && sudo apt-get install -y -qq coq; }
+          coqc --version
+          cd research/queryproof/proofs
+          coqc -q QueryProofDeepGuard.v | tee /tmp/a1.txt
+          coqc -q QueryProofDeepRewrite.v | tee /tmp/a2.txt
+          grep -q "Closed under the global context" /tmp/a1.txt
+          grep -q "Closed under the global context" /tmp/a2.txt
+      - name: Install official Spark 4.2.0 and the disposable AST trace overlay
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Execute the cohort in Spark (traces and result rows)
+        run: |
+          python -B tools/queryproof_v17_heldout_20261021/capture_cohort.py \
+            tools/queryproof_v17_heldout_20261021/COHORT.json cohort
+      - name: Independent SQLite result-bag oracle
+        run: |
+          mkdir -p artifacts
+          python -B tools/queryproof_v17_heldout_20261021/oracle_sqlite.py \
+            tools/queryproof_v17_heldout_20261021/COHORT.json cohort artifacts/v17_oracle.json
+      - name: Kernel-decide every effective event and every mutant (check2)
+        env:
+          COQC: coqc
+        run: |
+          python -B tools/queryproof_v15_deep_guard_20261021/run_v15.py cohort/*.stderr \
+            --deps QueryProofDeepGuard.v,QueryProofDeepRewrite.v \
+            --checker check2 --sound check2_sound \
+            --report artifacts/v17_kernel.json --keep artifacts/v17_coq || true
+          test -f artifacts/v17_kernel.json
+      - name: Score the frozen hypotheses
+        run: |
+          python -B tools/queryproof_v17_heldout_20261021/summarize.py \
+            artifacts/v17_kernel.json artifacts/v17_oracle.json artifacts/v17_result.json
+      - name: Archive results and generated kernel-checked instances
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v17-heldout
+          path: |
+            artifacts/v17_result.json
+            artifacts/v17_kernel.json
+            artifacts/v17_oracle.json
+            artifacts/v17_coq/V15Kernel.v
+          retention-days: 90
+          if-no-files-found: warn

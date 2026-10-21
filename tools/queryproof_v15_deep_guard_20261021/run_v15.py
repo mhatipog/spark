@@ -270,6 +270,13 @@ def main():
                             for it in accepted],
         "accepted_by_rule": counts(accepted, "rule"),
         "rejected_printed_by_rule": counts([it for it in items if not it["accepted"]], "rule"),
+        "events_by_rule": counts(items + unknown, "rule"),
+        "unsupported_by_rule": counts(unknown, "rule"),
+        "unsupported_by_rule_reason": counts(
+            [{"k": x["rule"] + " | " + x["reason"]} for x in unknown], "k"),
+        "rejected_events": [{k: it[k] for k in ("case", "rule", "batch", "iteration")}
+                            for it in items if not it["accepted"]],
+        "mutants_by_rule": counts(mutants, "rule"),
         "iffc_events_total": sum(1 for x in items + unknown if x["rule"] == IFFC),
         "iffc_accepted_cases": sorted({it["case"] for it in accepted if it["rule"] == IFFC}),
         "mutants_total": len(mutants),

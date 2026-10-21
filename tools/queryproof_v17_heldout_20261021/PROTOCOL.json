@@ -1,0 +1,26 @@
+{
+ "protocol_id": "queryproof-v17-heldout-20261021",
+ "nature": "PROSPECTIVE held-out cohort. Generated from a fixed seed and frozen by git blob SHA before any Spark, Coq or SQLite execution of these queries.",
+ "checker": "check2 / check2_sound (QueryProofDeepRewrite.v over QueryProofDeepGuard.v), unchanged from V16 apart from report fields",
+ "spark": "official pyspark==4.2.0 wheel with the disposable AST trace overlay",
+ "coq": "8.18 (Ubuntu package on the hosted runner)",
+ "unit": "one effective rule event (old != new) in the captured Catalyst trace",
+ "definitions": {
+  "ACCEPTED": "the kernel-checked Example `check2 old new = true` compiles",
+  "REJECTED": "the kernel computes `check2 old new = false` (also kernel-checked)",
+  "UNKNOWN": "the trusted printer cannot express the event (Unsupported); counts as NOT accepted",
+  "coverage(rule)": "ACCEPTED / all effective events of that rule, UNKNOWN included in the denominator",
+  "mutant": "a JSON-level adversarial variant of an ACCEPTED event, from the families in run_v15.py (IFFC: 6 families; other rules: 4 families). Every family is semantically wrong for some database by construction",
+  "mutant ACCEPTED": "kernel says check2 = true on the mutant; this is a safety failure"
+ },
+ "hypotheses": {
+  "H1_zero_mutants_accepted": {"primary": true, "statement": "No mutant of any accepted event is accepted, for either rule."},
+  "H2_iffc_coverage": {"threshold": 0.60, "statement": "Coverage of InferFiltersFromConstraints events >= 0.60."},
+  "H3_pdp_coverage": {"threshold": 0.50, "statement": "Coverage of PushDownPredicates events >= 0.50."},
+  "H4_no_other_rule_accepted": {"statement": "No effective event of any other rule is accepted (any such acceptance would still be sound by check2_sound, but it would be unexpected)."},
+  "H5_oracle_agreement": {"statement": "Spark and independent SQLite result bags agree on every query both engines execute (pipeline sanity, not a checker test)."}
+ },
+ "expected_unknown_sources": ["arithmetic (Add)", "IN lists", "IS NULL", "casts", "aliased projections and aggregates under pushed filters", "analysis-phase View/Unresolved plans"],
+ "reporting": "All counts are reported whether or not thresholds are met. Failures and infrastructure reruns stay on record. UNKNOWN is never counted as accepted.",
+ "frozen_git_blob_sha": {}
+}
