@@ -1,0 +1,52 @@
+name: QueryProof V12 native metadata/tag causality falsification
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_v12_native_20261021/QueryProofNativeV12AdversarialWitness.scala
+      - tools/queryproof_v12_native_20261021/instrument_v12.py
+      - .github/workflows/queryproof-v12-native-adversarial.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-falsification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_v12_native_20261021
+            tools/queryproof_scopes_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install official unmodified Spark 4.2.0 wheel
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Apply disposable, source-pinned native observer and compile overlay
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_v12_native_20261021/instrument_v12.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Compile native metadata and hidden-tag mutation controls
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          mkdir -p artifacts/queryproof_v12_native_test_classes
+          java -Xmx3g -cp "$JARS/*" scala.tools.nsc.Main -usejavacp \
+            -classpath "artifacts/queryproof_classes:$JARS/*" \
+            -d artifacts/queryproof_v12_native_test_classes \
+            tools/queryproof_v12_native_20261021/QueryProofNativeV12AdversarialWitness.scala
+      - name: Demand sound metadata rejection and expose unresolved hidden-state effects
+        run: |
+          JARS=$(python -c 'import pyspark,os; print(os.path.join(os.path.dirname(pyspark.__file__),"jars"))')
+          java -Xmx3g \
+            -cp "artifacts/queryproof_v12_native_test_classes:artifacts/queryproof_classes:$JARS/*" \
+            org.apache.spark.sql.catalyst.rules.QueryProofNativeV12AdversarialWitness
+          echo QUERYPROOF_V12_NATIVE_MUTATION_CONTROL_CI_PASSED
