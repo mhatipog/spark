@@ -4,7 +4,8 @@ import hashlib
 import json
 import unittest
 
-from run_v12 import (AttestationRejected, native_frame, compare_one, verify, SCHEMA)
+from run_v12 import (AttestationRejected, native_frame, compare_one, verify,
+                     verify_exprid_fields, SCHEMA)
 
 def sample():
     a={"class":"org.apache.spark.sql.catalyst.expressions.AttributeReference",
@@ -100,6 +101,21 @@ class NativeBindingAdversarial(unittest.TestCase):
         with self.assertRaises(AttestationRejected):
             verify(raw,raw,{"pre":f,"post":f2,"effective":True,
                             "exact_native_fields_unchanged":False})
+    def test_jvm_object_clone_allowed_only_with_exact_source_fields(self):
+        raw,f=sample()
+        record={"pre":f,"post":f,"effective":True,
+                "exact_native_fields_unchanged":False,
+                "exprid_source_fields_preserved":True}
+        with self.assertRaises(AttestationRejected):
+            verify(raw,raw,record)
+        self.assertFalse(verify_exprid_fields(raw,raw,record)["hidden_state_sound"])
+    def test_source_value_field_mutation_rejected_despite_stable_ast_json(self):
+        raw,f=sample()
+        record={"pre":f,"post":f,"effective":True,
+                "exact_native_fields_unchanged":False,
+                "exprid_source_fields_preserved":False}
+        with self.assertRaises(AttestationRejected):
+            verify_exprid_fields(raw,raw,record)
     def test_ineffective_rule_must_not_count(self):
         raw,f=sample()
         with self.assertRaises(AttestationRejected):
