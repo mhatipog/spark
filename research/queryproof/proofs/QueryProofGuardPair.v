@@ -62,9 +62,11 @@ Proof.
     (execute {| comparison := ko; join_kind := jo;
                 filter_left := ln; filter_right := rn |} left right)
     by reflexivity.
-  symmetry.
-  apply checked_certificate_sound.
-  exact Hnew.
+  pose proof (checked_certificate_sound
+    {| comparison := ko; join_kind := jo;
+       filter_left := ln; filter_right := rn |}
+    left right Hnew) as Hlaw.
+  exact (eq_sym Hlaw).
 Qed.
 
 Definition before_lt_inner : GuardCertificate :=
