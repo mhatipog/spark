@@ -50,17 +50,22 @@ jobs:
           python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
           python -B tools/queryproof_scopes_20261020/instrument_scopes.py
           bash tools/queryproof_instrumented/build_overlay.sh
-      - name: Capture raw W32 rule traces (historical development data)
+      - name: Capture raw W32 traces and V16 development probes
         run: |
           python -B tools/queryproof_v15_deep_guard_20261021/capture_w32.py \
             tools/queryproof_prospective_w_20261020/CASES.json "" traces
-      - name: Kernel-decide every effective event and every adversarial mutant
+          python -B tools/queryproof_v15_deep_guard_20261021/capture_w32.py \
+            tools/queryproof_v16_rewrite_dev_20261021/DEV_CASES.json "" devtraces
+      - name: Kernel-decide every effective event and every adversarial mutant (check2)
         env:
           COQC: coqc
         run: |
           mkdir -p artifacts
-          python -B tools/queryproof_v15_deep_guard_20261021/run_v15.py traces/*.stderr \
-            --report artifacts/queryproof_v15_deep_guard.json --keep artifacts/v15_coq
+          ARGS="--deps QueryProofDeepGuard.v,QueryProofDeepRewrite.v --checker check2 --sound check2_sound"
+          python -B tools/queryproof_v15_deep_guard_20261021/run_v15.py traces/*.stderr $ARGS \
+            --report artifacts/queryproof_v16_w32.json --keep artifacts/v16_w32_coq
+          python -B tools/queryproof_v15_deep_guard_20261021/run_v15.py devtraces/*.stderr $ARGS \
+            --report artifacts/queryproof_v16_dev.json --keep artifacts/v16_dev_coq
       - name: Archive report and generated kernel-checked instances
         if: always()
         uses: actions/upload-artifact@v4
