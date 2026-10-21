@@ -89,10 +89,8 @@ class BindingTests(unittest.TestCase):
         self.reject(e)
     def test_unsupported_sql_type_rejected(self):
         e=instance()
-        for side in ("old","new"):
-            for node in e[side]:
-                if node["class"]==EXPR+"AttributeReference":
-                    node["dataType"]="decimal"
+        f=next(x for x in e["new"] if x["class"]==LOGICAL+"Filter")
+        f["condition"][1]["dataType"]="decimal"
         self.reject(e)
     def test_join_same_side_references_rejected(self):
         e=instance()
