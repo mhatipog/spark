@@ -1,0 +1,144 @@
+name: QueryProof V12 native source binding on actual Catalyst events
+on:
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_v12_native_20261021/**
+      - .github/workflows/queryproof-v12-native-source-binding.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-posthoc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/queryproof/proofs
+            tools/queryproof_v12_native_20261021
+            tools/queryproof_v11_independent_20261021
+            tools/queryproof_v10_guard_kernel_20261021
+            tools/queryproof_v9_inequality_20261020
+            tools/queryproof_v7_strict_20261020
+            tools/queryproof_posthoc_v6_20261020
+            tools/queryproof_posthoc_y_20261020
+            tools/queryproof_posthoc_x_20261020
+            tools/queryproof_prospective_w_20261020
+            tools/queryproof_join_filters_u_dev_20261020
+            tools/queryproof_join_suffix_s_dev_20261020
+            tools/queryproof_join_pruning_q_dev_20261020
+            tools/queryproof_round_n_dev_20261020
+            tools/queryproof_adversarial_20261020
+            tools/queryproof_context_validator
+            tools/queryproof_holdout_20261018
+            tools/queryproof_external_postgresql_join_20261019
+            tools/queryproof_grouping_repetition_round2_20261020
+            tools/queryproof_composition_20261020
+            tools/queryproof_scopes_20261020
+            tools/queryproof_scopes_fresh_k_20261020
+            tools/queryproof_state_witness_20261020
+            tools/queryproof_state_frame_20261020
+            tools/queryproof_instrumented
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify historical W32 input and v5 sources are still frozen
+        run: |
+          python -B -c '
+          import json,subprocess
+          from pathlib import Path
+          root=Path("tools/queryproof_prospective_w_20261020")
+          protocol=json.loads((root/"PROTOCOL.json").read_text())
+          for p,expected in protocol["frozen_git_blob_shas"].items():
+              actual=subprocess.run(["git","hash-object",p],capture_output=True,
+                  text=True,check=True).stdout.strip()
+              assert actual==expected, f"FROZEN_W_COMPONENT_MODIFIED {p}"
+          compile(Path("tools/queryproof_posthoc_v6_20261020/run_v6.py").read_text(),
+                  "round_v6","exec")
+          print("QUERYPROOF_V6_FROZEN_W_SOURCE_CHECK_OK")
+          '
+      - name: Run independent synthetic phase-cut and tag-encoding falsifiers BEFORE replay
+        run: python -B -m unittest discover -s tools/queryproof_posthoc_y_20261020 -p 'test_phase_guard_independent.py' -v
+      - name: Install official Spark 4.2.0
+        run: python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+      - name: Restore disposable provenance and state sensors
+        run: |
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_state_witness_20261020/instrument_state.py
+          python -B tools/queryproof_state_frame_20261020/instrument_frame.py
+          python -B tools/queryproof_adversarial_20261020/instrument_input_identity.py
+          python -B tools/queryproof_adversarial_20261020/instrument_silent_rules.py
+          python -B tools/queryproof_adversarial_20261020/instrument_tag_taxonomy.py
+          python -B tools/queryproof_v7_strict_20261020/instrument_overflow.py
+          python -B tools/queryproof_v12_native_20261021/instrument_v12.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Validate strict unit controls before Spark replay
+        run: python -B -m unittest discover -v -s tools/queryproof_v7_strict_20261020 -p 'test_*.py'
+      - name: Fail-closed independent parser and 12 synthetic adversarial controls
+        run: python -B -m unittest discover -v -s tools/queryproof_v11_independent_20261021 -p 'test_*.py'
+      - name: Adversarial per-rule JVM source metadata binding tests
+        run: python -B -m unittest discover -v -s tools/queryproof_v12_native_20261021 -p 'test_*.py'
+      - name: Real W32 JVM source-native witness and Coq replay
+        env:
+          JAVA_TOOL_OPTIONS: -Dqueryproof.ast.v12.enabled=true
+        run: python -u tools/queryproof_v12_native_20261021/run_v12.py
+      - name: Verify Coq 8.18 universal theorem and each live emitted certificate
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq coq
+          test -f research/queryproof/proofs/QueryProofV10LiveInstances.v
+          (cd research/queryproof/proofs &&
+           coqc -q QueryProofGuardCertificate.v &&
+           coqc -q QueryProofV10LiveInstances.v)
+          echo "QUERYPROOF_V10_LIVE_CERTIFICATES_COQ_KERNEL_CHECKED"
+      - name: Assert historical W32 frozen, V9 score preserved, and witness completeness
+        if: always()
+        run: |
+          python -B -c '
+          import json
+          from pathlib import Path
+          p=Path("artifacts/queryproof_v12_native_source_metadata_observations.json")
+          assert p.is_file(), "V10_REPORT_MISSING"
+          r=json.loads(p.read_text())
+          assert r["executed_cases"] == 32 and r["worker_exit_code"] == 0
+          assert not r["error_cases"] and not r["row_oracle_mismatch_cases"]
+          d=r["union_coverage"]["v10_coq_guard_witnesses"]
+          prior=r["union_coverage"]["v9_direct_inequality_dev"]
+          assert prior["v9_strict_count"] == 24
+          v11=r["union_coverage"]["v11_independent_ast_binding"]
+          assert v11["independent_witness_count"]==d["guard_certificate_instances"]
+          assert v11["negative_mutant_rejections"]>=12
+          native=r["union_coverage"]["v12_native_metadata_binding"]
+          assert native["all_live_coq_witnesses"] == 4
+          assert native["source_metadata_attested_count"] + len(native["unattested_cases"]) == 4
+          assert d["guard_certificate_instances"] >= 4
+          assert d["case_ids"] == ["W17","W18","W19","W20"]
+          assert all(w["comparator"] == "StrictLt" and w["join_kind"] == "Inner"
+                     for w in d["witnesses"])
+          print("QUERYPROOF_V12_NATIVE_BINDING_RESULT", json.dumps({
+              "count": d["guard_certificate_instances"],
+              "cases":d["case_ids"],
+              "prior_structural_count":prior["v9_strict_count"],
+              "negative_mutants_rejected":v11["negative_mutant_rejections"],
+              "native_attested_count":native["source_metadata_attested_count"],
+              "native_unattested":native["unattested_cases"],
+              "native_unknown_markers":native["native_unknown_markers"]
+          },sort_keys=True))
+          '
+      - name: Archive generated kernel-checked witness instances and summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v12-native-source-metadata-development
+          path: |
+            artifacts/queryproof_v12_native_source_metadata_observations.json
+            research/queryproof/proofs/QueryProofV10LiveInstances.v
+          retention-days: 30
+          if-no-files-found: warn
