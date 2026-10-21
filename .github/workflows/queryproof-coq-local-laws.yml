@@ -36,7 +36,15 @@ jobs:
       - name: Compile all lemmas in Coq kernel
         run: |
           cd research/queryproof/proofs
+          # Compile the dependency DAG before the remaining standalone files.
+          for proof in QueryProofGuardCertificate.v QueryProofGuardPayload.v QueryProofGuardPair.v QueryProofGuardPairPayload.v; do
+            coqc -q "$proof"
+            test -f "${proof%.v}.vo"
+          done
           for proof in *.v; do
+            case "$proof" in
+              QueryProofGuardCertificate.v|QueryProofGuardPayload.v|QueryProofGuardPair.v|QueryProofGuardPairPayload.v) continue ;;
+            esac
             coqc -q "$proof"
             test -f "${proof%.v}.vo"
           done
