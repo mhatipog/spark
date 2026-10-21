@@ -27,11 +27,14 @@ def emit():
     native=results["v12_native_metadata_binding"]
     assert native["all_live_coq_witnesses"]==4
     source_attested=set(native["source_metadata_attested_cases"])
+    value_fields_attested=set(native["native_exprid_valuefields_attested_cases"])
+    assert value_fields_attested==TARGETS, "NATIVE_JVM_EXPRID_FIELDS_NOT_ATTESTED"
     lines=[
        "(** Generated from live W32 replay, with independent V11 AST binder.",
        "    Kernel proves the REDUCED-PLAN pair law, NOT verified Spark semantics.",
        "    Source-native attestation remains independently reported in V12. *)",
-       "Require Import QueryProofGuardCertificate QueryProofGuardPair.",
+       "Require Import QueryProofGuardCertificate QueryProofGuardPair",
+       "  QueryProofGuardPayload QueryProofGuardPairPayload.",
        "",
     ]
     for i,w in enumerate(witnesses):
@@ -44,7 +47,8 @@ def emit():
         suffix=f"{i:03d}"
         old,new=f"old_live_{suffix}",f"new_live_{suffix}"
         lines.extend([
-           f"(* {w['case']}; native fields attested: {str(w['case'] in source_attested).lower()};",
+           f"(* {w['case']}; strict native-object attested: {str(w['case'] in source_attested).lower()};",
+           f"   native ExprId value-fields attested: {str(w['case'] in value_fields_attested).lower()};",
            f"   serialized snapshot pair SHA256 {w['serialized_plan_pair_sha256']} *)",
            f"Definition {old} : GuardCertificate :=",
            f"  {{| comparison := {w['comparator']}; join_kind := {w['join_kind']};",
@@ -62,6 +66,17 @@ def emit():
            f"    execute {new} (guarded_left {new} left)",
            f"                  (guarded_right {new} right).",
            "Proof. intros. apply checked_plan_pair_preserves_bags.",
+           "       vm_compute. reflexivity. Qed.",
+           f"Theorem live_pair_{suffix}_full_row_payload_bags :",
+           "  forall (L R : Type) (lk : L -> Nullable) (rk : R -> Nullable)",
+           "         (left : list L) (right : list R),",
+           f"    @run_payload L R lk rk {old}",
+           f"      (@guarded_left_rows L lk {old} left)",
+           f"      (@guarded_right_rows R rk {old} right) =",
+           f"    @run_payload L R lk rk {new}",
+           f"      (@guarded_left_rows L lk {new} left)",
+           f"      (@guarded_right_rows R rk {new} right).",
+           "Proof. intros; apply checked_pair_preserves_entire_row_bags.",
            "       vm_compute. reflexivity. Qed.",
            "",
         ])
@@ -84,6 +99,7 @@ def emit():
     ]
     DEST.write_text("\n".join(lines)+"\n")
     print("QUERYPROOF_V13_GENERATED_LIVE_PAIRS",len(witnesses),
-          "NATIVE_FIELD_ATTESTATIONS",len(source_attested))
+          "STRICT_NATIVE_OBJECT_ATTESTATIONS",len(source_attested),
+          "NATIVE_EXPRID_VALUE_ATTESTATIONS",len(value_fields_attested))
 
 if __name__=="__main__":emit()
