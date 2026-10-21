@@ -149,7 +149,7 @@ def main():
                       "raw": (e["old"], e["new"])})
 
     with tempfile.TemporaryDirectory(prefix="qp-v15-") as tmp:
-        work = Path(args.keep) if args.keep else Path(tmp)
+        work = (Path(args.keep) if args.keep else Path(tmp)).resolve()
         work.mkdir(parents=True, exist_ok=True)
         (work / "QueryProofDeepGuard.v").write_text(
             (PROOFS / "QueryProofDeepGuard.v").read_text())
