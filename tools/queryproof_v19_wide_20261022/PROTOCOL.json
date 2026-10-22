@@ -13,15 +13,57 @@
   "VALIDATED_WRONG / ILL_SCOPED / NOT_SHOWN_WRONG / OUTSIDE": "as in V18"
  },
  "hypotheses": {
-  "H0a_no_accepted_event_differs": {"statement": "No ACCEPTED event differs in the SQLite differential."},
-  "H0b_evaluable_fraction": {"threshold": 0.8, "statement": "At least 80% of ACCEPTED events are evaluable by the differential."},
-  "H1_no_invalid_mutant_accepted": {"primary": true, "statement": "No VALIDATED_WRONG or ILL_SCOPED mutant is accepted."},
-  "H1b_power": {"threshold": 150, "statement": "At least 150 mutants are VALIDATED_WRONG."},
-  "H2_iffc_coverage": {"threshold": 0.75, "statement": "InferFiltersFromConstraints coverage >= 0.75 (V18: 0.656)."},
-  "H3_pdp_coverage": {"threshold": 0.65, "statement": "PushDownPredicates coverage >= 0.65 (V18: 0.528)."},
-  "H5_oracle_agreement": {"statement": "Spark and SQLite query result bags agree on every query both engines execute."}
+  "H0a_no_accepted_event_differs": {
+   "statement": "No ACCEPTED event differs in the SQLite differential."
+  },
+  "H0b_evaluable_fraction": {
+   "threshold": 0.8,
+   "statement": "At least 80% of ACCEPTED events are evaluable by the differential."
+  },
+  "H1_no_invalid_mutant_accepted": {
+   "primary": true,
+   "statement": "No VALIDATED_WRONG or ILL_SCOPED mutant is accepted."
+  },
+  "H1b_power": {
+   "threshold": 150,
+   "statement": "At least 150 mutants are VALIDATED_WRONG."
+  },
+  "H2_iffc_coverage": {
+   "threshold": 0.75,
+   "statement": "InferFiltersFromConstraints coverage >= 0.75 (V18: 0.656)."
+  },
+  "H3_pdp_coverage": {
+   "threshold": 0.65,
+   "statement": "PushDownPredicates coverage >= 0.65 (V18: 0.528)."
+  },
+  "H5_oracle_agreement": {
+   "statement": "Spark and SQLite query result bags agree on every query both engines execute."
+  }
  },
- "reported_without_prediction": ["accepted events of other rules", "accepted mutants that are NOT_SHOWN_WRONG", "UNKNOWN and REJECTED reasons", "exact SQL overlap with the V17 and V18 cohorts"],
+ "reported_without_prediction": [
+  "accepted events of other rules",
+  "accepted mutants that are NOT_SHOWN_WRONG",
+  "UNKNOWN and REJECTED reasons",
+  "exact SQL overlap with the V17 and V18 cohorts"
+ ],
  "reporting": "All counts are reported whether or not thresholds are met. Failures and infrastructure reruns stay on record.",
- "frozen_git_blob_sha": {}
+ "frozen_git_blob_sha": {
+  "tools/queryproof_v19_wide_20261022/gen_cohort.py": "4c91d4b3d68cf8ecf38aa38c5a39e8a7d4318258",
+  "tools/queryproof_v19_wide_20261022/COHORT.json": "aeb29304a805f20d74a28c4056bb84d38f5eb493",
+  "tools/queryproof_v19_wide_20261022/print_terms_v19.py": "5cd2931fbed7133faab29a410ffe6f5517ec3520",
+  "tools/queryproof_v19_wide_20261022/differential.py": "b74b9477835cd64a157fb6e129c573b79e133be6",
+  "tools/queryproof_v19_wide_20261022/validate.py": "691ef54b2e36f544fc3e2d051324864ee17e72cf",
+  "tools/queryproof_v19_wide_20261022/summarize.py": "283cea9992d005a958dc17a03e7223ada07c7a1c",
+  "tools/queryproof_v17_heldout_20261021/gen_cohort.py": "ed0d62ad70e65877ed982aaad4e875ea4abd04a6",
+  "tools/queryproof_v17_heldout_20261021/capture_cohort.py": "24ea7c130c46608b72fcdb15a7d31114e15b7490",
+  "tools/queryproof_v17_heldout_20261021/oracle_sqlite.py": "2c488132b4316c4282bfc8fc4abd29167d89e744",
+  "tools/queryproof_v15_deep_guard_20261021/print_terms.py": "b64895333841eba4dfa83a6f99d4e3c65be4d631",
+  "tools/queryproof_v15_deep_guard_20261021/run_v15.py": "81d2265a13f134c4413bafb04e9e2de0fff6a7d1",
+  "tools/queryproof_instrumented/rank_ast.py": "fd27d5baa89fff73925f2a5846bbb85da01ae12c",
+  "tools/queryproof_instrumented/RuleExecutor.scala": "a4ac5ba5f280164d9b0276703c06a288bc4309b5",
+  "tools/queryproof_instrumented/build_overlay.sh": "14c632ad4d4a9d95c4800501dbd1dc6a39095e38",
+  "tools/queryproof_scopes_20261020/instrument_scopes.py": "d6c058623c7b2c92232df6d68d5cc750c07b5d56",
+  "research/queryproof/proofs/QueryProofDeepWide.v": "63077de1323504ae8a48b385f00407f5b237737f",
+  ".github/workflows/queryproof-v19-wide.yml": "d0255c8c0598f60e659ba326bcbc978c816c3c9a"
+ }
 }
