@@ -1,0 +1,92 @@
+name: QueryProof V19 frozen held-out cohort: wider grammar and unified join law
+on:
+  # Runs only when the separate run-request marker (outside the frozen set) is pushed.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_v19_wide_20261022/RUN_REQUEST
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-v19-wide
+  cancel-in-progress: false
+jobs:
+  heldout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/queryproof/proofs
+            tools/queryproof_v19_wide_20261022
+            tools/queryproof_v17_heldout_20261021
+            tools/queryproof_v15_deep_guard_20261021
+            tools/queryproof_instrumented
+            tools/queryproof_scopes_20261020
+            .github/workflows/queryproof-v19-wide.yml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify every frozen component and regenerate the cohort from its seed
+        run: |
+          echo "QUERYPROOF_V19_RUN_COMMIT=${GITHUB_SHA}"
+          python -B tools/queryproof_v19_wide_20261022/freeze.py verify
+      - name: Install Coq 8.18 and check the V19 theorem is axiom-free
+        run: |
+          command -v coqc || { sudo apt-get update -qq && sudo apt-get install -y -qq coq; }
+          coqc --version
+          cd research/queryproof/proofs
+          coqc -q QueryProofDeepWide.v | tee /tmp/a1.txt
+          grep -q "Closed under the global context" /tmp/a1.txt
+      - name: Install official Spark 4.2.0 and the disposable AST trace overlay
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Execute the cohort in Spark (traces and result rows)
+        run: |
+          python -B tools/queryproof_v17_heldout_20261021/capture_cohort.py \
+            tools/queryproof_v19_wide_20261022/COHORT.json cohort
+      - name: Independent SQLite result-bag oracle
+        run: |
+          mkdir -p artifacts
+          python -B tools/queryproof_v17_heldout_20261021/oracle_sqlite.py \
+            tools/queryproof_v19_wide_20261022/COHORT.json cohort artifacts/v19_oracle.json
+      - name: Kernel-decide every effective event and every mutant (check3)
+        env:
+          COQC: coqc
+        run: |
+          python -B tools/queryproof_v15_deep_guard_20261021/run_v15.py cohort/*.stderr \
+            --deps QueryProofDeepWide.v \
+            --checker check3 --sound check3_sound --printer tools/queryproof_v19_wide_20261022/print_terms_v19.py \
+            --report artifacts/v19_kernel.json --keep artifacts/v19_coq || true
+          test -f artifacts/v19_kernel.json
+      - name: Differentially validate accepted events and all mutants
+        run: |
+          python -B tools/queryproof_v19_wide_20261022/validate.py \
+            artifacts/v19_kernel.json artifacts/v19_coq/V15Kernel.v artifacts/v19_validation.json
+      - name: Score the frozen hypotheses
+        run: |
+          python -B tools/queryproof_v19_wide_20261022/summarize.py \
+            artifacts/v19_kernel.json artifacts/v19_validation.json \
+            artifacts/v19_oracle.json artifacts/v19_result.json
+      - name: Archive results and generated kernel-checked instances
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v19-wide
+          path: |
+            artifacts/v19_result.json
+            artifacts/v19_kernel.json
+            artifacts/v19_validation.json
+            artifacts/v19_oracle.json
+            artifacts/v19_coq/V15Kernel.v
+          retention-days: 90
+          if-no-files-found: warn

@@ -1,0 +1,27 @@
+{
+ "protocol_id": "queryproof-v19-wide-heldout-20261022",
+ "nature": "PROSPECTIVE held-out cohort (new seed 20261023, 150 queries, fresh data, 30% ON clauses with one-side conjuncts). Generated from the seed and frozen by git blob SHA before any Spark, Coq or SQLite execution of these queries.",
+ "checker": "check3 / check3_sound in QueryProofDeepWide.v (self-contained, axiom-free): grammar adds IsNull, IN over literals and width-bounded Add; one unified INNER-join law (WHERE, ON and input-filter conjuncts redistributed into input filters and ON, with implied IsNotNull, also through an unchanged attribute-only Project); a LEFT OUTER right-side ON law; V16 Filter, Combine, Project and LEFT OUTER WHERE forms",
+ "printer": "tools/queryproof_v19_wide_20261022/print_terms_v19.py (Add is modelled in ANSI mode: TreeNode JSON erases evalContext)",
+ "spark": "official pyspark==4.2.0 wheel with the disposable AST trace overlay",
+ "unit": "one effective rule event (old != new) in the captured Catalyst trace",
+ "definitions": {
+  "ACCEPTED / REJECTED": "kernel-checked `check3 old new = true / false`",
+  "UNKNOWN": "the printer cannot express the event; counts as NOT accepted",
+  "coverage(rule)": "ACCEPTED / all effective events of that rule (UNKNOWN in the denominator)",
+  "differential": "as in V18 (exact kernel terms -> SQL -> SQLite, 40 random NULL- and duplicate-rich databases per pair), extended with IS NULL, IN and +",
+  "VALIDATED_WRONG / ILL_SCOPED / NOT_SHOWN_WRONG / OUTSIDE": "as in V18"
+ },
+ "hypotheses": {
+  "H0a_no_accepted_event_differs": {"statement": "No ACCEPTED event differs in the SQLite differential."},
+  "H0b_evaluable_fraction": {"threshold": 0.8, "statement": "At least 80% of ACCEPTED events are evaluable by the differential."},
+  "H1_no_invalid_mutant_accepted": {"primary": true, "statement": "No VALIDATED_WRONG or ILL_SCOPED mutant is accepted."},
+  "H1b_power": {"threshold": 150, "statement": "At least 150 mutants are VALIDATED_WRONG."},
+  "H2_iffc_coverage": {"threshold": 0.75, "statement": "InferFiltersFromConstraints coverage >= 0.75 (V18: 0.656)."},
+  "H3_pdp_coverage": {"threshold": 0.65, "statement": "PushDownPredicates coverage >= 0.65 (V18: 0.528)."},
+  "H5_oracle_agreement": {"statement": "Spark and SQLite query result bags agree on every query both engines execute."}
+ },
+ "reported_without_prediction": ["accepted events of other rules", "accepted mutants that are NOT_SHOWN_WRONG", "UNKNOWN and REJECTED reasons", "exact SQL overlap with the V17 and V18 cohorts"],
+ "reporting": "All counts are reported whether or not thresholds are met. Failures and infrastructure reruns stay on record.",
+ "frozen_git_blob_sha": {}
+}

@@ -232,7 +232,14 @@ def main():
     ap.add_argument("--deps", default="QueryProofDeepGuard.v")
     ap.add_argument("--checker", default="check")
     ap.add_argument("--sound", default="check_sound")
+    ap.add_argument("--printer", help="path to an alternative printer module (V19)")
     args = ap.parse_args()
+    if args.printer:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("qp_printer", args.printer)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        globals()["Printer"], globals()["Unsupported"] = mod.Printer, mod.Unsupported
     deps = args.deps.split(",")
     module = " ".join(d[:-2] for d in deps)
 
