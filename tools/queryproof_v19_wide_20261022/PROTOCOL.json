@@ -64,6 +64,6 @@
   "tools/queryproof_instrumented/build_overlay.sh": "14c632ad4d4a9d95c4800501dbd1dc6a39095e38",
   "tools/queryproof_scopes_20261020/instrument_scopes.py": "d6c058623c7b2c92232df6d68d5cc750c07b5d56",
   "research/queryproof/proofs/QueryProofDeepWide.v": "63077de1323504ae8a48b385f00407f5b237737f",
-  ".github/workflows/queryproof-v19-wide.yml": "d0255c8c0598f60e659ba326bcbc978c816c3c9a"
+  ".github/workflows/queryproof-v19-wide.yml": "27164f503991437016f5dd77b3fb18eaf250aa2e"
  }
 }
