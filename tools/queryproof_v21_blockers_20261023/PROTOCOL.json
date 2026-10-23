@@ -1,0 +1,61 @@
+{
+ "protocol_id": "queryproof-v21-blockers-heldout-20261023",
+ "nature": "PROSPECTIVE held-out cohort (seed 20261025, 150 queries, fresh data, V19 templates). Generated from the seed and frozen by git blob SHA before any Spark, Coq or SQLite execution of these queries.",
+ "question": "Do certificates for the top V20 trace blockers (transitive IFFC inference, ReplaceDistinctWithAggregate, EliminateOuterJoin) raise whole-trace coverage on unseen queries without any loss of safety?",
+ "checker": "QueryProofTrace2.v over QueryProofDeepWide2.v (copies; V19/V20 stay frozen): implication adds transport of an old conjunct along an old strict x = y; EliminateOuterJoin rule; project-transparent side form also offers the old inner filter as an old conjunct when its columns are projected. check3_sound, check4_sound, trace_sound closed under the global context.",
+ "effect_contract": "Unchanged V20 EFFECT_CONTRACT.json and TAG_INVENTORY.json.",
+ "unit_trace": "all effective events of the logical optimizer executor after Finish Analysis, for one query, with tag names before and after each event",
+ "definitions": {
+  "CERTIFIED trace": "kernel-checked Example trace_ok ok_tag evs = true",
+  "trace mutant": "drop_middle_event, swap_adjacent_events, unknown_tag, splice_<family> (a corrupted rewrite spliced in with connectivity preserved). Each violates a trace_ok condition by construction; accepting one is a safety failure",
+  "endpoint differential": "the V19 SQLite differential on (first plan, last plan) of each certified trace",
+  "full_trace_coverage": "certified non-empty traces / queries with at least one suffix event (UNKNOWN and rejected traces in the denominator)"
+ },
+ "hypotheses": {
+  "T0a_no_certified_trace_differs": {
+   "statement": "No certified trace's endpoints differ (or are ill-scoped) in SQLite."
+  },
+  "T0b_endpoint_evaluable_fraction": {
+   "threshold": 0.8,
+   "statement": "At least 80% of certified traces are evaluable by the differential."
+  },
+  "T1_no_trace_mutant_accepted": {
+   "primary": true,
+   "statement": "No trace-level mutant is accepted."
+  },
+  "T1b_trace_mutant_power": {
+   "threshold": 100,
+   "statement": "At least 100 trace mutants are evaluated."
+  },
+  "E1_no_invalid_event_mutant_accepted": {
+   "statement": "Per event (check4): no VALIDATED_WRONG or ILL_SCOPED mutant accepted."
+  },
+  "E1b_event_mutant_power": {
+   "threshold": 150,
+   "statement": "At least 150 per-event mutants are VALIDATED_WRONG."
+  },
+  "T2_connected_observation": {
+   "statement": "0 JSON connectivity breaks and 0 kernel link failures between consecutive observed events."
+  },
+  "T3_contract_coverage": {
+   "statement": "No observed tag outside the contract, no ANSI-off query, no tag-observer UNKNOWN line."
+  },
+  "T4_full_trace_coverage": {
+   "threshold": 0.65,
+   "statement": "At least 65% of queries with suffix events have their whole logical-optimizer trace certified (V20 cohort: 0.544)."
+  },
+  "H5_oracle_agreement": {
+   "statement": "Spark and SQLite query result bags agree on every query both engines execute."
+  }
+ },
+ "reported_without_prediction": [
+  "first failing rule per uncertified trace",
+  "unprintable reasons",
+  "per-rule event coverage under check4",
+  "observed tag names",
+  "exact SQL overlap with the V17-V20 cohorts"
+ ],
+ "reporting": "All counts are reported whether or not thresholds are met. Failures and infrastructure reruns stay on record.",
+ "printer": "tools/queryproof_v21_blockers_20261023/print_terms_v21.py: Distinct(q) and Aggregate(A, A, q) (grouping-only, attribute references, A subset of q.output) both print as the reserved opaque dedup operator over Project(A, q). This operator identification is TRUSTED.",
+ "frozen_git_blob_sha": {}
+}

@@ -1,0 +1,107 @@
+name: "QueryProof V21 frozen held-out cohort - certified trace blockers"
+on:
+  # Runs only when the separate run-request marker (outside the frozen set) is pushed.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_v21_blockers_20261023/RUN_REQUEST
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-v21-blockers
+  cancel-in-progress: false
+jobs:
+  heldout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/queryproof/proofs
+            tools/queryproof_v21_blockers_20261023
+            tools/queryproof_v20_trace_20261023
+            tools/queryproof_v19_wide_20261022
+            tools/queryproof_v17_heldout_20261021
+            tools/queryproof_v15_deep_guard_20261021
+            tools/queryproof_instrumented
+            tools/queryproof_scopes_20261020
+            .github/workflows/queryproof-v21-blockers.yml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify every frozen component and regenerate the cohort from its seed
+        run: |
+          echo "QUERYPROOF_V21_RUN_COMMIT=${GITHUB_SHA}"
+          python -B tools/queryproof_v21_blockers_20261023/freeze.py verify
+      - name: Install Coq 8.18 and check the V21 theorems are axiom-free
+        run: |
+          command -v coqc || { sudo apt-get update -qq && sudo apt-get install -y -qq coq; }
+          coqc --version
+          cd research/queryproof/proofs
+          coqc -q QueryProofDeepWide2.v | tee /tmp/a1.txt
+          coqc -q QueryProofTrace2.v | tee /tmp/a2.txt
+          grep -q "Closed under the global context" /tmp/a1.txt
+          test "$(grep -c 'Closed under the global context' /tmp/a2.txt)" = 2
+      - name: Install official Spark 4.2.0 with the AST trace and tag observer overlay
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_v20_trace_20261023/instrument_v20.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Execute the cohort in Spark (traces, tag stream, result rows)
+        run: |
+          python -B tools/queryproof_v20_trace_20261023/capture_v20.py \
+            tools/queryproof_v21_blockers_20261023/COHORT.json cohort
+      - name: Independent SQLite result-bag oracle
+        run: |
+          mkdir -p artifacts
+          python -B tools/queryproof_v17_heldout_20261021/oracle_sqlite.py \
+            tools/queryproof_v21_blockers_20261023/COHORT.json cohort artifacts/v21_oracle.json
+      - name: Per-event kernel verdicts and mutants (check4)
+        env:
+          COQC: coqc
+        run: |
+          python -B tools/queryproof_v15_deep_guard_20261021/run_v15.py cohort/*.stderr \
+            --deps QueryProofDeepWide2.v,QueryProofTrace2.v \
+            --checker check4 --sound check4_sound \
+            --printer tools/queryproof_v21_blockers_20261023/print_terms_v21.py \
+            --report artifacts/v21_events.json --keep artifacts/v21_events_coq || true
+          test -f artifacts/v21_events.json
+          python -B tools/queryproof_v19_wide_20261022/validate.py \
+            artifacts/v21_events.json artifacts/v21_events_coq/V15Kernel.v artifacts/v21_event_validation.json
+      - name: Whole-trace kernel verdicts and trace mutants
+        env:
+          COQC: coqc
+        run: |
+          python -B tools/queryproof_v21_blockers_20261023/run_trace_v21.py cohort/*.stderr \
+            --report artifacts/v21_traces.json --keep artifacts/v21_traces_coq
+          python -B tools/queryproof_v21_blockers_20261023/validate_traces.py \
+            artifacts/v21_traces.json artifacts/v21_endpoints.json
+      - name: Score the frozen hypotheses
+        run: |
+          python -B tools/queryproof_v21_blockers_20261023/summarize.py \
+            artifacts/v21_traces.json artifacts/v21_endpoints.json artifacts/v21_events.json \
+            artifacts/v21_event_validation.json artifacts/v21_oracle.json artifacts/v21_result.json
+      - name: Archive results and generated kernel-checked files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v21-blockers
+          path: |
+            artifacts/v21_result.json
+            artifacts/v21_traces.json
+            artifacts/v21_endpoints.json
+            artifacts/v21_events.json
+            artifacts/v21_event_validation.json
+            artifacts/v21_oracle.json
+            artifacts/v21_traces_coq/V20Kernel.v
+            artifacts/v21_events_coq/V15Kernel.v
+          retention-days: 90
+          if-no-files-found: warn
