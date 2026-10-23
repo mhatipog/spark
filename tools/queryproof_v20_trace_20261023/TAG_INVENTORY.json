@@ -1,0 +1,501 @@
+{
+ "FAILED_TO_EVALUATE": {
+  "vals": [
+   "FAILED_TO_EVALUATE"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\optimizer\\expressions.scala"
+  ],
+  "read_areas": {
+   "OPTIMIZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\optimizer\\expressions.scala"
+   ]
+  },
+  "write_areas": {
+   "OPTIMIZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\optimizer\\expressions.scala"
+   ]
+  }
+ },
+ "ROOT_REPARTITION": {
+  "vals": [
+   "ROOT_REPARTITION"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\optimizer\\PropagateEmptyRelation.scala"
+  ],
+  "read_areas": {
+   "AQE": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\adaptive\\AQEPropagateEmptyRelation.scala"
+   ],
+   "OPTIMIZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\optimizer\\PropagateEmptyRelation.scala"
+   ]
+  },
+  "write_areas": {
+   "OPTIMIZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\optimizer\\PropagateEmptyRelation.scala"
+   ]
+  }
+ },
+ "by_table_argument": {
+  "vals": [
+   "BY_TABLE_ARGUMENT"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\plans\\logical\\basicLogicalOperators.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\CheckAnalysis.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\Analyzer.scala"
+   ]
+  }
+ },
+ "by_table_insertion": {
+  "vals": [
+   "BY_TABLE_INSERTION"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\Cast.scala"
+  ],
+  "read_areas": {
+   "EXPRESSIONS": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\Cast.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\Analyzer.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\ResolveRowLevelCommandAssignments.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\TableOutputResolver.scala"
+   ],
+   "OTHER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\util\\PartitioningUtils.scala"
+   ]
+  }
+ },
+ "collationContext": {
+  "vals": [
+   "COLLATION_CONTEXT_TAG"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\CollationTypeCoercion.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\CollationTypeCoercion.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\CollationTypeCoercion.scala"
+   ]
+  }
+ },
+ "dataTypeMismatchError": {
+  "vals": [
+   "DATA_TYPE_MISMATCH_ERROR"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\TypeCoercionValidation.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\TypeCoercionValidation.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\TypeCoercionValidation.scala"
+   ]
+  }
+ },
+ "dataset_id": {
+  "vals": [
+   "DATASET_ID_TAG"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\classic\\Dataset.scala"
+  ],
+  "read_areas": {
+   "DATASET_API": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\classic\\Dataset.scala"
+   ],
+   "EXECUTION_OTHER": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\analysis\\DetectAmbiguousSelfJoin.scala"
+   ]
+  },
+  "write_areas": {
+   "DATASET_API": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\classic\\Dataset.scala"
+   ]
+  }
+ },
+ "functionAliasName": {
+  "vals": [
+   "FUNC_ALIAS"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\FunctionRegistry.scala"
+  ],
+  "read_areas": {
+   "EXPRESSIONS": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\ApproxTopKExpressions.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\CallMethodViaReflection.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\Expression.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\aggregate\\AnyValue.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\aggregate\\ApproxTopKAggregates.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\aggregate\\ApproximatePercentile.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\aggregate\\Average.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\aggregate\\CentralMomentAgg.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\aggregate\\Measure.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\arithmetic.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\avroSqlFunctions.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\bitwiseExpressions.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\complexTypeCreator.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\datetimeExpressions.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\mathExpressions.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\misc.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\stringExpressions.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\toFromProtobufSqlFunctions.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\xml\\xpath.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\FunctionRegistry.scala"
+   ],
+   "EXPRESSIONS": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\complexTypeCreator.scala"
+   ],
+   "OTHER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\parser\\AstBuilder.scala"
+   ]
+  }
+ },
+ "grandTotalAggregate": {
+  "vals": [
+   "GRAND_TOTAL_AGGREGATE_TAG"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\GroupingAnalyticsTransformer.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\GroupingAnalyticsTransformer.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\GroupingAnalyticsTransformer.scala"
+   ]
+  }
+ },
+ "hidden_output": {
+  "vals": [
+   "hiddenOutputTag"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\plans\\logical\\basicLogicalOperators.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ResolverGuard.scala"
+   ],
+   "LOGICAL_PLAN": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\plans\\logical\\basicLogicalOperators.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\Analyzer.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\JoinResolver.scala"
+   ]
+  }
+ },
+ "is_metadata_col": {
+  "vals": [
+   "IS_METADATA_COL"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\plans\\logical\\LogicalPlan.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\ColumnResolutionHelper.scala"
+   ]
+  },
+  "write_areas": {
+   "DATASET_API": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\classic\\columnNodeSupport.scala"
+   ]
+  }
+ },
+ "logical_plan": {
+  "vals": [
+   "LOGICAL_PLAN_TAG"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\SparkPlan.scala"
+  ],
+  "read_areas": {
+   "PLANNER": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\SparkPlan.scala"
+   ]
+  },
+  "write_areas": {}
+ },
+ "logical_plan_inherited": {
+  "vals": [
+   "LOGICAL_PLAN_INHERITED_TAG"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\SparkPlan.scala"
+  ],
+  "read_areas": {
+   "PLANNER": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\SparkPlan.scala"
+   ]
+  },
+  "write_areas": {}
+ },
+ "plan_id": {
+  "vals": [
+   "PLAN_ID_TAG"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\plans\\logical\\LogicalPlan.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\Analyzer.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\CheckAnalysis.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\ColumnResolutionHelper.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\RelationResolution.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\ResolveDataFrameDropColumns.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ResolverGuard.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\Analyzer.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\RelationResolution.scala"
+   ],
+   "DATASET_API": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\classic\\columnNodeSupport.scala"
+   ]
+  }
+ },
+ "processedJoinCondition": {
+  "vals": [
+   "processedJoinConditionTag"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\optimizer\\PushExtraPredicateThroughJoin.scala"
+  ],
+  "read_areas": {
+   "OPTIMIZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\optimizer\\PushExtraPredicateThroughJoin.scala"
+   ]
+  },
+  "write_areas": {
+   "OPTIMIZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\optimizer\\PushExtraPredicateThroughJoin.scala"
+   ]
+  }
+ },
+ "project_for_expression_id_deduplication": {
+  "vals": [
+   "PROJECT_FOR_EXPRESSION_ID_DEDUPLICATION"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ResolverTag.scala"
+  ],
+  "read_areas": {
+   "OTHER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\plans\\NormalizePlan.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\DeduplicateRelations.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\SetOperationLikeResolver.scala"
+   ]
+  }
+ },
+ "single_pass_analysis_marker": {
+  "vals": [
+   "SINGLE_PASS_ANALYSIS_MARKER"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ResolverRunner.scala"
+  ],
+  "read_areas": {},
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ResolverRunner.scala"
+   ]
+  }
+ },
+ "single_pass_is_lca": {
+  "vals": [
+   "SINGLE_PASS_IS_LCA"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ResolverTag.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\AliasResolution.scala"
+   ],
+   "EXPRESSIONS": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\namedExpressions.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ExpressionResolver.scala"
+   ]
+  }
+ },
+ "single_pass_outer_aggregate_alias_name_override": {
+  "vals": [
+   "SINGLE_PASS_OUTER_AGGREGATE_ALIAS_NAME_OVERRIDE"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\namedExpressions.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\AliasResolution.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\AggregateExpressionResolver.scala"
+   ]
+  }
+ },
+ "single_pass_sql_string_override": {
+  "vals": [
+   "SINGLE_PASS_SQL_STRING_OVERRIDE"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\namedExpressions.scala"
+  ],
+  "read_areas": {
+   "EXPRESSIONS": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\namedExpressions.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\AggregateExpressionResolver.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\NameScope.scala"
+   ]
+  }
+ },
+ "single_pass_subtree_boundary": {
+  "vals": [
+   "SINGLE_PASS_SUBTREE_BOUNDARY"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ResolverTag.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ProducesUnresolvedSubtree.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ProducesUnresolvedSubtree.scala"
+   ]
+  }
+ },
+ "temp_logical_plan": {
+  "vals": [
+   "TEMP_LOGICAL_PLAN_TAG"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\adaptive\\AdaptiveSparkPlanExec.scala"
+  ],
+  "read_areas": {
+   "AQE": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\adaptive\\AdaptiveSparkPlanExec.scala"
+   ]
+  },
+  "write_areas": {
+   "AQE": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\adaptive\\AdaptiveSparkPlanExec.scala"
+   ]
+  }
+ },
+ "top_level_operator": {
+  "vals": [
+   "TOP_LEVEL_OPERATOR"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\ResolverTag.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\JoinResolver.scala"
+   ]
+  },
+  "write_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\Resolver.scala"
+   ]
+  }
+ },
+ "user_specified_cast": {
+  "vals": [
+   "USER_SPECIFIED_CAST"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\expressions\\Cast.scala"
+  ],
+  "read_areas": {
+   "ANALYZER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\ApplyDefaultCollation.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\analysis\\resolver\\DefaultCollationTypeCoercion.scala"
+   ],
+   "OTHER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\util\\package.scala"
+   ]
+  },
+  "write_areas": {
+   "DATASET_API": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\classic\\columnNodeSupport.scala"
+   ],
+   "OTHER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\dsl\\package.scala",
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\parser\\AstBuilder.scala"
+   ]
+  }
+ },
+ "wholeStageCodegenId": {
+  "vals": [
+   "CODEGEN_ID_TAG"
+  ],
+  "defined_in": [
+   "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\plans\\QueryPlan.scala"
+  ],
+  "read_areas": {
+   "OTHER": [
+    "..\\sparksrc\\src_spark-catalyst_2.13\\org\\apache\\spark\\sql\\catalyst\\plans\\QueryPlan.scala"
+   ]
+  },
+  "write_areas": {
+   "EXECUTION_OTHER": [
+    "..\\sparksrc\\src_spark-sql_2.13\\org\\apache\\spark\\sql\\execution\\ExplainUtils.scala"
+   ]
+  }
+ }
+}

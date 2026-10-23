@@ -205,11 +205,23 @@ MUTANTS = {"wrong_guard_attribute": m_wrong_attribute,
            "swapped_guard_sides": m_swap_guards,
            "or_join_condition": m_or_condition,
            "frame_edit": m_frame_edit}
-# Families applied to accepted events of rules other than IFFC (V16).
+def m_drop_projected_column(old, new):
+    """V20: drop the last column of a Project that NEW introduced or changed."""
+    old_nodes = {json.dumps(n, sort_keys=True) for n in old}
+    for n in new:
+        if (n["class"].endswith("plans.logical.Project") and len(n["projectList"]) >= 2
+                and json.dumps(n, sort_keys=True) not in old_nodes):
+            n["projectList"] = n["projectList"][:-1]
+            return old, new
+    return None
+
+
+# Families applied to accepted events of rules other than IFFC (V16; V20 adds pruning).
 PUSH_MUTANTS = {"wrong_filter_attribute": m_wrong_attribute,
                 "drop_pushed_filter": m_drop_pushed_filter,
                 "unimplied_conjunct": m_unimplied_conjunct,
-                "frame_edit": m_frame_edit}
+                "frame_edit": m_frame_edit,
+                "drop_projected_column": m_drop_projected_column}
 
 
 # ---- Coq ----

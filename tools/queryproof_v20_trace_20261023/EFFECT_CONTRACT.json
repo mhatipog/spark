@@ -1,0 +1,44 @@
+{
+ "contract_id": "queryproof-v20-effect-contract-spark-4.2.0",
+ "source": "official spark-catalyst/spark-sql/spark-sql-api 2.13 4.2.0 sources jars from Maven Central (SHA-1 a6fd043e, ed764828, a4391d9f); read sites from TAG_INVENTORY.json plus manual inspection",
+ "statement": "The meaning (result bag) of a resolved, optimized logical plan does not depend on the hidden optimizer state listed here. Hidden state may change WHICH rewrites the optimizer or planner performs (control); that cannot affect soundness because every performed logical rewrite is certified on the observed plans. A trace is accepted only if every tag name observed on its plans is listed below, and ANSI mode is on.",
+ "trusted": [
+  "Physical planning and AQE choices (join strategy, broadcast, codegen, empty-relation propagation at runtime) are result-equivalent for a given logical plan.",
+  "The static inventory finds read sites by name; reflective, aliased or generic tag reads are not detected.",
+  "SQLConf affecting evaluation (ANSI) is unchanged during the logical optimizer run; only its value at the start is observed."
+ ],
+ "tags": {
+  "ROOT_REPARTITION":        {"class": "OPTIMIZER_CONTROL", "why": "read only by PropagateEmptyRelation (optimizer) and AQEPropagateEmptyRelation (runtime re-optimization) to decide whether to keep a root repartition"},
+  "FAILED_TO_EVALUATE":      {"class": "OPTIMIZER_CONTROL", "why": "read only by ConstantFolding (optimizer/expressions.scala) to skip re-evaluating an expression that previously failed"},
+  "processedJoinCondition":  {"class": "OPTIMIZER_CONTROL", "why": "read only by PushExtraPredicateThroughJoin to avoid re-processing a join condition"},
+  "dataset_id":              {"class": "ANALYSIS_ONLY", "why": "read by Dataset (API column resolution) and DetectAmbiguousSelfJoin (analysis-time check)"},
+  "plan_id":                 {"class": "ANALYSIS_ONLY", "why": "read only by analyzer column resolution and CheckAnalysis (Spark Connect plan ids)"},
+  "hidden_output":           {"class": "ANALYSIS_ONLY", "why": "read by Project.metadataOutput and ResolverGuard: name resolution of hidden join keys"},
+  "is_metadata_col":         {"class": "ANALYSIS_ONLY", "why": "read only by the analyzer"},
+  "by_table_argument":       {"class": "ANALYSIS_ONLY", "why": "read only by the analyzer"},
+  "by_table_insertion":      {"class": "ANALYSIS_ONLY", "why": "read in expression resolution for table insertion"},
+  "dataTypeMismatchError":   {"class": "ANALYSIS_ONLY", "why": "read only by the analyzer for error reporting"},
+  "grandTotalAggregate":     {"class": "ANALYSIS_ONLY", "why": "read only by the analyzer"},
+  "collationContext":        {"class": "ANALYSIS_ONLY", "why": "read only by CollationTypeCoercion"},
+  "single_pass_analysis_marker": {"class": "ANALYSIS_ONLY", "why": "written by the single-pass resolver, never read"},
+  "single_pass_is_lca":      {"class": "ANALYSIS_ONLY", "why": "single-pass resolver bookkeeping"},
+  "single_pass_subtree_boundary": {"class": "ANALYSIS_ONLY", "why": "single-pass resolver bookkeeping"},
+  "single_pass_outer_aggregate_alias_name_override": {"class": "ANALYSIS_ONLY", "why": "single-pass resolver alias naming"},
+  "top_level_operator":      {"class": "ANALYSIS_ONLY", "why": "single-pass resolver bookkeeping"},
+  "project_for_expression_id_deduplication": {"class": "ANALYSIS_ONLY", "why": "resolver bookkeeping for ExprId deduplication"},
+  "user_specified_cast":     {"class": "NAMING", "why": "read by default-collation analysis and usePrettyExpression (output column NAMES only)"},
+  "functionAliasName":       {"class": "NAMING", "why": "alias naming of function expressions"},
+  "single_pass_sql_string_override": {"class": "NAMING", "why": "SQL string of named expressions"},
+  "logical_plan":            {"class": "PHYSICAL_OR_DISPLAY", "why": "physical-to-logical link read by SparkPlan (UI/AQE)"},
+  "logical_plan_inherited":  {"class": "PHYSICAL_OR_DISPLAY", "why": "physical-to-logical link read by SparkPlan"},
+  "temp_logical_plan":       {"class": "PHYSICAL_OR_DISPLAY", "why": "AQE bookkeeping in AdaptiveSparkPlanExec"},
+  "wholeStageCodegenId":     {"class": "PHYSICAL_OR_DISPLAY", "why": "read only to print the codegen id in explain output (QueryPlan.scala)"}
+ },
+ "non_tag_hidden_state": {
+  "TreeNode._ineffectiveRules": {"class": "OPTIMIZER_CONTROL", "why": "protected; read only by transform*WithPruning in TreeNode/AnalysisHelper to skip rule applications"},
+  "LogicalPlanStats.statsCache": {"class": "OPTIMIZER_CONTROL", "why": "statistics for cost-based rules and physical join selection; changes plan shape, not meaning"},
+  "lazy derived values (canonicalized, resolved, constraints, output)": {"class": "DERIVED", "why": "pure functions of the plan, recomputed or cached"},
+  "SQLConf (spark.sql.ansi.enabled)": {"class": "SEMANTIC", "why": "affects evaluation (overflow, casts); required ON, observed at the start of every executor"}
+ },
+ "result_affecting_tags_found": []
+}
