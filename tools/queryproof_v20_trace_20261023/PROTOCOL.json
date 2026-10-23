@@ -12,18 +12,74 @@
   "full_trace_coverage": "certified non-empty traces / queries with at least one suffix event (UNKNOWN and rejected traces in the denominator)"
  },
  "hypotheses": {
-  "T0a_no_certified_trace_differs": {"statement": "No certified trace's endpoints differ (or are ill-scoped) in SQLite."},
-  "T0b_endpoint_evaluable_fraction": {"threshold": 0.8, "statement": "At least 80% of certified traces are evaluable by the differential."},
-  "T1_no_trace_mutant_accepted": {"primary": true, "statement": "No trace-level mutant is accepted."},
-  "T1b_trace_mutant_power": {"threshold": 100, "statement": "At least 100 trace mutants are evaluated."},
-  "E1_no_invalid_event_mutant_accepted": {"statement": "Per event (check4): no VALIDATED_WRONG or ILL_SCOPED mutant accepted."},
-  "E1b_event_mutant_power": {"threshold": 150, "statement": "At least 150 per-event mutants are VALIDATED_WRONG."},
-  "T2_connected_observation": {"statement": "0 JSON connectivity breaks and 0 kernel link failures between consecutive observed events."},
-  "T3_contract_coverage": {"statement": "No observed tag outside the contract, no ANSI-off query, no tag-observer UNKNOWN line."},
-  "T4_full_trace_coverage": {"threshold": 0.4, "statement": "At least 40% of queries with suffix events have their whole logical-optimizer trace certified."},
-  "H5_oracle_agreement": {"statement": "Spark and SQLite query result bags agree on every query both engines execute."}
+  "T0a_no_certified_trace_differs": {
+   "statement": "No certified trace's endpoints differ (or are ill-scoped) in SQLite."
+  },
+  "T0b_endpoint_evaluable_fraction": {
+   "threshold": 0.8,
+   "statement": "At least 80% of certified traces are evaluable by the differential."
+  },
+  "T1_no_trace_mutant_accepted": {
+   "primary": true,
+   "statement": "No trace-level mutant is accepted."
+  },
+  "T1b_trace_mutant_power": {
+   "threshold": 100,
+   "statement": "At least 100 trace mutants are evaluated."
+  },
+  "E1_no_invalid_event_mutant_accepted": {
+   "statement": "Per event (check4): no VALIDATED_WRONG or ILL_SCOPED mutant accepted."
+  },
+  "E1b_event_mutant_power": {
+   "threshold": 150,
+   "statement": "At least 150 per-event mutants are VALIDATED_WRONG."
+  },
+  "T2_connected_observation": {
+   "statement": "0 JSON connectivity breaks and 0 kernel link failures between consecutive observed events."
+  },
+  "T3_contract_coverage": {
+   "statement": "No observed tag outside the contract, no ANSI-off query, no tag-observer UNKNOWN line."
+  },
+  "T4_full_trace_coverage": {
+   "threshold": 0.4,
+   "statement": "At least 40% of queries with suffix events have their whole logical-optimizer trace certified."
+  },
+  "H5_oracle_agreement": {
+   "statement": "Spark and SQLite query result bags agree on every query both engines execute."
+  }
  },
- "reported_without_prediction": ["first failing rule per uncertified trace", "unprintable reasons", "per-rule event coverage under check4", "observed tag names"],
+ "reported_without_prediction": [
+  "first failing rule per uncertified trace",
+  "unprintable reasons",
+  "per-rule event coverage under check4",
+  "observed tag names"
+ ],
  "reporting": "All counts are reported whether or not thresholds are met. Failures and infrastructure reruns stay on record.",
- "frozen_git_blob_sha": {}
+ "frozen_git_blob_sha": {
+  "tools/queryproof_v20_trace_20261023/gen_cohort.py": "b1482d627fd2c7482d927f67f6006bd6cec72169",
+  "tools/queryproof_v20_trace_20261023/COHORT.json": "f260d18fbb7d9d846da00d51ab1f6b8fd6447962",
+  "tools/queryproof_v20_trace_20261023/capture_v20.py": "3b5ec804e6bee70f312043d664e665b86c7143c6",
+  "tools/queryproof_v20_trace_20261023/instrument_v20.py": "6b35804fac7ece87d742c775800bedb341ba10c5",
+  "tools/queryproof_v20_trace_20261023/run_trace.py": "afdf363c0779a88feac83f537cde1af3745bb892",
+  "tools/queryproof_v20_trace_20261023/validate_traces.py": "284b842523ebc8409994f3fee445162c6387cbdf",
+  "tools/queryproof_v20_trace_20261023/summarize.py": "d1db79873c11a78dd73b6e090c4b3dee6ccc837c",
+  "tools/queryproof_v20_trace_20261023/EFFECT_CONTRACT.json": "db0b48e8739b42b310d4d1750f200909db2f7788",
+  "tools/queryproof_v20_trace_20261023/TAG_INVENTORY.json": "38960f3a546782c68bf7e36ddb084872530b7ad2",
+  "tools/queryproof_v20_trace_20261023/tag_inventory.py": "f0445bd62ffa0ecbe24216f5c050b6600ef12949",
+  "tools/queryproof_v19_wide_20261022/gen_cohort.py": "4c91d4b3d68cf8ecf38aa38c5a39e8a7d4318258",
+  "tools/queryproof_v19_wide_20261022/print_terms_v19.py": "5cd2931fbed7133faab29a410ffe6f5517ec3520",
+  "tools/queryproof_v19_wide_20261022/differential.py": "b74b9477835cd64a157fb6e129c573b79e133be6",
+  "tools/queryproof_v19_wide_20261022/validate.py": "691ef54b2e36f544fc3e2d051324864ee17e72cf",
+  "tools/queryproof_v17_heldout_20261021/gen_cohort.py": "ed0d62ad70e65877ed982aaad4e875ea4abd04a6",
+  "tools/queryproof_v17_heldout_20261021/oracle_sqlite.py": "2c488132b4316c4282bfc8fc4abd29167d89e744",
+  "tools/queryproof_v15_deep_guard_20261021/print_terms.py": "b64895333841eba4dfa83a6f99d4e3c65be4d631",
+  "tools/queryproof_v15_deep_guard_20261021/run_v15.py": "ad34138e6289f3ba579d57c8f47a40071bff908f",
+  "tools/queryproof_instrumented/rank_ast.py": "fd27d5baa89fff73925f2a5846bbb85da01ae12c",
+  "tools/queryproof_instrumented/RuleExecutor.scala": "a4ac5ba5f280164d9b0276703c06a288bc4309b5",
+  "tools/queryproof_instrumented/build_overlay.sh": "14c632ad4d4a9d95c4800501dbd1dc6a39095e38",
+  "tools/queryproof_scopes_20261020/instrument_scopes.py": "d6c058623c7b2c92232df6d68d5cc750c07b5d56",
+  "research/queryproof/proofs/QueryProofDeepWide.v": "63077de1323504ae8a48b385f00407f5b237737f",
+  "research/queryproof/proofs/QueryProofTrace.v": "33f062804713cc3dab8317927908b32fa4b21e16",
+  ".github/workflows/queryproof-v20-trace.yml": "c46e9b3d04d745a97911a324b9864722d5b57fcc"
+ }
 }
