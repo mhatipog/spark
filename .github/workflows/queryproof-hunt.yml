@@ -1,0 +1,76 @@
+name: "QueryProof bug hunt - Spark 4.2.0 differential (full, minimal, no-codegen, SQLite)"
+on:
+  # Runs only when the run-request marker is pushed; the marker holds SEED QUERIES DATASETS.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_hunt_20261023/RUN_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-hunt
+  cancel-in-progress: false
+jobs:
+  shard:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Generate the cases from the requested seed
+        run: |
+          read SEED N DS < tools/queryproof_hunt_20261023/RUN_REQUEST
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          python -B tools/queryproof_hunt_20261023/gen_hunt.py "$SEED" "$N" cases.json "$DS"
+      - name: Run the four oracles on this shard
+        run: |
+          mkdir -p out
+          python -B tools/queryproof_hunt_20261023/run_hunt.py cases.json out/shard_${{ matrix.shard }}.json ${{ matrix.shard }} 12 2>spark.log
+          tail -n 50 spark.log | grep -v WARN || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hunt-shard-${{ matrix.shard }}
+          path: out/
+  triage:
+    needs: shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+            tools/queryproof_v22_leaves_20261023
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hunt-shard-*
+          merge-multiple: true
+          path: out
+      - name: Triage
+        run: |
+          python -B tools/queryproof_hunt_20261023/triage_hunt.py triage.json out/shard_*.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hunt-triage
+          path: |
+            triage.json
+            out/
