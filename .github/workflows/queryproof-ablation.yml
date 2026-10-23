@@ -1,0 +1,83 @@
+name: "QueryProof bug hunt - Spark 4.2.0 single-rule ablation"
+on:
+  # Runs only when the run-request marker is pushed; the marker holds SEED QUERIES DATASETS.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_hunt_20261023/ABLATION_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-ablation
+  cancel-in-progress: false
+jobs:
+  shard:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Generate the cases from the requested seed
+        run: |
+          read SEED N DS < tools/queryproof_hunt_20261023/ABLATION_REQUEST
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          python -B tools/queryproof_hunt_20261023/gen_hunt.py "$SEED" "$N" cases.json "$DS"
+      - name: Exclude each rule of this shard on its own
+        run: |
+          mkdir -p out
+          python -B tools/queryproof_hunt_20261023/run_ablation.py cases.json out/ablation_${{ matrix.shard }}.json ${{ matrix.shard }} 12 2>spark.log
+          tail -n 50 spark.log | grep -v WARN || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ablation-shard-${{ matrix.shard }}
+          path: out/
+  triage:
+    needs: shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ablation-shard-*
+          merge-multiple: true
+          path: out
+      - name: Merge
+        run: |
+          python - <<'PY'
+          import json, glob
+          from collections import Counter
+          fs = [json.load(open(p)) for p in sorted(glob.glob("out/ablation_*.json"))]
+          findings = [f for d in fs for f in d["findings"]]
+          summary = {"rules": sum(d["summary"]["rules"] for d in fs), "runs": sum(d["summary"]["runs"] for d in fs),
+                     "findings": len(findings),
+                     "by_rule": dict(Counter(f["rule"].rsplit(".", 1)[-1] + ":" + f["kind"] for f in findings))}
+          json.dump({"summary": summary, "findings": findings}, open("ablation.json", "w"), indent=1)
+          print("QUERYPROOF_ABLATION_ALL", json.dumps(summary, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ablation-merged
+          path: ablation.json
