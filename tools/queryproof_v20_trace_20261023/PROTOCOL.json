@@ -60,7 +60,7 @@
   "tools/queryproof_v20_trace_20261023/COHORT.json": "f260d18fbb7d9d846da00d51ab1f6b8fd6447962",
   "tools/queryproof_v20_trace_20261023/capture_v20.py": "3b5ec804e6bee70f312043d664e665b86c7143c6",
   "tools/queryproof_v20_trace_20261023/instrument_v20.py": "6b35804fac7ece87d742c775800bedb341ba10c5",
-  "tools/queryproof_v20_trace_20261023/run_trace.py": "afdf363c0779a88feac83f537cde1af3745bb892",
+  "tools/queryproof_v20_trace_20261023/run_trace.py": "0163759f58acc526693605423bc4fe7efb97bb1e",
   "tools/queryproof_v20_trace_20261023/validate_traces.py": "284b842523ebc8409994f3fee445162c6387cbdf",
   "tools/queryproof_v20_trace_20261023/summarize.py": "d1db79873c11a78dd73b6e090c4b3dee6ccc837c",
   "tools/queryproof_v20_trace_20261023/EFFECT_CONTRACT.json": "db0b48e8739b42b310d4d1750f200909db2f7788",
