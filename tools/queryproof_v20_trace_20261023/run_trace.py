@@ -179,6 +179,10 @@ def main():
         # (name, list of event terms) for every trace and trace-level mutant
         traces = []
         for qi, q in enumerate(queries):
+            if q["printed"] == []:
+                # No effective optimizer event: the plan is unchanged (trivially
+                # certified; counted separately from non-empty certified traces).
+                q.update(trace_ok=True, event_ok=[], links_ok=[])
             if not q["printed"]:
                 continue
             terms = [ev_term(o, e["hb"], n, e["ha"]) for (o, n), e in zip(q["printed"], q["events"])]
