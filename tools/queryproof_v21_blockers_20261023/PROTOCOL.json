@@ -57,5 +57,30 @@
  ],
  "reporting": "All counts are reported whether or not thresholds are met. Failures and infrastructure reruns stay on record.",
  "printer": "tools/queryproof_v21_blockers_20261023/print_terms_v21.py: Distinct(q) and Aggregate(A, A, q) (grouping-only, attribute references, A subset of q.output) both print as the reserved opaque dedup operator over Project(A, q). This operator identification is TRUSTED.",
- "frozen_git_blob_sha": {}
+ "frozen_git_blob_sha": {
+  "tools/queryproof_v21_blockers_20261023/gen_cohort.py": "4eae205408eeedc7f57f195331500198f04f6cd2",
+  "tools/queryproof_v21_blockers_20261023/COHORT.json": "9869ee97620f9c0925603bad9dc0d72d5675a6b2",
+  "tools/queryproof_v21_blockers_20261023/print_terms_v21.py": "8d13274a7e8180b3643e3e6723be549e0a04ecca",
+  "tools/queryproof_v21_blockers_20261023/run_trace_v21.py": "bb6a7b0f3869ce9b91f059ca937322db0d9482f9",
+  "tools/queryproof_v21_blockers_20261023/validate_traces.py": "3685f7741c3ef2a92ea935db21bb1585a337b0db",
+  "tools/queryproof_v21_blockers_20261023/summarize.py": "715ac0ad443ba2f89cd4fd3c2c4cac39730d5f91",
+  "tools/queryproof_v20_trace_20261023/capture_v20.py": "3b5ec804e6bee70f312043d664e665b86c7143c6",
+  "tools/queryproof_v20_trace_20261023/instrument_v20.py": "6b35804fac7ece87d742c775800bedb341ba10c5",
+  "tools/queryproof_v20_trace_20261023/EFFECT_CONTRACT.json": "db0b48e8739b42b310d4d1750f200909db2f7788",
+  "tools/queryproof_v20_trace_20261023/TAG_INVENTORY.json": "38960f3a546782c68bf7e36ddb084872530b7ad2",
+  "tools/queryproof_v19_wide_20261022/gen_cohort.py": "4c91d4b3d68cf8ecf38aa38c5a39e8a7d4318258",
+  "tools/queryproof_v19_wide_20261022/differential.py": "b74b9477835cd64a157fb6e129c573b79e133be6",
+  "tools/queryproof_v19_wide_20261022/validate.py": "691ef54b2e36f544fc3e2d051324864ee17e72cf",
+  "tools/queryproof_v17_heldout_20261021/gen_cohort.py": "ed0d62ad70e65877ed982aaad4e875ea4abd04a6",
+  "tools/queryproof_v17_heldout_20261021/oracle_sqlite.py": "2c488132b4316c4282bfc8fc4abd29167d89e744",
+  "tools/queryproof_v15_deep_guard_20261021/print_terms.py": "b64895333841eba4dfa83a6f99d4e3c65be4d631",
+  "tools/queryproof_v15_deep_guard_20261021/run_v15.py": "ad34138e6289f3ba579d57c8f47a40071bff908f",
+  "tools/queryproof_instrumented/rank_ast.py": "fd27d5baa89fff73925f2a5846bbb85da01ae12c",
+  "tools/queryproof_instrumented/RuleExecutor.scala": "a4ac5ba5f280164d9b0276703c06a288bc4309b5",
+  "tools/queryproof_instrumented/build_overlay.sh": "14c632ad4d4a9d95c4800501dbd1dc6a39095e38",
+  "tools/queryproof_scopes_20261020/instrument_scopes.py": "d6c058623c7b2c92232df6d68d5cc750c07b5d56",
+  "research/queryproof/proofs/QueryProofDeepWide2.v": "0fb2f6403e5c5b8e6eb1baa3b9b4d1eef58aa89a",
+  "research/queryproof/proofs/QueryProofTrace2.v": "7ea0eaeec0e3c8418781571f89bffd91f71315c7",
+  ".github/workflows/queryproof-v21-blockers.yml": "cacd2dc705462a82543d598cca64318399ed0ee1"
+ }
 }
