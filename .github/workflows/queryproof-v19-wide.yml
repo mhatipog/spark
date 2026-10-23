@@ -1,4 +1,4 @@
-name: QueryProof V19 frozen held-out cohort: wider grammar and unified join law
+name: "QueryProof V19 frozen held-out cohort - wider grammar and unified join law"
 on:
   # Runs only when the separate run-request marker (outside the frozen set) is pushed.
   push:
