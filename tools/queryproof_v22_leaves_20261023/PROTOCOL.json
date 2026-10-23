@@ -1,0 +1,64 @@
+{
+ "protocol_id": "queryproof-v22-leaves-heldout-20261023",
+ "nature": "PROSPECTIVE held-out cohort (seed 20261026, 150 queries, fresh data, V19 templates). Generated from the seed and frozen by git blob SHA before any Spark, Coq or SQLite execution of these queries.",
+ "question": "(1) Close the leaf data-identity hole: TreeNode JSON erases LogicalRDD.rdd and LocalRelation.data, so leaves are now identified by observed fingerprints. (2) Certify ColumnPruning under opaque operators by giving opaque operators read-restricted semantics. Does whole-trace coverage rise, with no loss of safety?",
+ "checker": "QueryProofTrace3.v over QueryProofDeepWide3.v (copies; V21 stays frozen): POp1 k out reads p, with eval = normalize out (ops k out (normalize reads (eval p))); pruning under an opaque operator certified as equality on its read columns. check3_sound, check4_sound and trace_sound are closed under the global context.",
+ "effect_contract": "Unchanged V20 EFFECT_CONTRACT.json and TAG_INVENTORY.json.",
+ "unit_trace": "all effective events of the logical optimizer executor after Finish Analysis, for one query, with tag names before and after each event",
+ "definitions": {
+  "CERTIFIED trace": "kernel-checked Example trace_ok ok_tag evs = true",
+  "trace mutant": "drop_middle_event, leaf_data_swap (identical plan JSON, one leaf with different observed data), swap_adjacent_events, unknown_tag, splice_<family> (a corrupted rewrite spliced in with connectivity preserved). Each violates a trace_ok condition by construction; accepting one is a safety failure",
+  "endpoint differential": "the V19 SQLite differential on (first plan, last plan) of each certified trace",
+  "full_trace_coverage": "certified non-empty traces / queries with at least one suffix event (UNKNOWN and rejected traces in the denominator)"
+ },
+ "hypotheses": {
+  "T0a_no_certified_trace_differs": {
+   "statement": "No certified trace's endpoints differ (or are ill-scoped) in SQLite."
+  },
+  "T0b_endpoint_evaluable_fraction": {
+   "threshold": 0.8,
+   "statement": "At least 80% of certified traces are evaluable by the differential."
+  },
+  "T1_no_trace_mutant_accepted": {
+   "primary": true,
+   "statement": "No trace-level mutant is accepted."
+  },
+  "T1b_trace_mutant_power": {
+   "threshold": 100,
+   "statement": "At least 100 trace mutants are evaluated."
+  },
+  "E1_no_invalid_event_mutant_accepted": {
+   "statement": "Per event (check4): no VALIDATED_WRONG or ILL_SCOPED mutant accepted."
+  },
+  "E1b_event_mutant_power": {
+   "threshold": 150,
+   "statement": "At least 150 per-event mutants are VALIDATED_WRONG."
+  },
+  "T2_connected_observation": {
+   "statement": "0 JSON connectivity breaks and 0 kernel link failures between consecutive observed events."
+  },
+  "T3_contract_coverage": {
+   "statement": "No observed tag outside the contract, no ANSI-off query, no tag-observer UNKNOWN line."
+  },
+  "T4_full_trace_coverage": {
+   "threshold": 0.78,
+   "statement": "At least 78% of queries with suffix events have their whole logical-optimizer trace certified (V21 cohort: 0.755)."
+  },
+  "H5_oracle_agreement": {
+   "statement": "Spark and SQLite query result bags agree on every query both engines execute."
+  },
+  "T5_leaf_identity_observed": {
+   "statement": "No trace is unprintable because a leaf's data identity was unobserved."
+  }
+ },
+ "reported_without_prediction": [
+  "first failing rule per uncertified trace",
+  "unprintable reasons",
+  "per-rule event coverage under check4",
+  "observed tag names",
+  "exact SQL overlap with the V17-V21 cohorts"
+ ],
+ "reporting": "All counts are reported whether or not thresholds are met. Failures and infrastructure reruns stay on record.",
+ "printer": "tools/queryproof_v22_leaves_20261023/print_terms_v22.py: leaves REQUIRE an observed data identity (instrument_v22.py emits LogicalRDD id and LocalRelation row hash; attach_leaf_ids.py injects it), refused otherwise; opaque reads = attributes referenced in the node plus pass-through child columns (TRUSTED extraction); V21 dedup identification kept (TRUSTED).",
+ "frozen_git_blob_sha": {}
+}

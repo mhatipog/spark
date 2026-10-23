@@ -1,0 +1,110 @@
+name: "QueryProof V22 frozen held-out cohort - leaf identity and opaque-read pruning"
+on:
+  # Runs only when the separate run-request marker (outside the frozen set) is pushed.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_v22_leaves_20261023/RUN_REQUEST
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-v22-leaves
+  cancel-in-progress: false
+jobs:
+  heldout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            research/queryproof/proofs
+            tools/queryproof_v22_leaves_20261023
+            tools/queryproof_v21_blockers_20261023
+            tools/queryproof_v20_trace_20261023
+            tools/queryproof_v19_wide_20261022
+            tools/queryproof_v17_heldout_20261021
+            tools/queryproof_v15_deep_guard_20261021
+            tools/queryproof_instrumented
+            tools/queryproof_scopes_20261020
+            .github/workflows/queryproof-v22-leaves.yml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify every frozen component and regenerate the cohort from its seed
+        run: |
+          echo "QUERYPROOF_V22_RUN_COMMIT=${GITHUB_SHA}"
+          python -B tools/queryproof_v22_leaves_20261023/freeze.py verify
+      - name: Install Coq 8.18 and check the V22 theorems are axiom-free
+        run: |
+          command -v coqc || { sudo apt-get update -qq && sudo apt-get install -y -qq coq; }
+          coqc --version
+          cd research/queryproof/proofs
+          coqc -q QueryProofDeepWide3.v | tee /tmp/a1.txt
+          coqc -q QueryProofTrace3.v | tee /tmp/a2.txt
+          grep -q "Closed under the global context" /tmp/a1.txt
+          test "$(grep -c 'Closed under the global context' /tmp/a2.txt)" = 2
+      - name: Install official Spark 4.2.0 with the AST trace and tag observer overlay
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          python -B tools/queryproof_scopes_20261020/instrument_scopes.py
+          python -B tools/queryproof_v20_trace_20261023/instrument_v20.py
+          python -B tools/queryproof_v22_leaves_20261023/instrument_v22.py
+          bash tools/queryproof_instrumented/build_overlay.sh
+      - name: Execute the cohort in Spark (traces, tag and leaf streams, result rows)
+        run: |
+          python -B tools/queryproof_v22_leaves_20261023/capture_v22.py \
+            tools/queryproof_v22_leaves_20261023/COHORT.json cohort_raw
+          python -B tools/queryproof_v22_leaves_20261023/attach_leaf_ids.py cohort_raw cohort
+      - name: Independent SQLite result-bag oracle
+        run: |
+          mkdir -p artifacts
+          python -B tools/queryproof_v17_heldout_20261021/oracle_sqlite.py \
+            tools/queryproof_v22_leaves_20261023/COHORT.json cohort artifacts/v22_oracle.json
+      - name: Per-event kernel verdicts and mutants (check4)
+        env:
+          COQC: coqc
+        run: |
+          python -B tools/queryproof_v15_deep_guard_20261021/run_v15.py cohort/*.stderr \
+            --deps QueryProofDeepWide3.v,QueryProofTrace3.v \
+            --checker check4 --sound check4_sound \
+            --printer tools/queryproof_v22_leaves_20261023/print_terms_v22.py \
+            --report artifacts/v22_events.json --keep artifacts/v22_events_coq || true
+          test -f artifacts/v22_events.json
+          python -B tools/queryproof_v22_leaves_20261023/validate.py \
+            artifacts/v22_events.json artifacts/v22_events_coq/V15Kernel.v artifacts/v22_event_validation.json
+      - name: Whole-trace kernel verdicts and trace mutants
+        env:
+          COQC: coqc
+        run: |
+          python -B tools/queryproof_v22_leaves_20261023/run_trace_v22.py cohort/*.stderr \
+            --report artifacts/v22_traces.json --keep artifacts/v22_traces_coq
+          python -B tools/queryproof_v22_leaves_20261023/validate_traces.py \
+            artifacts/v22_traces.json artifacts/v22_endpoints.json
+      - name: Score the frozen hypotheses
+        run: |
+          python -B tools/queryproof_v22_leaves_20261023/summarize.py \
+            artifacts/v22_traces.json artifacts/v22_endpoints.json artifacts/v22_events.json \
+            artifacts/v22_event_validation.json artifacts/v22_oracle.json artifacts/v22_result.json
+      - name: Archive results and generated kernel-checked files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queryproof-v22-leaves
+          path: |
+            artifacts/v22_result.json
+            artifacts/v22_traces.json
+            artifacts/v22_endpoints.json
+            artifacts/v22_events.json
+            artifacts/v22_event_validation.json
+            artifacts/v22_oracle.json
+            artifacts/v22_traces_coq/V20Kernel.v
+            artifacts/v22_events_coq/V15Kernel.v
+          retention-days: 90
+          if-no-files-found: warn
