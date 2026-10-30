@@ -1,0 +1,46 @@
+name: "QueryProof bug hunt - repeat one case"
+on:
+  # The marker holds GENERATOR_COMMIT GENERATOR SEED N DATASETS CASE_ID DATASET REPEATS.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_hunt_20261023/REPEAT_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-repeat
+  cancel-in-progress: false
+jobs:
+  repeat:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Regenerate the cases with the generator as it was at the hunt commit
+        run: |
+          read COMMIT GEN SEED N DS CASE D REP < tools/queryproof_hunt_20261023/REPEAT_REQUEST
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          git show "$COMMIT:tools/queryproof_hunt_20261023/$GEN" > gen_at_commit.py
+          python -B gen_at_commit.py "$SEED" "$N" cases.json "$DS"
+          echo "CASE=$CASE" >> "$GITHUB_ENV"; echo "D=$D" >> "$GITHUB_ENV"; echo "REP=$REP" >> "$GITHUB_ENV"
+      - name: Repeat
+        run: |
+          nproc
+          python -B tools/queryproof_hunt_20261023/repeat_case.py cases.json "$CASE" "$D" "$REP" repeat.json 2>spark.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repeat
+          path: repeat.json

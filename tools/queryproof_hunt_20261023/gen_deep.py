@@ -257,7 +257,8 @@ class Gen:
         sel = ", ".join(f"{e} AS c{i}" for i, (e, _) in enumerate(refs))
         order = ", ".join(f"{e} NULLS FIRST" for e, _ in refs)
         where = f" WHERE {self.pred(refs, 0)}" if self.rng.random() < 0.4 else ""
-        off = f" OFFSET {self.rng.randint(0, 3)}" if self.rng.random() < 0.4 else ""
+        # OFFSET 0 is left out: under MINIMAL it only rediscovers SPARK-59044.
+        off = f" OFFSET {self.rng.randint(1, 3)}" if self.rng.random() < 0.4 else ""
         return (f"SELECT {sel} FROM {r['sql']} {a}{where} ORDER BY {order} LIMIT {self.rng.randint(0, 6)}{off}",
                 [(f"c{i}", ty) for i, (_, ty) in enumerate(refs)])
 
