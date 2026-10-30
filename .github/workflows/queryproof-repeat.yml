@@ -43,4 +43,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: repeat
-          path: repeat.json
+          path: |
+            repeat.json
+            spark.log

@@ -19,7 +19,11 @@ P = "org.apache.spark.sql.catalyst.optimizer."
 def main(cases_path, case_id, ds, repeats, out_path):
     case = next(c for c in json.loads(open(cases_path).read())["cases"] if c["id"] == case_id)
     spark = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false")
-             .config("spark.sql.shuffle.partitions", "2").getOrCreate())
+             .config("spark.sql.shuffle.partitions", "2")
+             # log every plan change made by AQE's OptimizeOneRowPlan (stderr)
+             .config("spark.sql.planChangeLog.level", "WARN")
+             .config("spark.sql.planChangeLog.rules", P + "OptimizeOneRowPlan")
+             .getOrCreate())
     for name, t in case["datasets"][int(ds)].items():
         spark.createDataFrame([tuple(r) for r in t["rows"]], spark_schema(t)).createOrReplaceTempView(name)
     opt = spark._jsparkSession.sessionState().optimizer()
