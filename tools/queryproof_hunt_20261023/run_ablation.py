@@ -13,7 +13,7 @@ from collections import Counter
 
 from pyspark.sql import SparkSession
 
-from run_hunt import bag, spark_rows
+from run_hunt import bag, spark_rows, spark_schema
 
 KNOWN = {  # upstream issues already reported for this exact configuration
     "org.apache.spark.sql.catalyst.optimizer.RewriteWithExpression": "SPARK-59019 (fixed on master)",
@@ -45,8 +45,7 @@ def main(cases_path, out_path, shard=0, count=1):
     reference, findings, ran = {}, [], Counter()
     for key, group in by_dataset.items():
         for name, t in json.loads(key).items():
-            schema = ", ".join(f"{c['name']} int" for c in t["columns"])
-            spark.createDataFrame([tuple(r) for r in t["rows"]], schema).createOrReplaceTempView(name)
+            spark.createDataFrame([tuple(r) for r in t["rows"]], spark_schema(t)).createOrReplaceTempView(name)
         for case in group:
             spark.conf.unset("spark.sql.optimizer.excludedRules")
             reference[case["id"]] = spark_rows(spark, case["sql"])

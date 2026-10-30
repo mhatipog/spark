@@ -13,7 +13,7 @@ from collections import Counter
 
 import duckdb
 
-from run_hunt import bag, sqlite_rows
+from run_hunt import bag, sql_type, sqlite_rows
 
 
 def duck_rows(con, sql):
@@ -26,7 +26,8 @@ def duck_rows(con, sql):
 def load(con, dataset):
     for name, t in dataset.items():
         cols = [c["name"] for c in t["columns"]]
-        con.execute(f"CREATE OR REPLACE TABLE {name} ({', '.join(c + ' INTEGER' for c in cols)})")
+        types = ", ".join(c["name"] + " " + sql_type(c, "duckdb") for c in t["columns"])
+        con.execute(f"CREATE OR REPLACE TABLE {name} ({types})")
         if t["rows"]:
             con.executemany(f"INSERT INTO {name} VALUES ({', '.join('?' * len(cols))})", t["rows"])
 
@@ -44,7 +45,8 @@ def main(cases_path, out_path):
             con.execute("PRAGMA disable_optimizer")
             noopt = duck_rows(con, case["sql"])
             con.execute("PRAGMA enable_optimizer")
-            lite = sqlite_rows(dataset, case["sql"])
+            lite = (sqlite_rows(dataset, case["sql"]) if case.get("sqlite", True)
+                    else {"error": "skipped: Spark-only case"})
             run = {"dataset": d, "full": full.get("error", "ok"), "noopt": noopt.get("error", "ok"),
                    "sqlite": lite.get("error", "ok")}
             run["full_vs_noopt"] = bag(full["rows"]) == bag(noopt["rows"]) if "rows" in full and "rows" in noopt else None

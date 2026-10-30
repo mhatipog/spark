@@ -28,6 +28,17 @@ def bag(rows):
     return Counter(tuple(r) for r in rows)
 
 
+def sql_type(column, engine):
+    """Column type for the engine: integer by default, string when declared."""
+    if column.get("type") == "string":
+        return "string" if engine == "spark" else "TEXT"
+    return "int" if engine == "spark" else "INTEGER"
+
+
+def spark_schema(t):
+    return ", ".join(f"{c['name']} {sql_type(c, 'spark')}" for c in t["columns"])
+
+
 def spark_rows(spark, sql):
     try:
         return {"rows": [list(r) for r in spark.sql(sql).collect()]}
@@ -39,7 +50,7 @@ def sqlite_rows(dataset, sql):
     db = sqlite3.connect(":memory:")
     for name, t in dataset.items():
         cols = [c["name"] for c in t["columns"]]
-        db.execute(f"CREATE TABLE {name} ({', '.join(c + ' INTEGER' for c in cols)})")
+        db.execute(f"CREATE TABLE {name} ({', '.join(c['name'] + ' ' + sql_type(c, 'sqlite') for c in t['columns'])})")
         if t["rows"]:
             db.executemany(f"INSERT INTO {name} VALUES ({', '.join('?' * len(cols))})", t["rows"])
     try:
@@ -75,8 +86,7 @@ def main(cases_path, out_path, shard=0, count=1):
         rec = {"id": case["id"], "family": case["family"], "sql": case["sql"], "runs": []}
         for d, dataset in enumerate(case["datasets"]):
             for name, t in dataset.items():
-                schema = ", ".join(f"{c['name']} int" for c in t["columns"])
-                spark.createDataFrame([tuple(r) for r in t["rows"]], schema).createOrReplaceTempView(name)
+                spark.createDataFrame([tuple(r) for r in t["rows"]], spark_schema(t)).createOrReplaceTempView(name)
             trace = bool(overlay) and d == 0
             jvm.java.lang.System.setProperty("queryproof.query.id", case["id"])
             jvm.java.lang.System.setProperty("queryproof.ast.enabled", "true" if trace else "false")
@@ -91,7 +101,8 @@ def main(cases_path, out_path, shard=0, count=1):
             out["nocodegen"] = spark_rows(spark, case["sql"])
             spark.conf.unset("spark.sql.codegen.wholeStage")
             spark.conf.unset("spark.sql.codegen.factoryMode")
-            out["sqlite"] = sqlite_rows(dataset, case["sql"])
+            out["sqlite"] = (sqlite_rows(dataset, case["sql"]) if case.get("sqlite", True)
+                             else {"error": "skipped: Spark-only case"})
             run = {"dataset": d}
             for label, res in out.items():
                 run[label] = res.get("error", "ok")
