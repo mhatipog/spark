@@ -36,7 +36,9 @@ def main(cases_path, case_id, ds, repeats, out_path):
     for opt_label, excl in (("full", None), ("minimal", minimal)):
         for extra_label, extra in (("", {}), ("+aqe_off", {"spark.sql.adaptive.enabled": "false"}),
                                    ("+sp1", {"spark.sql.shuffle.partitions": "1"}),
-                                   ("+sp8", {"spark.sql.shuffle.partitions": "8"})):
+                                   ("+sp8", {"spark.sql.shuffle.partitions": "8"}),
+                                   ("+no_aqe_one_row", {"spark.sql.adaptive.optimizer.excludedRules":
+                                                        P + "OptimizeOneRowPlan"})):
             configs[opt_label + extra_label] = (excl, extra)
     report = {}
     for label, (excl, extra) in configs.items():
