@@ -1,4 +1,4 @@
-name: "QueryProof bug hunt - DPP through UNION with whole-stage codegen off, across Spark versions"
+name: "QueryProof bug hunt - reproductions across Spark versions (DPP through UNION, CBO FilterEstimation)"
 on:
   # The marker's content is ignored; pushing it runs the matrix.
   push:
@@ -37,6 +37,7 @@ jobs:
           python -m pip install --disable-pip-version-check --no-cache-dir "${{ matrix.pyspark }}"
           python -c "import pyspark; print('PYSPARK', pyspark.__version__)"
           python -B tools/queryproof_hunt_20261023/dpp_probe.py dpp.json 2>dpp.log || { grep -v ' WARN ' dpp.log | tail -40; exit 1; }
+          python -B tools/queryproof_hunt_20261023/cbo_final.py 2>cbo.log || { grep -v ' WARN ' cbo.log | tail -40; exit 1; }
   master:
     # Builds apache/spark master from source (about 40 minutes) and runs the same probe.
     runs-on: ubuntu-latest
@@ -72,3 +73,4 @@ jobs:
           python -m pip install --disable-pip-version-check --no-cache-dir 'pyarrow>=18' pandas numpy
           python -c "import pyspark; print('PYSPARK', pyspark.__version__)"
           python -B qp/tools/queryproof_hunt_20261023/dpp_probe.py dpp.json 2>dpp.log || { grep -v ' WARN ' dpp.log | tail -60; exit 1; }
+          python -B qp/tools/queryproof_hunt_20261023/cbo_final.py 2>cbo.log || { grep -v ' WARN ' cbo.log | tail -60; exit 1; }
