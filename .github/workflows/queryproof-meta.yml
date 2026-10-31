@@ -1,6 +1,6 @@
 name: "QueryProof bug hunt - metamorphic configurations over partitioned Parquet"
 on:
-  # The marker holds SEED QUERIES DATASETS LQS_PATCH (none | spark-57956) [VARIANTS (wide)].
+  # The marker holds SEED QUERIES DATASETS LQS_PATCH (none | spark-57956) [VARIANTS (wide | feat) [GENERATOR]].
   push:
     branches:
       - research/queryproof-phase-local-independent-20261020
@@ -34,11 +34,11 @@ jobs:
           java-version: '17'
       - name: Install PySpark 4.2.1 and DuckDB; optionally apply the SPARK-57956 fix
         run: |
-          read SEED N DS PATCH VAR < tools/queryproof_hunt_20261023/META_REQUEST
+          read SEED N DS PATCH VAR GEN < tools/queryproof_hunt_20261023/META_REQUEST
           echo "QP_VARIANTS=$VAR" >> "$GITHUB_ENV"
           python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.1 duckdb==2.0.0
           if [ "$PATCH" = "spark-57956" ]; then bash tools/queryproof_hunt_20261023/patch_lqs.sh; fi
-          cd tools/queryproof_hunt_20261023 && python -B gen_rich.py "$SEED" "$N" ../../cases.json "$DS"
+          cd tools/queryproof_hunt_20261023 && python -B "${GEN:-gen_rich.py}" "$SEED" "$N" ../../cases.json "$DS"
       - name: Run every configuration on this shard
         run: |
           mkdir -p out

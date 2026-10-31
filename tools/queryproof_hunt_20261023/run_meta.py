@@ -77,12 +77,23 @@ WIDE_VARIANTS = {
     "no_reuse_no_codegen_no_dpp": {"spark.sql.exchange.reuse": "false", "spark.sql.execution.reuseSubquery": "false",
                                    **NO_CG, "spark.sql.optimizer.dynamicPartitionPruning.enabled": "false"},
 }
+# Third set (QP_VARIANTS=feat): the base set plus nested-type reader and pruning switches.
+FEAT_VARIANTS = {
+    **VARIANTS,
+    "no_nested_vectorized": {"spark.sql.parquet.enableNestedColumnVectorizedReader": "false"},
+    "no_nested_predicate_pushdown": {"spark.sql.optimizer.nestedPredicatePushdownSupportedFileSources": ""},
+    "no_nested_expr_pruning": {"spark.sql.optimizer.expression.nestedPruning.enabled": "false"},
+    "no_codegen_no_dpp": WIDE_VARIANTS["no_codegen_no_dpp"],
+}
 if os.environ.get("QP_VARIANTS") == "wide":
     VARIANTS = WIDE_VARIANTS
+elif os.environ.get("QP_VARIANTS") == "feat":
+    VARIANTS = FEAT_VARIANTS
 KNOWN_SIGNATURES = {"has not finished": "DPP-through-UNION interpreted Filter (this hunt; unreported)"}
 LAYOUT = {"ta": ("partition", "a"), "tb": ("partition", "a"), "te": ("partition", "k"),
-          "tc": ("bucket", "k"), "td": ("plain", None)}
-SPARK_TYPES = {"integer": "int", "string": "string", "decimal(5,2)": "decimal(5,2)", "date": "date"}
+          "tc": ("bucket", "k"), "td": ("plain", None), "tf": ("partition", "k")}
+SPARK_TYPES = {"integer": "int", "string": "string", "decimal(5,2)": "decimal(5,2)", "date": "date",
+               "struct<x:int,y:string>": "struct<x:int,y:string>", "array<int>": "array<int>"}
 SQL_TYPES = {"integer": "INTEGER", "string": "TEXT", "decimal(5,2)": "DECIMAL(5,2)", "date": "DATE"}
 
 
@@ -93,6 +104,8 @@ def py_value(v, ty):
         return Decimal(v)
     if ty == "date":
         return datetime.date.fromisoformat(v)
+    if ty.startswith("struct<"):
+        return tuple(v)
     return v
 
 
@@ -114,6 +127,9 @@ def write_tables(spark, dataset):
             w = w.bucketBy(2, col).sortBy(col)
         w.saveAsTable(name)
         spark.sql(f"ANALYZE TABLE {name} COMPUTE STATISTICS FOR ALL COLUMNS")
+    if "tf" in dataset:  # VARIANT table derived from tf.js (gen_feat.py)
+        spark.sql("DROP TABLE IF EXISTS tv")
+        spark.sql("CREATE TABLE tv USING parquet AS SELECT k, parse_json(js) AS v FROM tf WHERE js IS NOT NULL")
 
 
 def duck_rows(dataset, sql):
@@ -153,6 +169,33 @@ def spark_rows(spark, sql):
             c = c.getCause()
         root = (c.toString() if c is not None else type(exc).__name__ + ": " + str(exc)).split("\n")[0]
         return {"error": root[:300]}
+
+
+def materialized_checks(spark, case):
+    """Default-configuration oracles that need no second engine.
+
+    norec      COUNT(*) WHERE p  vs  SUM(CASE WHEN p THEN 1 ELSE 0 END) over the same query
+    mat_filter Q's rows filtered by p with p pushed into Q, vs the same filter over Q's
+               result pinned with localCheckpoint (the optimizer cannot cross it)
+    mat_agg    COUNT(*), COUNT(DISTINCT c0), MIN/MAX(c0) likewise
+    Each returns rows from both sides; the caller compares the "pushed" side to "pinned".
+    """
+    q, p = case["sql"], case["tlp"]
+    out = {}
+    try:
+        pinned = spark.sql(q).localCheckpoint(eager=True)
+    except Exception as exc:  # noqa: BLE001
+        return {"mat_error": str(exc).split("\n")[0][:200]}
+    pinned.createOrReplaceTempView("qp_pinned")
+    out["norec"] = (spark_rows(spark, f"SELECT COUNT(*) FROM ({q}) t WHERE {p}"),
+                    spark_rows(spark, f"SELECT COALESCE(SUM(CASE WHEN {p} THEN 1 ELSE 0 END), 0) FROM ({q}) t"))
+    out["mat_filter"] = (spark_rows(spark, f"SELECT * FROM ({q}) t WHERE {p}"),
+                         spark_rows(spark, f"SELECT * FROM qp_pinned t WHERE {p}"))
+    agg = "COUNT(*), COUNT(DISTINCT t.c0), MIN(t.c0), MAX(t.c0)"
+    out["mat_agg"] = (spark_rows(spark, f"SELECT {agg} FROM ({q}) t"),
+                      spark_rows(spark, f"SELECT {agg} FROM qp_pinned t"))
+    spark.catalog.dropTempView("qp_pinned")
+    return out
 
 
 def tlp_sql(case):
@@ -207,6 +250,18 @@ def main(cases_path, out_path, shard=0, count=1):
                     diff.append(name + (":known_error" if known else ":error"))
                 elif "rows" not in ref and "rows" in res and name not in ("duckdb", "sqlite", "tlp"):
                     diff.append(name + ":succeeds")
+            if "rows" in ref:
+                for name, pair in materialized_checks(spark, case).items():
+                    if name == "mat_error":
+                        diff.append("mat:error")
+                        out["mat"] = {"error": pair}
+                        continue
+                    pushed, pinned = pair
+                    out[name] = {"pushed": pushed, "pinned": pinned}
+                    if "rows" in pushed and "rows" in pinned and bag(pushed["rows"]) != bag(pinned["rows"]):
+                        diff.append(name)
+                    elif ("rows" in pushed) != ("rows" in pinned):
+                        diff.append(name + ":error")
             for n in diff:
                 counts["diff:" + n] += 1
             if diff:
