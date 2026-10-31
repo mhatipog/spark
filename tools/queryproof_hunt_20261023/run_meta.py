@@ -187,7 +187,11 @@ def materialized_checks(spark, case):
     q, p = case["sql"], case["tlp"]
     out = {}
     try:
-        pinned = spark.sql(q).localCheckpoint(eager=True)
+        # A fresh DataFrame from the collected rows: as opaque to the optimizer as a
+        # checkpoint, without leaving persisted blocks behind (localCheckpoint ran a shard
+        # out of driver heap after a few hundred cases).
+        df = spark.sql(q)
+        pinned = spark.createDataFrame(df.collect(), df.schema)
     except Exception as exc:  # noqa: BLE001
         return {"mat_error": str(exc).split("\n")[0][:200]}
     pinned.createOrReplaceTempView("qp_pinned")
