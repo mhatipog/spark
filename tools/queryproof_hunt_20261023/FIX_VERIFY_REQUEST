@@ -1,1 +1,1 @@
-research/queryproof-fix-n5-agg-pushdown-empty-count sql/testOnly*ParquetV1AggregatePushDownSuite,*ParquetV2AggregatePushDownSuite,*OrcV1AggregatePushDownSuite,*OrcV2AggregatePushDownSuite,*JDBCV2Suite agg_empty_probe.py
+research/queryproof-fix-n5-test-only-control sql/testOnly*ParquetV2AggregatePushDownSuite,*OrcV2AggregatePushDownSuite agg_empty_probe.py
