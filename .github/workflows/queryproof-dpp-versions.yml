@@ -1,0 +1,74 @@
+name: "QueryProof bug hunt - DPP through UNION with whole-stage codegen off, across Spark versions"
+on:
+  # The marker's content is ignored; pushing it runs the matrix.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_hunt_20261023/DPP_VERSIONS_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-dpp-versions
+  cancel-in-progress: false
+jobs:
+  released:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        pyspark: ['pyspark>=3.5,<3.6', 'pyspark>=4.0,<4.1', 'pyspark>=4.1,<4.2', 'pyspark==4.2.1']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Probe
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir "${{ matrix.pyspark }}"
+          python -c "import pyspark; print('PYSPARK', pyspark.__version__)"
+          python -B tools/queryproof_hunt_20261023/dpp_probe.py dpp.json 2>dpp.log || { grep -v ' WARN ' dpp.log | tail -40; exit 1; }
+  master:
+    # Builds apache/spark master from source (about 40 minutes) and runs the same probe.
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+          path: qp
+      - uses: actions/checkout@v4
+        with:
+          repository: apache/spark
+          ref: master
+          path: upstream
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build Spark master (package, no tests)
+        working-directory: upstream
+        run: |
+          git log -1 --format='SPARK_MASTER_COMMIT %H %cI %s'
+          ./build/sbt -Phive -DskipTests package 2>&1 | tail -n 25
+      - name: Probe against the master build
+        run: |
+          export SPARK_HOME="$GITHUB_WORKSPACE/upstream"
+          export PYTHONPATH="$SPARK_HOME/python:$(ls $SPARK_HOME/python/lib/py4j-*-src.zip)"
+          python -m pip install --disable-pip-version-check --no-cache-dir 'pyarrow>=18' pandas numpy
+          python -c "import pyspark; print('PYSPARK', pyspark.__version__)"
+          python -B qp/tools/queryproof_hunt_20261023/dpp_probe.py dpp.json 2>dpp.log || { grep -v ' WARN ' dpp.log | tail -60; exit 1; }
