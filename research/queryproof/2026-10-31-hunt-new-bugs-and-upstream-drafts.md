@@ -170,7 +170,7 @@ Results:
 | Bug | Branch | Commit | Verification |
 | --- | --- | --- | --- |
 | N2 | `research/queryproof-fix-n2-filterestimation-ndv-zero` | ec22a0d | `FilterEstimationSuite` 87/87 passed (run 41200217583). The end-to-end reproduction now runs (it failed on unpatched master). Negative control: the new test without the fix fails, 86 passed and 1 failed (run 41202403612). Spark's own Build workflow on the branch is running. |
-| N1 | `research/queryproof-fix-n1-dpp-union-nonpartitioned` | 2eb639a | `DynamicPartitionPruningV1/V2 SuiteAEOff/AEOn`: 183 passed, 0 failed, 5 ignored (run 41202482079). All six end-to-end shapes are correct under every configuration, including codegen off (run 41204571954). Negative control pending. |
+| N1 | `research/queryproof-fix-n1-dpp-union-nonpartitioned` | 2eb639a | `DynamicPartitionPruningV1/V2 SuiteAEOff/AEOn`: 183 passed, 0 failed, 5 ignored (run 41202482079). All six end-to-end shapes are correct under every configuration, including codegen off (run 41204571954). Negative control: the new test without the fix fails with "IN dynamicpruning#8480 has not finished", 49 passed and 1 failed in DynamicPartitionPruningV1SuiteAEOff (run 41205691383). |
 
 - **The fixes.**
   - N2 returns selectivity 0 when `distinctCount == 0`, mirroring SPARK-23799's
