@@ -39,8 +39,7 @@ def print_orc_stats(spark, path):
             reader = jvm.org.apache.orc.OrcFile.createReader(st.getPath(), jvm.org.apache.orc.OrcFile.readerOptions(conf))
             print("ORCSCHEMA", reader.getSchema().toString())
             for i, cs in enumerate(reader.getStatistics()):
-                print(f"ORCSTATS column {i}: " + cs.toString().replace("
-", " "))
+                print(f"ORCSTATS column {i}: " + cs.toString().replace("\n", " "))
 
 
 def main():
