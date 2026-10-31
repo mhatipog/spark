@@ -452,6 +452,22 @@ class FilterEstimationSuite extends StatsEstimationTestBase {
       expectedRowCount = 0)
   }
 
+  test("SPARK-XXXXX: binary comparison with zero distinct count but min/max set") {
+    // An earlier estimate can leave a column with min/max but no distinct values. The boundary
+    // cases of evaluateBinaryForNumeric (literal equal to min or max) used to compute 1.0 / ndv
+    // and then fail converting NaN to BigDecimal.
+    val zeroNdv = ColumnStat(distinctCount = Some(0), min = Some(1), max = Some(10),
+      nullCount = Some(0), avgLen = Some(4), maxLen = Some(4))
+    Seq(LessThan(attrInt, Literal(10)), LessThanOrEqual(attrInt, Literal(1)),
+        GreaterThan(attrInt, Literal(1)), GreaterThanOrEqual(attrInt, Literal(10)),
+        LessThan(attrInt, Literal(5))).foreach { condition =>
+      validateEstimatedStats(
+        Filter(condition, StatsTestPlan(Seq(attrInt), 0, AttributeMap(Seq(attrInt -> zeroNdv)))),
+        Nil,
+        expectedRowCount = 0)
+    }
+  }
+
   test("evaluateInSet with string") {
     validateEstimatedStats(
       Filter(InSet(attrString, Set("A0")),
