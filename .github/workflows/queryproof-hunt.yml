@@ -1,6 +1,6 @@
 name: "QueryProof bug hunt - Spark 4.2.1 differential (full, minimal, no-codegen, SQLite)"
 on:
-  # Runs only when the run-request marker is pushed; the marker holds SEED QUERIES DATASETS [GENERATOR].
+  # Runs only when the run-request marker is pushed; the marker holds SEED QUERIES DATASETS [GENERATOR [ONLY_SHARD]].
   push:
     branches:
       - research/queryproof-phase-local-independent-20261020
@@ -40,7 +40,10 @@ jobs:
       - name: Run the four oracles on this shard
         run: |
           mkdir -p out
-          python -B tools/queryproof_hunt_20261023/run_hunt.py cases.json out/shard_${{ matrix.shard }}.json ${{ matrix.shard }} 12 2>spark.log
+          read SEED N DS GEN ONLY < tools/queryproof_hunt_20261023/RUN_REQUEST
+          if [ -n "$ONLY" ] && [ "$ONLY" != "${{ matrix.shard }}" ]; then echo "only shard $ONLY requested"; exit 0; fi
+          python -B tools/queryproof_hunt_20261023/run_hunt.py cases.json out/shard_${{ matrix.shard }}.json ${{ matrix.shard }} 12 2>spark.log \
+            || { grep -v ' WARN ' spark.log | tail -n 80; exit 1; }
           tail -n 50 spark.log | grep -v WARN || true
       - uses: actions/upload-artifact@v4
         with:

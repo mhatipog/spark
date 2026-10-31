@@ -83,6 +83,7 @@ def main(cases_path, out_path, shard=0, count=1):
     results = []
     t0 = time.time()
     for case in doc["cases"][shard::count]:
+        print("QUERYPROOF_CASE", case["id"], file=sys.stderr, flush=True)  # locates a crash
         rec = {"id": case["id"], "family": case["family"], "sql": case["sql"], "runs": []}
         for d, dataset in enumerate(case["datasets"]):
             for name, t in dataset.items():
