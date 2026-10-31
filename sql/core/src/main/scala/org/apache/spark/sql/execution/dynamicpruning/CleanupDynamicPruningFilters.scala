@@ -18,7 +18,7 @@
 package org.apache.spark.sql.execution.dynamicpruning
 
 import org.apache.spark.sql.catalyst.catalog.HiveTableRelation
-import org.apache.spark.sql.catalyst.expressions.{DynamicPruning, DynamicPruningSubquery, EqualNullSafe, EqualTo, Expression, ExpressionSet, PredicateHelper}
+import org.apache.spark.sql.catalyst.expressions.{AttributeSet, DynamicPruning, DynamicPruningSubquery, EqualNullSafe, EqualTo, Expression, ExpressionSet, PredicateHelper}
 import org.apache.spark.sql.catalyst.expressions.Literal.TrueLiteral
 import org.apache.spark.sql.catalyst.planning.NodeWithOnlyDeterministicProjectAndFilter
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan}
@@ -45,9 +45,19 @@ object CleanupDynamicPruningFilters extends Rule[LogicalPlan] with PredicateHelp
 
   /**
    * If a partition key already has equality conditions, then its DPP filter is useless and
-   * can't prune anything. So we should remove it.
+   * can't prune anything. So we should remove it. The same holds when the pruning key only
+   * references columns of the relation that the scan cannot prune on, e.g. after a DPP filter
+   * inserted above a Union was pushed into a branch whose table is not partitioned on the key.
+   * Such a filter would otherwise stay in a FilterExec and be evaluated per row.
+   *
+   * @param relationOutput the output of the scanned relation
+   * @param prunableAttrs the attributes the scan can prune on (partition columns, or the
+   *                      runtime filter attributes of a DSv2 scan)
    */
-  private def removeUnnecessaryDynamicPruningSubquery(plan: LogicalPlan): LogicalPlan = {
+  private def removeUnnecessaryDynamicPruningSubquery(
+      plan: LogicalPlan,
+      relationOutput: AttributeSet,
+      prunableAttrs: AttributeSet): LogicalPlan = {
     plan.transformWithPruning(_.containsPattern(DYNAMIC_PRUNING_SUBQUERY)) {
       case f @ Filter(condition, _) =>
         lazy val unnecessaryPruningKeys =
@@ -56,11 +66,20 @@ object CleanupDynamicPruningFilters extends Rule[LogicalPlan] with PredicateHelp
           _.containsPattern(DYNAMIC_PRUNING_SUBQUERY)) {
           case dynamicPruning: DynamicPruningSubquery
               if dynamicPruning.pruningKey.references.isEmpty ||
-                unnecessaryPruningKeys.contains(dynamicPruning.pruningKey) =>
+                unnecessaryPruningKeys.contains(dynamicPruning.pruningKey) ||
+                cannotPrune(dynamicPruning.pruningKey, relationOutput, prunableAttrs) =>
             TrueLiteral
         }
         f.copy(condition = newCondition)
     }
+  }
+
+  private def cannotPrune(
+      pruningKey: Expression,
+      relationOutput: AttributeSet,
+      prunableAttrs: AttributeSet): Boolean = {
+    val refs = pruningKey.references
+    refs.subsetOf(relationOutput) && !refs.subsetOf(prunableAttrs)
   }
 
   override def apply(plan: LogicalPlan): LogicalPlan = {
@@ -73,15 +92,16 @@ object CleanupDynamicPruningFilters extends Rule[LogicalPlan] with PredicateHelp
       _.containsAnyPattern(DYNAMIC_PRUNING_EXPRESSION, DYNAMIC_PRUNING_SUBQUERY)) {
       // pass through anything that is pushed down into PhysicalOperation
       case p @ NodeWithOnlyDeterministicProjectAndFilter(
-          LogicalRelationWithTable(_: HadoopFsRelation, _)) =>
-        removeUnnecessaryDynamicPruningSubquery(p)
+          l @ LogicalRelationWithTable(fs: HadoopFsRelation, _)) =>
+        val partitionColumns = AttributeSet(l.resolve(fs.partitionSchema, conf.resolver))
+        removeUnnecessaryDynamicPruningSubquery(p, l.outputSet, partitionColumns)
       // pass through anything that is pushed down into PhysicalOperation
       case p @ NodeWithOnlyDeterministicProjectAndFilter(
-          HiveTableRelation(_, _, _, _, _)) =>
-        removeUnnecessaryDynamicPruningSubquery(p)
+          h @ HiveTableRelation(_, _, _, _, _)) =>
+        removeUnnecessaryDynamicPruningSubquery(p, h.outputSet, AttributeSet(h.partitionCols))
       case p @ NodeWithOnlyDeterministicProjectAndFilter(
-          _: DataSourceV2ScanRelation) =>
-        removeUnnecessaryDynamicPruningSubquery(p)
+          r: DataSourceV2ScanRelation) =>
+        removeUnnecessaryDynamicPruningSubquery(p, r.outputSet, AttributeSet(r.runtimeFilterAttrs))
       // remove any Filters with DynamicPruning that didn't get pushed down to PhysicalOperation.
       case f @ Filter(condition, _) =>
         val newCondition = condition.transformWithPruning(
