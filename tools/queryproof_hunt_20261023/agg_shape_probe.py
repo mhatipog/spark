@@ -3,6 +3,7 @@
 Usage: python agg_shape_probe.py
 Prints the result with aggregate pushdown off and on, and the optimized plan with it on.
 """
+import os
 import shutil
 import tempfile
 
@@ -11,8 +12,13 @@ from pyspark.sql import SparkSession
 
 def main():
     base = tempfile.mkdtemp(prefix="qp_aggs_")
-    spark = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false")
-             .config("spark.sql.sources.useV1SourceList", "").getOrCreate())
+    builder = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false")
+               .config("spark.sql.sources.useV1SourceList", ""))
+    # QP_EXTRA_CONF="k=v,k=v": settings of Spark's test sessions, one at a time.
+    for kv in filter(None, os.environ.get("QP_EXTRA_CONF", "").split(",")):
+        builder = builder.config(*kv.split("=", 1))
+    spark = builder.getOrCreate()
+    print("QP_EXTRA_CONF", os.environ.get("QP_EXTRA_CONF", ""), "SPARK_TESTING", os.environ.get("SPARK_TESTING", ""))
     print("SPARK_VERSION", spark.version)
     for fmt in ("parquet", "orc"):
         spark.range(10).selectExpr("id", "id % 3 as p").write.partitionBy("p").format(fmt) \
