@@ -1,1 +1,1 @@
-run 5 (ORC nested pushdown)
+run 6 (ORC nested pushdown with the fixed probe; aggregate pushdown over no rows)

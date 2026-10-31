@@ -1,4 +1,4 @@
-name: "QueryProof bug hunt - reproductions across Spark versions (DPP through UNION, CBO FilterEstimation, V2 variant pruning, ORC nested pushdown)"
+name: "QueryProof bug hunt - reproductions across Spark versions (DPP through UNION, CBO FilterEstimation, V2 variant pruning, ORC nested pushdown, aggregate pushdown over no rows)"
 on:
   # The marker's content is ignored; pushing it runs the matrix.
   push:
@@ -41,6 +41,7 @@ jobs:
           python -B tools/queryproof_hunt_20261023/v2_probe.py 2>v2.log || { grep -v ' WARN ' v2.log | tail -20; true; }
           python -B tools/queryproof_hunt_20261023/dpp_default_probe.py 2>dd.log || { grep -v ' WARN ' dd.log | tail -20; true; }
           python -B tools/queryproof_hunt_20261023/orc_nested_probe.py 2>orc.log || { grep -v ' WARN ' orc.log | tail -20; true; }
+          python -B tools/queryproof_hunt_20261023/agg_empty_probe.py 2>agg.log || { grep -v ' WARN ' agg.log | tail -20; true; }
   master:
     # Builds apache/spark master from source (about 40 minutes) and runs the same probe.
     runs-on: ubuntu-latest
@@ -80,3 +81,4 @@ jobs:
           python -B qp/tools/queryproof_hunt_20261023/v2_probe.py 2>v2.log || { grep -v ' WARN ' v2.log | tail -40; exit 1; }
           python -B qp/tools/queryproof_hunt_20261023/dpp_default_probe.py 2>dd.log || { grep -v ' WARN ' dd.log | tail -40; exit 1; }
           python -B qp/tools/queryproof_hunt_20261023/orc_nested_probe.py 2>orc.log || { grep -v ' WARN ' orc.log | tail -40; exit 1; }
+          python -B qp/tools/queryproof_hunt_20261023/agg_empty_probe.py 2>agg.log || { grep -v ' WARN ' agg.log | tail -40; exit 1; }
