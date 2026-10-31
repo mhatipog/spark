@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pyspark: ['4.2.0', '4.2.1']
+        pyspark: ['4.2.1']
         lqs_patch: ['none', 'spark-57956']
     steps:
       - uses: actions/checkout@v4
@@ -49,9 +49,13 @@ jobs:
           nproc
           python -B tools/queryproof_hunt_20261023/repeat_case.py cases.json "$CASE" "$D" "$REP" repeat.json 2>spark.log
           python -c "import json; r=json.load(open('repeat.json')); [print(k, v['bags']) for k, v in r.items()]"
+      - name: Reduce the excluded-rule set (unpatched only)
+        if: matrix.lqs_patch == 'none'
+        run: |
+          python -B tools/queryproof_hunt_20261023/reduce_case.py cases.json "$CASE" "$D" 6 reduce.json 2>reduce.log
       - uses: actions/upload-artifact@v4
         with:
           name: repeat-${{ matrix.pyspark }}-${{ matrix.lqs_patch }}
           path: |
             repeat.json
-            spark.log
+            reduce.json

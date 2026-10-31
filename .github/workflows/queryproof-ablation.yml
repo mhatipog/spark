@@ -1,4 +1,4 @@
-name: "QueryProof bug hunt - Spark 4.2.0 single-rule ablation"
+name: "QueryProof bug hunt - Spark 4.2.1 single-rule ablation"
 on:
   # Runs only when the run-request marker is pushed; the marker holds SEED QUERIES DATASETS [GENERATOR].
   push:
@@ -35,7 +35,7 @@ jobs:
       - name: Generate the cases from the requested seed
         run: |
           read SEED N DS GEN < tools/queryproof_hunt_20261023/ABLATION_REQUEST
-          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.0
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.1
           python -B "tools/queryproof_hunt_20261023/${GEN:-gen_hunt.py}" "$SEED" "$N" cases.json "$DS"
       - name: Exclude each rule of this shard on its own
         run: |
