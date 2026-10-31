@@ -126,7 +126,11 @@ def write_tables(spark, dataset):
         elif kind == "bucket":
             w = w.bucketBy(2, col).sortBy(col)
         w.saveAsTable(name)
-        spark.sql(f"ANALYZE TABLE {name} COMPUTE STATISTICS FOR ALL COLUMNS")
+        atomic = [c["name"] for c in t["columns"] if c["type"] in SQL_TYPES]
+        if len(atomic) == len(t["columns"]):
+            spark.sql(f"ANALYZE TABLE {name} COMPUTE STATISTICS FOR ALL COLUMNS")
+        else:  # ANALYZE ... FOR COLUMNS rejects STRUCT/ARRAY columns
+            spark.sql(f"ANALYZE TABLE {name} COMPUTE STATISTICS FOR COLUMNS {', '.join(atomic)}")
     if "tf" in dataset:  # VARIANT table derived from tf.js (gen_feat.py)
         spark.sql("DROP TABLE IF EXISTS tv")
         spark.sql("CREATE TABLE tv USING parquet AS SELECT k, parse_json(js) AS v FROM tf WHERE js IS NOT NULL")
