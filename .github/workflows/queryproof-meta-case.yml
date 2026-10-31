@@ -1,0 +1,49 @@
+name: "QueryProof bug hunt - re-run single cases over Parquet"
+on:
+  # Line 1: GENERATOR SEED N DATASETS. Line 2: space-separated CASE:DATASET[:VARIANT+...] specs.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_hunt_20261023/CASE_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-meta-case
+  cancel-in-progress: false
+jobs:
+  case:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        lqs_patch: ['none', 'spark-57956']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install PySpark 4.2.1; optionally apply the SPARK-57956 fix; regenerate cases
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.1 duckdb==2.0.0
+          if [ "${{ matrix.lqs_patch }}" = "spark-57956" ]; then bash tools/queryproof_hunt_20261023/patch_lqs.sh; fi
+          { read GEN SEED N DS; read SPECS; } < tools/queryproof_hunt_20261023/CASE_REQUEST
+          cd tools/queryproof_hunt_20261023 && python -B "$GEN" "$SEED" "$N" ../../cases.json "$DS"
+          echo "SPECS=$SPECS" >> "$GITHUB_ENV"
+      - name: Run the cases
+        run: |
+          QP_REPEATS=6 python -B tools/queryproof_hunt_20261023/meta_case.py cases.json case.json $SPECS 2>case.log \
+            || { grep -v ' WARN ' case.log | tail -n 60; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: case-${{ matrix.lqs_patch }}
+          path: case.json
