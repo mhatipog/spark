@@ -1,0 +1,54 @@
+name: "QueryProof bug hunt - verify a fix branch (Spark unit tests and end-to-end reproduction)"
+on:
+  # The marker holds: FIX_BRANCH SBT_TEST_SPEC REPRO_SCRIPT
+  # e.g. research/queryproof-fix-n2-filterestimation-ndv-zero catalyst/testOnly*FilterEstimationSuite cbo_final.py
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_hunt_20261023/FIX_VERIFY_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-fix-verify
+  cancel-in-progress: false
+jobs:
+  verify:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+          path: qp
+      - name: Read the request
+        run: |
+          read BRANCH TESTSPEC REPRO < qp/tools/queryproof_hunt_20261023/FIX_VERIFY_REQUEST
+          echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"; echo "TESTSPEC=${TESTSPEC//\*/ *}" >> "$GITHUB_ENV"; echo "REPRO=$REPRO" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }}
+          path: fix
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Unit tests on the fix branch
+        working-directory: fix
+        run: |
+          git log -2 --format='FIX_COMMIT %H %s'
+          ./build/sbt "$TESTSPEC" 2>&1 | grep -E "Tests:|passed|failed|\*\*\*|error\]|Test run|All tests" | tail -n 40
+          test "${PIPESTATUS[0]}" = 0
+      - name: Build the fix branch and run the end-to-end reproduction
+        run: |
+          cd fix && ./build/sbt -Phive -DskipTests package 2>&1 | tail -n 5 && cd ..
+          export SPARK_HOME="$GITHUB_WORKSPACE/fix"
+          export PYTHONPATH="$SPARK_HOME/python:$(ls $SPARK_HOME/python/lib/py4j-*-src.zip)"
+          python -m pip install --disable-pip-version-check --no-cache-dir 'pyarrow>=18' pandas numpy
+          python -B "qp/tools/queryproof_hunt_20261023/$REPRO" 2>repro.log || { grep -v ' WARN ' repro.log | tail -40; exit 1; }
