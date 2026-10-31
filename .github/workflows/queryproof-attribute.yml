@@ -1,0 +1,63 @@
+name: "QueryProof bug hunt - attribute a master fix by cherry-picking onto a release branch"
+on:
+  # The marker holds: BASE_BRANCH COMMIT[,COMMIT...] PROBE_SCRIPT
+  # e.g. branch-4.2 bd65ed7ce1 v2_probe.py  (each commit is applied cumulatively, probe after each)
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_hunt_20261023/ATTRIBUTE_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-attribute
+  cancel-in-progress: false
+jobs:
+  attribute:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      SBT_OPTS: "-Xmx4g -Xss64m -XX:ReservedCodeCacheSize=512m"
+    steps:
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+          path: qp
+      - name: Read the request
+        run: |
+          read BASE COMMITS PROBE < qp/tools/queryproof_hunt_20261023/ATTRIBUTE_REQUEST
+          echo "BASE=$BASE" >> "$GITHUB_ENV"; echo "COMMITS=$COMMITS" >> "$GITHUB_ENV"; echo "PROBE=$PROBE" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          repository: apache/spark
+          ref: ${{ env.BASE }}
+          path: upstream
+          fetch-depth: 50
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Probe the base branch, then after each cherry-pick
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir 'pyarrow>=18' pandas numpy
+          probe() {
+            (cd upstream && ./build/sbt -Phive -DskipTests package 2>&1 | grep -E "success|error" | tail -n 3)
+            export SPARK_HOME="$GITHUB_WORKSPACE/upstream"
+            export PYTHONPATH="$SPARK_HOME/python:$(ls $SPARK_HOME/python/lib/py4j-*-src.zip)"
+            echo "ATTRIBUTE_STATE $1 $(cd upstream && git log -1 --format='%h %s')"
+            python -B "qp/tools/queryproof_hunt_20261023/$PROBE" 2>probe.log | sed "s/^/ATTRIBUTE[$1] /" || true
+          }
+          probe base
+          cd upstream && git config user.email qp@example.invalid && git config user.name qp && cd ..
+          for c in ${COMMITS//,/ }; do
+            (cd upstream && git fetch -q --depth 50 origin "$c" && git cherry-pick -x "$c" > /dev/null 2>&1 \
+              || { echo "ATTRIBUTE_CHERRY_PICK_CONFLICT $c"; git -C . cherry-pick --abort; exit 1; })
+            probe "+$c"
+          done
