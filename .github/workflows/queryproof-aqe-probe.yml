@@ -41,10 +41,7 @@ jobs:
         run: |
           read REP < tools/queryproof_hunt_20261023/AQE_PROBE_REQUEST
           nproc
-          for extra in '' 'spark.sql.shuffle.partitions=5' 'spark.sql.adaptive.enabled=false' 'spark.sql.codegen.fallback=false' 'spark.driver.extraJavaOptions=-Dspark.testing=true'; do
-            QP_EXTRA_CONF="$extra" python -B tools/queryproof_hunt_20261023/agg_shape_probe.py 2>cbo_min.log | grep -E 'QP_EXTRA|range_rows_p5 ' || { grep -v ' WARN ' cbo_min.log | tail -20; }
-          done
-          SPARK_TESTING=1 python -B tools/queryproof_hunt_20261023/agg_shape_probe.py 2>cbo_min.log | grep -E 'QP_EXTRA|range_rows_p5 ' || { grep -v ' WARN ' cbo_min.log | tail -20; }
+          python -B tools/queryproof_hunt_20261023/agg_shape_probe.py 2>cbo_min.log || { grep -v ' WARN ' cbo_min.log | tail -40; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: aqe-probe-${{ matrix.pyspark }}-${{ matrix.lqs_patch }}

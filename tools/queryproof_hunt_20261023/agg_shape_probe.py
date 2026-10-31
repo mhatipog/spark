@@ -45,14 +45,17 @@ def main():
         for name, (df, sql) in cases.items():
             df.createOrReplaceTempView("t")
             res = {}
-            for push in ("false", "true"):
+            # Pushdown on first (as in a test suite), then off, then on again; plus the JVM's
+            # own collect, which a Scala test uses, besides PySpark's.
+            for step, push in (("on_first", "true"), ("off", "false"), ("on_again", "true")):
                 spark.conf.set(f"spark.sql.{fmt}.aggregatePushdown", push)
                 q = spark.sql(sql)
-                res[push] = [tuple(r) for r in q.collect()]
-                if push == "true":
+                res[step] = [tuple(r) for r in q.collect()]
+                if step == "on_first":
+                    res["on_first_jvm"] = [str(r) for r in q._jdf.collectAsList()]
                     plan = q._jdf.queryExecution().optimizedPlan().toString().replace("\n", " | ")
             spark.conf.unset(f"spark.sql.{fmt}.aggregatePushdown")
-            print(f"AGGSHAPE {fmt:7s} {name:22s} off={res['false']} on={res['true']}")
+            print(f"AGGSHAPE {fmt:7s} {name:22s} " + " ".join(f"{k}={v}" for k, v in res.items()))
             print(f"AGGPLAN  {fmt:7s} {name:22s} {plan[:500]}")
     spark.stop()
     shutil.rmtree(base, ignore_errors=True)
