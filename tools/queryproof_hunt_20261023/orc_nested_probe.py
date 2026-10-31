@@ -56,6 +56,16 @@ def main():
             (w.partitionBy("k") if layout == "partitioned" else w).save(f"{base}/{layout}_{fmt}")
         if layout == "one_file_k2":
             print_orc_stats(spark, f"{base}/{layout}_orc")
+            for cname in ("orc_v1", "orc_v1_no_nested_pushdown", "orc_v2"):
+                for k, v in CONFIGS[cname].items():
+                    spark.conf.set(k, v)
+                plan = spark.read.schema(df.schema).orc(f"{base}/{layout}_orc").where("st.x IS NULL") \
+                    ._jdf.queryExecution().executedPlan().toString()
+                for line in plan.split("\n"):
+                    if "Scan" in line or "Filter" in line:
+                        print(f"ORCPLAN {cname}: {line.strip()[:400]}")
+                for k in CONFIGS[cname]:
+                    spark.conf.unset(k)
         for f in FILTERS:
             expected = rows(df.where(f))
             for cname, conf in CONFIGS.items():
