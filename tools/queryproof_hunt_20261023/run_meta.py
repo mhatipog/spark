@@ -110,26 +110,97 @@ ROUND6_VARIANTS = {
     "@paths_v2": {"spark.sql.sources.useV1SourceList": ""},
     "@paths_v2_no_pushdown": {"spark.sql.sources.useV1SourceList": "", "spark.sql.parquet.filterPushdown": "false"},
 }
+# Fifth set (QP_VARIANTS=round7): the same rows read as ORC, JSON and CSV files by path
+# (V1 and V2 file sources, each format's own reader switches) and as cached tables
+# (in-memory columnar scans with and without batch pruning). Prefix "@fmt_<format>_".
+ORC_V2 = {"spark.sql.sources.useV1SourceList": ""}
+ROUND7_VARIANTS = {
+    "@fmt_orc_v1": {},
+    "@fmt_orc_v2": ORC_V2,
+    "@fmt_orc_no_pushdown": {"spark.sql.orc.filterPushdown": "false"},
+    "@fmt_orc_no_vectorized": {"spark.sql.orc.enableVectorizedReader": "false"},
+    "@fmt_orc_v2_no_vectorized": {**ORC_V2, "spark.sql.orc.enableVectorizedReader": "false"},
+    "@fmt_orc_v2_no_pushdown": {**ORC_V2, "spark.sql.orc.filterPushdown": "false"},
+    "@fmt_orc_aggregate_pushdown": {**ORC_V2, "spark.sql.orc.aggregatePushdown": "true"},
+    "@fmt_orc_wholestage_off": WS_OFF,
+    "@fmt_parquet_aggregate_pushdown": {**ORC_V2, "spark.sql.parquet.aggregatePushdown": "true"},
+    "@fmt_json_v1": {},
+    "@fmt_json_v2": ORC_V2,
+    "@fmt_json_no_pushdown": {"spark.sql.json.filterPushdown.enabled": "false"},
+    "@fmt_csv_v1": {},
+    "@fmt_csv_v2": ORC_V2,
+    "@fmt_csv_no_pushdown": {"spark.sql.csv.filterPushdown.enabled": "false"},
+    "@cache": {},
+    "@cache_no_batch_pruning": {"spark.sql.inMemoryColumnarStorage.partitionPruning": "false"},
+    "@cache_no_vectorized": {"spark.sql.inMemoryColumnarStorage.enableVectorizedReader": "false"},
+    "@cache_wholestage_off": WS_OFF,
+}
+# Formats that cannot hold a column type keep the catalog Parquet table for that table.
+FORMAT_TYPES = {"orc": None, "json": None, "csv": {"integer", "string", "decimal(5,2)", "date"}}
+# A NULL marker distinct from the empty string, which the CSV writer quotes as "".
+FORMAT_OPTIONS = {"csv": {"nullValue": "\\N"}}
 if os.environ.get("QP_VARIANTS") == "wide":
     VARIANTS = WIDE_VARIANTS
 elif os.environ.get("QP_VARIANTS") == "feat":
     VARIANTS = FEAT_VARIANTS
 elif os.environ.get("QP_VARIANTS") == "round6":
     VARIANTS = ROUND6_VARIANTS
+elif os.environ.get("QP_VARIANTS") == "round7":
+    VARIANTS = ROUND7_VARIANTS
 KNOWN_SIGNATURES = {"has not finished": "N1: DPP through UNION, codegen off (this hunt; fix branch ready)",
                     "Character N is neither": "N2: CBO FilterEstimation NaN (this hunt; fix branch ready)"}
 TABLE_PATHS = {}  # table name -> (location, schema) of the currently loaded database
+FORMAT_PATHS = {}  # format -> {table name -> (location, schema)} of copies in other formats
 
 
-def run_over_paths(spark, sql):
-    """Run sql with every catalog table shadowed by a temp view reading its files by path."""
-    for name, (loc, schema) in TABLE_PATHS.items():
-        spark.read.schema(schema).parquet(loc).createOrReplaceTempView(name)
+def run_over_paths(spark, sql, fmt="parquet"):
+    """Run sql with catalog tables shadowed by temp views reading their files by path."""
+    paths = TABLE_PATHS if fmt == "parquet" else FORMAT_PATHS[fmt]
+    for name, (loc, schema) in paths.items():
+        spark.read.format(fmt).options(**FORMAT_OPTIONS.get(fmt, {})).schema(schema).load(loc) \
+            .createOrReplaceTempView(name)
     try:
         return spark_rows(spark, sql)
     finally:
-        for name in TABLE_PATHS:
+        for name in paths:
             spark.catalog.dropTempView(name)
+
+
+def run_cached(spark, sql):
+    """Run sql with every table cached (in-memory columnar scans), then drop the cache."""
+    for name in TABLE_PATHS:
+        spark.sql(f"CACHE LAZY TABLE {name}")
+    try:
+        return spark_rows(spark, sql)
+    finally:
+        spark.catalog.clearCache()
+
+
+def run_variant(spark, name, sql):
+    if name.startswith("@paths"):
+        return run_over_paths(spark, sql)
+    if name.startswith("@fmt_"):
+        return run_over_paths(spark, sql, name.split("_")[1])
+    if name.startswith("@cache"):
+        return run_cached(spark, sql)
+    return spark_rows(spark, sql)
+
+
+def write_format_copies(spark, dataset, base):
+    """Copy each table into every needed format, keeping its partition layout."""
+    FORMAT_PATHS.clear()
+    fmts = sorted({n.split("_")[1] for n in VARIANTS if n.startswith("@fmt_")} - {"parquet"})
+    for fmt in fmts:
+        FORMAT_PATHS[fmt] = {}
+        for name, t in dataset.items():
+            allowed = FORMAT_TYPES[fmt]
+            if allowed is not None and any(c["type"] not in allowed for c in t["columns"]):
+                continue
+            kind, col = LAYOUT.get(name, ("plain", None))
+            loc = os.path.join(base, fmt, name)
+            w = spark.table(name).write.format(fmt).options(**FORMAT_OPTIONS.get(fmt, {})).mode("overwrite")
+            (w.partitionBy(col) if kind == "partition" else w).save(loc)
+            FORMAT_PATHS[fmt][name] = (loc, spark.table(name).schema)
 LAYOUT = {"ta": ("partition", "a"), "tb": ("partition", "a"), "te": ("partition", "k"),
           "tc": ("bucket", "k"), "td": ("plain", None), "tf": ("partition", "k")}
 SPARK_TYPES = {"integer": "int", "string": "string", "decimal(5,2)": "decimal(5,2)", "date": "date",
@@ -274,15 +345,13 @@ def main(cases_path, out_path, shard=0, count=1):
             dataset = case["datasets"][d]
             if loaded != key:
                 write_tables(spark, dataset)
+                write_format_copies(spark, dataset, os.path.join(wh, "_formats"))
                 loaded = key
             out = {"default": spark_rows(spark, case["sql"])}
             for name, conf in VARIANTS.items():
                 for k, v in conf.items():
                     spark.conf.set(k, v)
-                if name.startswith("@paths"):
-                    out[name] = run_over_paths(spark, case["sql"])
-                else:
-                    out[name] = spark_rows(spark, case["sql"])
+                out[name] = run_variant(spark, name, case["sql"])
                 for k in conf:
                     spark.conf.unset(k)
             out["tlp"] = spark_rows(spark, tlp_sql(case))

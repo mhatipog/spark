@@ -1,6 +1,6 @@
 name: "QueryProof bug hunt - metamorphic configurations over partitioned Parquet"
 on:
-  # The marker holds SEED QUERIES DATASETS LQS_PATCH (none | spark-57956) [VARIANTS (wide | feat) [GENERATOR]].
+  # The marker holds SEED QUERIES DATASETS LQS_PATCH (none | spark-57956) [VARIANTS (wide | feat | round6 | round7) [GENERATOR]].
   push:
     branches:
       - research/queryproof-phase-local-independent-20261020
