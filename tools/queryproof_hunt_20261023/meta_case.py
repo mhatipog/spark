@@ -45,12 +45,14 @@ def main(cases_path, out_path, *specs):
         M.write_tables(spark, case["datasets"][d])
         rep = {}
         for v in variants:
-            conf = {} if v == "default" else M.VARIANTS[v]
+            # "tlp" runs the case's ternary-logic-partitioning query under the default configuration
+            conf = {} if v in ("default", "tlp") else {**M.VARIANTS, **M.WIDE_VARIANTS}[v]
+            sql = M.tlp_sql(case) if v == "tlp" else case["sql"]
             for k, val in conf.items():
                 spark.conf.set(k, val)
             seen, failure, plan = Counter(), None, None
             for _ in range(repeats):
-                df = spark.sql(case["sql"])
+                df = spark.sql(sql)
                 try:
                     rows = df.collect()
                     seen[json.dumps(sorted(Counter(tuple(r) for r in rows).items()), default=str)] += 1
