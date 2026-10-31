@@ -331,8 +331,12 @@ def tlp_sql(case):
 def main(cases_path, out_path, shard=0, count=1):
     shard, count = int(shard), int(count)
     wh = tempfile.mkdtemp(prefix="qp_wh_")
+    # Round 7 (19 variants, file copies per dataset) lost the driver after ~40 minutes on
+    # 7 of 12 shards with the 1g default heap; keep less execution history and more heap.
     spark = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false")
              .config("spark.sql.shuffle.partitions", "4").config("spark.sql.warehouse.dir", wh)
+             .config("spark.driver.memory", "5g").config("spark.sql.ui.retainedExecutions", "20")
+             .config("spark.ui.retainedJobs", "50").config("spark.ui.retainedStages", "50")
              .getOrCreate())
     cases = json.loads(open(cases_path).read())["cases"]
     groups = sorted({c["group"] for c in cases})[shard::count]
