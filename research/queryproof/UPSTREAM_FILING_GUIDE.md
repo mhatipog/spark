@@ -170,7 +170,13 @@ Set nothing else. Committers decide the backport.
 ## 4. Pull requests (after the JIRAs exist)
 
 Fix branches are prepared in `mhatipog/spark`; see the "Fix branches" section of
-`2026-10-31-hunt-new-bugs-and-upstream-drafts.md` for names, status and test results.
+`2026-10-31-hunt-new-bugs-and-upstream-drafts.md` for names, status and test results:
+
+- N2: `research/queryproof-fix-n2-filterestimation-ndv-zero` (commit ec22a0d)
+- N1: `research/queryproof-fix-n1-dpp-union-nonpartitioned` (commit 2eb639a)
+
+Optionally rename a branch to something shorter first, e.g. `SPARK-NNNNN`. Do not use
+the `…-test-only-control` branches: they contain the tests without the fix.
 For each one:
 
 1. Open the JIRA from §1 or §2 and note its number, e.g. SPARK-61234.

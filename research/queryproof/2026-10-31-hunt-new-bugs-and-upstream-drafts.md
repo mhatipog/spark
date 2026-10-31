@@ -128,6 +128,61 @@ passed 12 of 12 times in isolation.
 | gen_rich Parquet (seed 20261035) | 6,000 × 2 | 13 + TLP + DuckDB/SQLite | 2 (DuckDB #27803) | — |
 | gen_rich wide (seed 20261036) | 3,600 × 2 | 16 + TLP + DuckDB/SQLite | 1 (DuckDB #27803) | N2 |
 
+## Round 5: newer features and default-configuration oracles (seed 20261037)
+
+- **Generator.** `gen_feat.py` adds a table `tf(k, st STRUCT<x, y>, arr ARRAY<INT>, js)`
+  partitioned by `k`, and a VARIANT table `tv` (`parse_json(js)`) written to Parquet.
+  Queries reach them through flattening derived tables:
+  - nested fields;
+  - array and higher-order functions;
+  - `LATERAL VIEW [OUTER] explode`;
+  - `try_variant_get`;
+  - a UTF8_LCASE-collated column.
+- **New default-configuration oracles** (no second engine):
+  - NoREC: `COUNT(*) … WHERE p` versus `SUM(CASE WHEN p …)`.
+  - The filter and aggregates pushed into the query, versus applied over its result
+    pinned as a fresh DataFrame.
+- **Variants.** Nested-reader and pruning switches were added.
+- **Volume:** 3,304 of 3,600 queries × 2 datasets. Shard 7 ran out of driver heap
+  because `localCheckpoint` pins were never released; the harness was fixed.
+
+Results:
+
+- **Default-configuration oracles:** no differences in 3,304 queries. No default
+  wrong answer was found.
+- **N1 again:** 67 codegen-off failures, now also with array-function pruning keys
+  (`CASE WHEN array_contains(…)`, `element_at`).
+- **N2 again:** one case.
+- **Not a user-facing bug (N3, not filed).** 699 queries over `tv` fail with
+  `[CLASS_NOT_OVERRIDE_EXPECTED_METHOD] …parquet.ScalarCastHelper must override either
+  eval or nullSafeEval`.
+  - `variant_probe.py` shows this happens only with the internal test setting
+    `spark.sql.codegen.factoryMode=NO_CODEGEN`.
+  - `wholeStage=false` alone and the default FALLBACK mode work.
+  - The code documents the assumption: "No need to define the interpreted version of
+    `eval`: the codegen must succeed."
+  - Consequence for the method: the `no_codegen` variant (which also sets factoryMode)
+    over-reports. Only failures that also occur with `wholeStage=false` alone count as
+    user-facing. N1 does.
+
+## Fix branches (in mhatipog/spark, on top of master f090eaca12)
+
+| Bug | Branch | Commit | Verification |
+| --- | --- | --- | --- |
+| N2 | `research/queryproof-fix-n2-filterestimation-ndv-zero` | ec22a0d | `FilterEstimationSuite` 87/87 passed (run 41200217583). The end-to-end reproduction now runs (it failed on unpatched master). Negative control: the new test without the fix fails, 86 passed and 1 failed (run 41202403612). Spark's own Build workflow on the branch is running. |
+| N1 | `research/queryproof-fix-n1-dpp-union-nonpartitioned` | 2eb639a | `DynamicPartitionPruningV1/V2 SuiteAEOff/AEOn`: 183 passed, 0 failed, 5 ignored (run 41202482079). All six end-to-end shapes are correct under every configuration, including codegen off (run 41204571954). Negative control pending. |
+
+- **The fixes.**
+  - N2 returns selectivity 0 when `distinctCount == 0`, mirroring SPARK-23799's
+    `evaluateInSet`.
+  - N1 makes `CleanupDynamicPruningFilters` drop a DPP predicate over a scan when its
+    key references only relation columns the scan cannot prune on (non-partition columns
+    of file and Hive tables, non-runtime-filter attributes of DSv2 scans).
+- **Commit message and PR body.** Each commit message carries the PR body in Spark's
+  template form, with the JIRA number left as `SPARK-XXXXX`.
+- **Not for upstream:** the branches `research/queryproof-fix-n{1,2}-test-only-control`
+  are controls only.
+
 ## Drafts for upstream (to be posted by the account owner)
 
 **JIRA: N1.** *Title:* "DPP filter pushed into a non-partitioned UNION branch fails
