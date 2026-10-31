@@ -1,1 +1,1 @@
-research/queryproof-fix-n4-orc-nested-isnull sql/testOnly*OrcFilterSuite,*OrcV1FilterSuite,*OrcV1QuerySuite,*OrcV2QuerySuite orc_nested_probe.py
+research/queryproof-fix-n4-test-only-control sql/testOnly*OrcV1FilterSuite,*OrcV1QuerySuite orc_nested_probe.py
