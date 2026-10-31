@@ -204,6 +204,41 @@ trait FileSourceAggregatePushDownSuite
     }
   }
 
+  test("SPARK-XXXXX: global COUNT pushed down over no file is 0") {
+    withTempPath { dir =>
+      val path = dir.getCanonicalPath
+      // A partitioned write of no rows leaves no file.
+      spark.range(0).selectExpr("id", "id % 3 as p")
+        .write.partitionBy("p").format(format).save(s"$path/empty")
+      spark.range(10).selectExpr("id", "id % 3 as p")
+        .write.partitionBy("p").format(format).save(s"$path/rows")
+      withTempView("empty_t", "rows_t") {
+        spark.read.format(format).schema("id LONG, p LONG").load(s"$path/empty")
+          .createOrReplaceTempView("empty_t")
+        spark.read.format(format).load(s"$path/rows").createOrReplaceTempView("rows_t")
+        withSQLConf(aggPushDownEnabledKey -> "true") {
+          Seq(
+            "SELECT count(*), count(id), max(id) FROM empty_t",
+            // The partition filter prunes every file.
+            "SELECT count(*), count(id), max(id) FROM rows_t WHERE p = 5").foreach { query =>
+            val df = sql(query)
+            checkPushedInfo(df, "PushedAggregation: [COUNT(*), COUNT(id), MAX(id)]")
+            checkAnswer(df, Row(0, 0, null))
+            // The counts are not nullable, so `collect()` reads a null count back as 0. Check
+            // the rows of the plan as well.
+            val rows = df.queryExecution.executedPlan.executeCollect()
+            assert(rows.length == 1 && !rows.head.isNullAt(0) && !rows.head.isNullAt(1))
+          }
+          // A null count also changes a predicate over it.
+          checkAnswer(
+            sql("SELECT id FROM range(1) WHERE (SELECT count(id) FROM rows_t WHERE p = 5) < 2"),
+            Row(0))
+          checkAnswer(sql("SELECT count(id) FROM rows_t WHERE p = 5 GROUP BY p"), Seq.empty)
+        }
+      }
+    }
+  }
+
   test("aggregate with partition group by can be pushed down") {
     withTempPath { dir =>
       spark.range(10).selectExpr("id", "id % 3 as P")
