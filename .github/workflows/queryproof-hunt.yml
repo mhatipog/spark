@@ -34,7 +34,7 @@ jobs:
           java-version: '17'
       - name: Generate the cases from the requested seed
         run: |
-          read SEED N DS GEN < tools/queryproof_hunt_20261023/RUN_REQUEST
+          read SEED N DS GEN ONLY < tools/queryproof_hunt_20261023/RUN_REQUEST
           python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.1
           python -B "tools/queryproof_hunt_20261023/${GEN:-gen_hunt.py}" "$SEED" "$N" cases.json "$DS"
       - name: Run the four oracles on this shard
