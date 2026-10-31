@@ -55,8 +55,12 @@ jobs:
         working-directory: fix
         run: |
           git log -2 --format='FIX_COMMIT %H %s'
-          ./build/sbt "$TESTSPEC" 2>&1 | grep -E "Tests:|passed|failed|\*\*\*|error\]|Test run|All tests" | tail -n 40
-          test "${PIPESTATUS[0]}" = 0
+          ./build/sbt "$TESTSPEC" > sbt.log 2>&1; status=$?
+          grep -E "Tests:|passed|failed|\*\*\*|error\]|Test run|All tests" sbt.log | tail -n 40
+          # Assertion messages of failed tests and debug lines printed by a test.
+          grep -A 12 '\*\*\* FAILED \*\*\*' sbt.log | grep -v ' WARN ' | head -n 150
+          grep 'QPDEBUG' sbt.log | head -n 40
+          test "$status" = 0
       - name: Build the fix branch and run the end-to-end reproduction
         run: |
           cd fix && ./build/sbt -Phive -DskipTests package 2>&1 | tail -n 5 && cd ..
