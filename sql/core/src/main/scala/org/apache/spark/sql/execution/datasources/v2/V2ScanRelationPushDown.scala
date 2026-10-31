@@ -24,7 +24,7 @@ import scala.collection.mutable
 import org.apache.spark.{SparkException, SparkIllegalArgumentException}
 import org.apache.spark.internal.LogKeys.{AGGREGATE_FUNCTIONS, COLUMN_NAME, COLUMN_NAMES, EXPR, GROUP_BY_EXPRS, JOIN_CONDITION, JOIN_TYPE, POST_SCAN_FILTERS, PUSHED_FILTERS, RELATION_NAME, RELATION_OUTPUT}
 import org.apache.spark.sql.AnalysisException
-import org.apache.spark.sql.catalyst.expressions.{aggregate, Alias, And, Attribute, AttributeMap, AttributeReference, AttributeSet, BoundReference, Cast, Expression, ExpressionSet, ExprId, GetArrayStructFields, GetStructField, IntegerLiteral, LateralColumnAliasReference, Literal, NamedExpression, OuterReference, OuterScopeReference, PredicateHelper, ProjectionOverSchema, RuntimeReplaceable, SortOrder, SubqueryExpression, Unevaluable, UserDefinedExpression}
+import org.apache.spark.sql.catalyst.expressions.{aggregate, Alias, And, Attribute, AttributeMap, AttributeReference, AttributeSet, BoundReference, Cast, Coalesce, Expression, ExpressionSet, ExprId, GetArrayStructFields, GetStructField, IntegerLiteral, LateralColumnAliasReference, Literal, NamedExpression, OuterReference, OuterScopeReference, PredicateHelper, ProjectionOverSchema, RuntimeReplaceable, SortOrder, SubqueryExpression, Unevaluable, UserDefinedExpression}
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateExpression
 import org.apache.spark.sql.catalyst.optimizer.{CollapseGroupedSumOfCount, CollapseProject}
 import org.apache.spark.sql.catalyst.planning.{PhysicalOperation, ScanOperation}
@@ -794,7 +794,14 @@ object V2ScanRelationPushDown extends Rule[LogicalPlan] with PredicateHelper {
         // +- RelationV2[c2#10, min(c1)#21, max(c1)#22] ...
         // scalastyle:on
         val aggExprs = finalResultExprs.map(_.transform {
-          case agg: AggregateExpression =>
+          case agg @ AggregateExpression(_: aggregate.Count, _, _, _, _)
+              if normalizedGroupingExpr.isEmpty =>
+            // The sum of the pushed down counts is null when the scan returns no row, e.g.
+            // when no file is read, while a global count is 0.
+            val aggAttribute = aggOutput(aggExprToOutputOrdinal(agg.canonicalized))
+            Coalesce(Seq(agg.copy(aggregateFunction = aggregate.Sum(aggAttribute)), Literal(0L)))
+          // `transform` also visits the sum above, which is already rewritten.
+          case agg: AggregateExpression if aggExprToOutputOrdinal.contains(agg.canonicalized) =>
             val ordinal = aggExprToOutputOrdinal(agg.canonicalized)
             val aggAttribute = aggOutput(ordinal)
             val aggFunction: aggregate.AggregateFunction =
