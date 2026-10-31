@@ -41,7 +41,7 @@ jobs:
         run: |
           read REP < tools/queryproof_hunt_20261023/AQE_PROBE_REQUEST
           nproc
-          python -B tools/queryproof_hunt_20261023/cbo_min.py cbo_min.json 2>cbo_min.log || { grep -v ' WARN ' cbo_min.log | tail -40; exit 1; }
+          python -B tools/queryproof_hunt_20261023/cbo_standalone.py cbo_min.json 2>cbo_min.log || { grep -v ' WARN ' cbo_min.log | tail -40; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: aqe-probe-${{ matrix.pyspark }}-${{ matrix.lqs_patch }}
