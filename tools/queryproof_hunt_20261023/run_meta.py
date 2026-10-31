@@ -25,7 +25,7 @@ from decimal import Decimal
 
 from pyspark.sql import SparkSession
 
-from run_hunt import bag, spark_rows
+from run_hunt import bag
 
 try:
     import duckdb
@@ -47,6 +47,40 @@ VARIANTS = {
     "parts7": {"spark.sql.shuffle.partitions": "7", "spark.sql.adaptive.coalescePartitions.enabled": "false"},
     "no_codegen": {"spark.sql.codegen.wholeStage": "false", "spark.sql.codegen.factoryMode": "NO_CODEGEN"},
 }
+# Second wave (QP_VARIANTS=wide): execution knobs around the DPP finding.
+NO_CG = {"spark.sql.codegen.wholeStage": "false", "spark.sql.codegen.factoryMode": "NO_CODEGEN"}
+DPP_AGGRESSIVE = {"spark.sql.optimizer.dynamicPartitionPruning.reuseBroadcastOnly": "false",
+                  "spark.sql.optimizer.dynamicPartitionPruning.useStats": "false",
+                  "spark.sql.optimizer.dynamicPartitionPruning.fallbackFilterRatio": "1.0"}
+BLOOM = {"spark.sql.optimizer.runtime.bloomFilter.enabled": "true",
+         "spark.sql.optimizer.runtime.bloomFilter.applicationSideScanSizeThreshold": "0",
+         "spark.sql.optimizer.runtime.bloomFilter.creationSideThreshold": "100MB",
+         "spark.sql.optimizer.runtimeFilter.semiJoinReduction.enabled": "true"}
+WIDE_VARIANTS = {
+    "aqe_off": VARIANTS["aqe_off"],
+    "no_broadcast": VARIANTS["no_broadcast"],
+    "cbo_reorder": VARIANTS["cbo_reorder"],
+    "no_pushdown": VARIANTS["no_pushdown"],
+    "dpp_aggressive": DPP_AGGRESSIVE,
+    "dpp_aggressive_no_broadcast": {**DPP_AGGRESSIVE, "spark.sql.autoBroadcastJoinThreshold": "-1"},
+    "bloom": BLOOM,
+    "bloom_no_broadcast": {**BLOOM, "spark.sql.autoBroadcastJoinThreshold": "-1"},
+    "no_reuse": {"spark.sql.exchange.reuse": "false", "spark.sql.execution.reuseSubquery": "false"},
+    "skew_forced": {"spark.sql.adaptive.forceOptimizeSkewedJoin": "true",
+                    "spark.sql.adaptive.skewJoin.skewedPartitionThresholdInBytes": "1",
+                    "spark.sql.adaptive.skewJoin.skewedPartitionFactor": "1",
+                    "spark.sql.adaptive.advisoryPartitionSizeInBytes": "1"},
+    "partition_evaluator": {"spark.sql.execution.usePartitionEvaluator": "true"},
+    "no_subexpr": {"spark.sql.subexpressionElimination.enabled": "false"},
+    "no_codegen": NO_CG,
+    "no_codegen_no_dpp": {**NO_CG, "spark.sql.optimizer.dynamicPartitionPruning.enabled": "false"},
+    "bloom_no_codegen_no_dpp": {**BLOOM, **NO_CG, "spark.sql.optimizer.dynamicPartitionPruning.enabled": "false"},
+    "no_reuse_no_codegen_no_dpp": {"spark.sql.exchange.reuse": "false", "spark.sql.execution.reuseSubquery": "false",
+                                   **NO_CG, "spark.sql.optimizer.dynamicPartitionPruning.enabled": "false"},
+}
+if os.environ.get("QP_VARIANTS") == "wide":
+    VARIANTS = WIDE_VARIANTS
+KNOWN_SIGNATURES = {"has not finished": "DPP-through-UNION interpreted Filter (this hunt; unreported)"}
 LAYOUT = {"ta": ("partition", "a"), "tb": ("partition", "a"), "te": ("partition", "k"),
           "tc": ("bucket", "k"), "td": ("plain", None)}
 SPARK_TYPES = {"integer": "int", "string": "string", "decimal(5,2)": "decimal(5,2)", "date": "date"}
@@ -91,7 +125,8 @@ def duck_rows(dataset, sql):
         if t["rows"]:
             con.executemany(f"INSERT INTO {name} VALUES ({', '.join('?' * len(t['columns']))})", typed_rows(t))
     try:
-        return {"rows": [list(r) for r in con.execute(sql.replace("<=>", "IS NOT DISTINCT FROM")).fetchall()]}
+        duck_sql = sql.replace("<=>", "IS NOT DISTINCT FROM").replace("LEFT SEMI JOIN", "SEMI JOIN")
+        return {"rows": [list(r) for r in con.execute(duck_sql).fetchall()]}
     except duckdb.Error as exc:
         return {"error": "duckdb: " + str(exc).split("\n")[0][:200]}
 
@@ -107,6 +142,18 @@ def sqlite_rows(dataset, sql):
         return {"rows": [list(r) for r in db.execute(sql.replace("<=>", "IS")).fetchall()]}
     except sqlite3.Error as exc:
         return {"error": "sqlite: " + str(exc)[:200]}
+
+
+def spark_rows(spark, sql):
+    """Rows, or the Java root cause of the failure (needed to tell known failures apart)."""
+    try:
+        return {"rows": [list(r) for r in spark.sql(sql).collect()]}
+    except Exception as exc:  # noqa: BLE001 - recorded, not hidden
+        c = getattr(exc, "java_exception", None)
+        while c is not None and c.getCause() is not None:
+            c = c.getCause()
+        root = (c.toString() if c is not None else type(exc).__name__ + ": " + str(exc)).split("\n")[0]
+        return {"error": root[:300]}
 
 
 def tlp_sql(case):
@@ -157,7 +204,8 @@ def main(cases_path, out_path, shard=0, count=1):
                 if "rows" in ref and "rows" in res and bag(res["rows"]) != bag(ref["rows"]):
                     diff.append(name)
                 elif "rows" in ref and "rows" not in res and name not in ("duckdb", "sqlite"):
-                    diff.append(name + ":error")
+                    known = any(s in res["error"] for s in KNOWN_SIGNATURES)
+                    diff.append(name + (":known_error" if known else ":error"))
                 elif "rows" not in ref and "rows" in res and name not in ("duckdb", "sqlite", "tlp"):
                     diff.append(name + ":succeeds")
             for n in diff:

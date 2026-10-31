@@ -124,10 +124,47 @@ class RichGen(Gen):
         return (f"SELECT {sel} FROM {r['sql']} {a}{where} GROUP BY {key}{having}",
                 [("c0", kty)] + [(f"c{i + 1}", ty) for i, (_, ty) in enumerate(chosen)])
 
+    def q_dpp(self, depth):
+        """UNION ALL of partitioned and other scans joined to a filtered relation (DPP shapes)."""
+        parts = {"ta": "a", "tb": "a", "te": "k"}
+        sides = []
+        for _ in range(self.rng.randint(2, 3)):
+            t = self.rng.choice(["ta", "tb", "te", "tc", "td", "rel"])
+            if t == "rel":
+                r = self.rel(self.rng.randint(0, max(0, depth - 2)))
+            else:
+                r = {"sql": t, "cols": TABLES[t]}
+            a = self.alias()
+            refs = self.refs(r, a)
+            key = f"{a}.{parts[t]}" if t in parts else self.pick(refs, "int")
+            if self.rng.random() < 0.25:
+                key = f"{key} {self.rng.choice(['+', '-'])} 1"
+            val = self.expr(refs, "int")
+            where = f" WHERE {self.pred(refs, 1, False)}" if self.rng.random() < 0.3 else ""
+            sides.append(f"SELECT {key} AS c0, {val} AS c1 FROM {r['sql']} {a}{where}")
+        u = self.alias()
+        dim = self.rel(self.rng.randint(0, max(0, depth - 1)))
+        b = self.alias()
+        brefs = self.refs(dim, b)
+        dkey = self.pick(brefs, "int")
+        jt = self.rng.choice(["JOIN", "JOIN", "JOIN", "LEFT SEMI JOIN", "RIGHT JOIN"])
+        sel = f"{u}.c0 AS c0, {u}.c1 AS c1" if jt == "LEFT SEMI JOIN" else \
+            f"{u}.c0 AS c0, {u}.c1 AS c1, {self.expr(brefs, 'int')} AS c2"
+        cols = [("c0", "int"), ("c1", "int")] + ([] if jt == "LEFT SEMI JOIN" else [("c2", "int")])
+        where = f" WHERE {self.pred(brefs, 1, False)}"
+        return (f"SELECT {sel} FROM ({' UNION ALL '.join(sides)}) {u} {jt} {dim['sql']} {b} "
+                f"ON {u}.c0 = {dkey}{where}", cols)
+
+    def rel(self, depth):
+        if depth > 0 and self.rng.random() < 0.08:
+            sql, cols = self.q_dpp(depth)
+            return {"sql": f"({sql})", "cols": cols}
+        return super().rel(depth)
+
     def query_cols(self):
         depth = self.rng.randint(2, self.max_depth)
         op = self.rng.choice([self.q_select, self.q_join, self.q_join, self.q_agg, self.q_distinct,
-                              self.q_setop, self.q_window, self.q_limit])
+                              self.q_setop, self.q_window, self.q_limit, self.q_dpp, self.q_dpp])
         return op(depth)
 
 
