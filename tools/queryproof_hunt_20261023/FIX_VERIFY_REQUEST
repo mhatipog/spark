@@ -1,1 +1,1 @@
-research/queryproof-fix-n2-test-only-control catalyst/testOnly*FilterEstimationSuite cbo_final.py
+research/queryproof-fix-n1-dpp-union-nonpartitioned sql/testOnly*DynamicPartitionPruningV1SuiteAEOff,*DynamicPartitionPruningV1SuiteAEOn,*DynamicPartitionPruningV2SuiteAEOff,*DynamicPartitionPruningV2SuiteAEOn dpp_probe.py
