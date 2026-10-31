@@ -5,6 +5,7 @@ Writes the same rows as ORC and as Parquet, plain and partitioned, and filters o
 st.x IS NULL / IS NOT NULL / = value with ORC filter pushdown on and off, V1 and V2.
 A row whose whole struct is NULL has st.x NULL and must pass `st.x IS NULL`.
 """
+import json
 import shutil
 import tempfile
 
@@ -17,10 +18,29 @@ CONFIGS = {
     "orc_v1": {},
     "orc_v1_no_pushdown": {"spark.sql.orc.filterPushdown": "false"},
     "orc_v1_no_nested_pushdown": {"spark.sql.optimizer.nestedPredicatePushdownSupportedFileSources": ""},
+    "orc_v1_nested_parquet_only": {"spark.sql.optimizer.nestedPredicatePushdownSupportedFileSources": "parquet"},
     "orc_v1_no_vectorized": {"spark.sql.orc.enableVectorizedReader": "false"},
     "orc_v2": {"spark.sql.sources.useV1SourceList": ""},
     "orc_v2_no_pushdown": {"spark.sql.sources.useV1SourceList": "", "spark.sql.orc.filterPushdown": "false"},
 }
+
+
+def rows(df):
+    """Rows keyed by column name (a partitioned read puts the partition column last)."""
+    return sorted(json.dumps(r.asDict(recursive=True), sort_keys=True) for r in df.collect())
+
+
+def print_orc_stats(spark, path):
+    """File-level column statistics as the ORC writer recorded them (hasNull per column)."""
+    jvm = spark._jvm
+    conf = spark._jsc.hadoopConfiguration()
+    for st in jvm.org.apache.hadoop.fs.Path(path).getFileSystem(conf).listStatus(jvm.org.apache.hadoop.fs.Path(path)):
+        if st.getPath().getName().endswith(".orc"):
+            reader = jvm.org.apache.orc.OrcFile.createReader(st.getPath(), jvm.org.apache.orc.OrcFile.readerOptions(conf))
+            print("ORCSCHEMA", reader.getSchema().toString())
+            for i, cs in enumerate(reader.getStatistics()):
+                print(f"ORCSTATS column {i}: " + cs.toString().replace("
+", " "))
 
 
 def main():
@@ -28,24 +48,29 @@ def main():
     spark = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false").getOrCreate())
     print("SPARK_VERSION", spark.version)
     df = spark.createDataFrame(ROWS, "k INT, st STRUCT<x: INT, y: STRING>")
-    for layout in ("plain", "partitioned"):
+    full = df
+    for layout in ("plain", "partitioned", "one_file_k2"):
+        # one_file_k2: a single file whose only NULL st.x comes from a NULL parent struct.
+        df = full.where("k = 2") if layout == "one_file_k2" else full
         for fmt in ("orc", "parquet"):
             w = df.coalesce(1).write.format(fmt).mode("overwrite")
             (w.partitionBy("k") if layout == "partitioned" else w).save(f"{base}/{layout}_{fmt}")
+        if layout == "one_file_k2":
+            print_orc_stats(spark, f"{base}/{layout}_orc")
         for f in FILTERS:
-            expected = sorted(str(r) for r in df.where(f).collect())
+            expected = rows(df.where(f))
             for cname, conf in CONFIGS.items():
                 for k, v in conf.items():
                     spark.conf.set(k, v)
                 try:
-                    got = sorted(str(r) for r in spark.read.schema(df.schema).orc(f"{base}/{layout}_orc").where(f).collect())
+                    got = rows(spark.read.schema(df.schema).orc(f"{base}/{layout}_orc").where(f))
                     res = "ok" if got == expected else f"WRONG got {len(got)} rows, expected {len(expected)}"
                 except Exception as exc:  # noqa: BLE001
                     res = "ERROR " + str(exc).split("\n")[0][:120]
                 print(f"ORCNESTED {layout:11s} {f:26s} {cname:26s} {res}")
                 for k in conf:
                     spark.conf.unset(k)
-            pq = sorted(str(r) for r in spark.read.schema(df.schema).parquet(f"{base}/{layout}_parquet").where(f).collect())
+            pq = rows(spark.read.schema(df.schema).parquet(f"{base}/{layout}_parquet").where(f))
             print(f"ORCNESTED {layout:11s} {f:26s} {'parquet_default':26s} {'ok' if pq == expected else 'WRONG'}")
     spark.stop()
     shutil.rmtree(base, ignore_errors=True)
