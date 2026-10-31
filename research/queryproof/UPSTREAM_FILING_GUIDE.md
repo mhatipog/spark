@@ -68,8 +68,8 @@ java.lang.IllegalArgumentException: requirement failed: input[0, int, true] IN d
 h3. Expected
 The same rows as with codegen enabled: 1, 1, 2, 2.
 
-h3. Also with the default configuration
-When the key of the non-partitioned branch is a higher-order function, the DPP predicate is evaluated per row even with whole-stage codegen enabled, so the query fails with default settings (4.2.1):
+h3. Also with the default configuration on released versions
+On 3.5.9, 4.0.5, 4.1.4 and 4.2.1, when the key of the non-partitioned branch is a higher-order function, the DPP predicate is evaluated per row even with whole-stage codegen enabled, so the query fails with default settings. On master (d781c67c7c) this default-configuration variant passes, but the spark.sql.codegen.wholeStage=false reproduction above still fails:
 {code:sql}
 CREATE TABLE n2 (arr ARRAY<INT>) USING parquet;
 INSERT INTO n2 VALUES (array(1)), (array(1, 1)), (array(2, 3)), (NULL);
@@ -211,7 +211,7 @@ Fix branches are prepared in `mhatipog/spark`; see the "Fix branches" section of
 `2026-10-31-hunt-new-bugs-and-upstream-drafts.md` for names, status and test results:
 
 - N2: `research/queryproof-fix-n2-filterestimation-ndv-zero` (commit ec22a0d)
-- N1: `research/queryproof-fix-n1-dpp-union-nonpartitioned` (commits 2eb639a fix + test, 46c0bbe default-configuration test)
+- N1: `research/queryproof-fix-n1-dpp-union-nonpartitioned` (commit 2eb639a: fix and test)
 
 Optionally rename a branch to something shorter first, e.g. `SPARK-NNNNN`. Do not use
 the `…-test-only-control` branches: they contain the tests without the fix.

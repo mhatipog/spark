@@ -178,14 +178,20 @@ Results:
 
 Results:
 
-1. **N1 also fails under the default configuration.**
+1. **On released versions N1 also fails under the default configuration.**
    - When the non-partitioned UNION branch's key is a higher-order function
      (`aggregate(arr, 0, (acc, e) -> …)` or `transform`), the DPP predicate is evaluated
      per row even with whole-stage codegen on.
-   - `dpp_default_probe.py` reproduces it on released 4.2.1 with defaults and with AQE
-     off. A plain `size(arr)` key works, and DPP off works.
+   - `dpp_default_probe.py` reproduces it with defaults and with AQE off on 3.5.9, 4.0.5,
+     4.1.4 and 4.2.1 (run 41224020778). A plain `size(arr)` key works, and DPP off works.
+   - On master (`d781c67c7c`) this default-configuration variant passes. Something on
+     master no longer forces interpreted evaluation for these keys. The `wholeStage=false`
+     reproduction still fails on master.
    - On master with the N1 fix, all nine combinations are correct (run 41219613198).
-   - A second regression test on the fix branch covers this (commit 46c0bbe).
+   - A regression test for the higher-order-function case was tried and dropped. Inside
+     Spark's test suite (master) it passed without the fix (runs 41220521947, 41222836809),
+     so it would not guard anything. The fix branch keeps the original, verified test only
+     (2eb639a).
    - About 220 further N1 hits under `wholeStage=false`, including struct-field keys.
 2. **A V2 file source plus VARIANT regression in 4.1/4.2, fixed on master (not new).**
    - 183 cases over the VARIANT table fail only through the V2 path read:
@@ -213,7 +219,7 @@ Results:
 | Bug | Branch | Commit | Verification |
 | --- | --- | --- | --- |
 | N2 | `research/queryproof-fix-n2-filterestimation-ndv-zero` | ec22a0d | `FilterEstimationSuite` 87/87 passed (run 41200217583). The end-to-end reproduction now runs (it failed on unpatched master). Negative control: the new test without the fix fails, 86 passed and 1 failed (run 41202403612). Spark's own Build workflow on the branch is running. |
-| N1 | `research/queryproof-fix-n1-dpp-union-nonpartitioned` | 2eb639a + 46c0bbe (second test, default configuration) | `DynamicPartitionPruningV1/V2 SuiteAEOff/AEOn`: 183 passed, 0 failed, 5 ignored (run 41202482079). All six end-to-end shapes are correct under every configuration, including codegen off (run 41204571954). Negative control: the new test without the fix fails with "IN dynamicpruning#8480 has not finished", 49 passed and 1 failed in DynamicPartitionPruningV1SuiteAEOff (run 41205691383). |
+| N1 | `research/queryproof-fix-n1-dpp-union-nonpartitioned` | 2eb639a | `DynamicPartitionPruningV1/V2 SuiteAEOff/AEOn`: 183 passed, 0 failed, 5 ignored (run 41202482079). All six end-to-end shapes are correct under every configuration, including codegen off (run 41204571954). Negative control: the new test without the fix fails with "IN dynamicpruning#8480 has not finished", 49 passed and 1 failed in DynamicPartitionPruningV1SuiteAEOff (run 41205691383). |
 
 - **The fixes.**
   - N2 returns selectivity 0 when `distinctCount == 0`, mirroring SPARK-23799's
