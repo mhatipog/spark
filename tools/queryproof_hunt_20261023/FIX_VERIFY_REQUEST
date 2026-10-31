@@ -1,1 +1,1 @@
-research/queryproof-fix-n1-test-only-control sql/testOnly*DynamicPartitionPruningV1SuiteAEOff dpp_default_probe.py
+research/queryproof-fix-n1-test-only-control sql/testOnly*DynamicPartitionPruningV1SuiteAEOff,*DynamicPartitionPruningV1SuiteAEOn dpp_default_probe.py
