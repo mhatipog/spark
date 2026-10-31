@@ -42,6 +42,11 @@ jobs:
           if [ -n "$COMMIT" ]; then for g in gen_deep.py gen_rich.py; do git show "$COMMIT:tools/queryproof_hunt_20261023/$g" > "gen/$g"; done; fi
           (cd gen && python -B "$GEN" "$SEED" "$N" ../cases.json "$DS")
           echo "SPECS=$SPECS" >> "$GITHUB_ENV"
+      - name: CBO probe (when the first spec names cbo_reorder)
+        if: matrix.lqs_patch == 'none'
+        run: |
+          first=${SPECS%% *}
+          case "$first" in *cbo_reorder*) cd tools/queryproof_hunt_20261023 && python -B cbo_probe.py ../../cases.json ../../cbo.json "${first%:cbo_reorder}" 2>../../cbo.log || { grep -v ' WARN ' ../../cbo.log | tail -60; exit 1; } ;; esac
       - name: Run the cases
         run: |
           QP_REPEATS=6 python -B tools/queryproof_hunt_20261023/meta_case.py cases.json case.json $SPECS 2>case.log \
@@ -49,4 +54,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: case-${{ matrix.lqs_patch }}
-          path: case.json
+          path: |
+            case.json
+            cbo.json

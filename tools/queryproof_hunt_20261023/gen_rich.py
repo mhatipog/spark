@@ -151,9 +151,12 @@ class RichGen(Gen):
         sel = f"{u}.c0 AS c0, {u}.c1 AS c1" if jt == "LEFT SEMI JOIN" else \
             f"{u}.c0 AS c0, {u}.c1 AS c1, {self.expr(brefs, 'int')} AS c2"
         cols = [("c0", "int"), ("c1", "int")] + ([] if jt == "LEFT SEMI JOIN" else [("c2", "int")])
-        where = f" WHERE {self.pred(brefs, 1, False)}"
+        # A semi join's right side is not visible after the join, so its filter goes into ON.
+        filt = self.pred(brefs, 1, False)
+        on = f"{u}.c0 = {dkey}" + (f" AND {filt}" if jt == "LEFT SEMI JOIN" else "")
+        where = "" if jt == "LEFT SEMI JOIN" else f" WHERE {filt}"
         return (f"SELECT {sel} FROM ({' UNION ALL '.join(sides)}) {u} {jt} {dim['sql']} {b} "
-                f"ON {u}.c0 = {dkey}{where}", cols)
+                f"ON {on}{where}", cols)
 
     def rel(self, depth):
         if depth > 0 and self.rng.random() < 0.08:
