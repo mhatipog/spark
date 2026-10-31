@@ -85,11 +85,51 @@ FEAT_VARIANTS = {
     "no_nested_expr_pruning": {"spark.sql.optimizer.expression.nestedPruning.enabled": "false"},
     "no_codegen_no_dpp": WIDE_VARIANTS["no_codegen_no_dpp"],
 }
+# Fourth set (QP_VARIANTS=round6): user-facing switches only (no internal factoryMode, which
+# trips the by-design ScalarCastHelper limitation), whole-stage codegen combinations, and
+# path-based reads of the same files through the V1 and the V2 file source.
+WS_OFF = {"spark.sql.codegen.wholeStage": "false"}
+ROUND6_VARIANTS = {
+    "aqe_off": VARIANTS["aqe_off"],
+    "no_broadcast": VARIANTS["no_broadcast"],
+    "shuffle_hash": VARIANTS["shuffle_hash"],
+    "cbo_reorder": VARIANTS["cbo_reorder"],
+    "no_pushdown": VARIANTS["no_pushdown"],
+    "no_vectorized": VARIANTS["no_vectorized"],
+    "no_nested_vectorized": FEAT_VARIANTS["no_nested_vectorized"],
+    "no_nested_pruning": VARIANTS["no_nested_pruning"],
+    "dpp_aggressive": DPP_AGGRESSIVE,
+    "bloom": BLOOM,
+    "no_reuse": WIDE_VARIANTS["no_reuse"],
+    "parts7": VARIANTS["parts7"],
+    "wholestage_off": WS_OFF,
+    "wholestage_off_aqe_off": {**WS_OFF, "spark.sql.adaptive.enabled": "false"},
+    "wholestage_off_no_broadcast": {**WS_OFF, "spark.sql.autoBroadcastJoinThreshold": "-1"},
+    "wholestage_off_no_dpp": {**WS_OFF, "spark.sql.optimizer.dynamicPartitionPruning.enabled": "false"},
+    "@paths_v1": {},
+    "@paths_v2": {"spark.sql.sources.useV1SourceList": ""},
+    "@paths_v2_no_pushdown": {"spark.sql.sources.useV1SourceList": "", "spark.sql.parquet.filterPushdown": "false"},
+}
 if os.environ.get("QP_VARIANTS") == "wide":
     VARIANTS = WIDE_VARIANTS
 elif os.environ.get("QP_VARIANTS") == "feat":
     VARIANTS = FEAT_VARIANTS
-KNOWN_SIGNATURES = {"has not finished": "DPP-through-UNION interpreted Filter (this hunt; unreported)"}
+elif os.environ.get("QP_VARIANTS") == "round6":
+    VARIANTS = ROUND6_VARIANTS
+KNOWN_SIGNATURES = {"has not finished": "N1: DPP through UNION, codegen off (this hunt; fix branch ready)",
+                    "Character N is neither": "N2: CBO FilterEstimation NaN (this hunt; fix branch ready)"}
+TABLE_PATHS = {}  # table name -> (location, schema) of the currently loaded database
+
+
+def run_over_paths(spark, sql):
+    """Run sql with every catalog table shadowed by a temp view reading its files by path."""
+    for name, (loc, schema) in TABLE_PATHS.items():
+        spark.read.schema(schema).parquet(loc).createOrReplaceTempView(name)
+    try:
+        return spark_rows(spark, sql)
+    finally:
+        for name in TABLE_PATHS:
+            spark.catalog.dropTempView(name)
 LAYOUT = {"ta": ("partition", "a"), "tb": ("partition", "a"), "te": ("partition", "k"),
           "tc": ("bucket", "k"), "td": ("plain", None), "tf": ("partition", "k")}
 SPARK_TYPES = {"integer": "int", "string": "string", "decimal(5,2)": "decimal(5,2)", "date": "date",
@@ -134,6 +174,10 @@ def write_tables(spark, dataset):
     if "tf" in dataset:  # VARIANT table derived from tf.js (gen_feat.py)
         spark.sql("DROP TABLE IF EXISTS tv")
         spark.sql("CREATE TABLE tv USING parquet AS SELECT k, parse_json(js) AS v FROM tf WHERE js IS NOT NULL")
+    TABLE_PATHS.clear()
+    for name in list(dataset) + (["tv"] if "tf" in dataset else []):
+        loc = spark.sql(f"DESCRIBE TABLE EXTENDED {name}").where("col_name = 'Location'").collect()[0][1]
+        TABLE_PATHS[name] = (loc, spark.table(name).schema)
 
 
 def duck_rows(dataset, sql):
@@ -235,7 +279,10 @@ def main(cases_path, out_path, shard=0, count=1):
             for name, conf in VARIANTS.items():
                 for k, v in conf.items():
                     spark.conf.set(k, v)
-                out[name] = spark_rows(spark, case["sql"])
+                if name.startswith("@paths"):
+                    out[name] = run_over_paths(spark, case["sql"])
+                else:
+                    out[name] = spark_rows(spark, case["sql"])
                 for k in conf:
                     spark.conf.unset(k)
             out["tlp"] = spark_rows(spark, tlp_sql(case))
