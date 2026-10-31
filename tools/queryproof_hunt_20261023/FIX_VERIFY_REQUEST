@@ -1,1 +1,1 @@
-research/queryproof-fix-n5-debug sql/testOnly*ParquetV2AggregatePushDownSuite none-repro
+research/queryproof-fix-n5-test-only-control none agg_shape_probe.py
