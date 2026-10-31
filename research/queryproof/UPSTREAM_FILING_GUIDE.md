@@ -68,6 +68,17 @@ java.lang.IllegalArgumentException: requirement failed: input[0, int, true] IN d
 h3. Expected
 The same rows as with codegen enabled: 1, 1, 2, 2.
 
+h3. Also with the default configuration
+When the key of the non-partitioned branch is a higher-order function, the DPP predicate is evaluated per row even with whole-stage codegen enabled, so the query fails with default settings (4.2.1):
+{code:sql}
+CREATE TABLE n2 (arr ARRAY<INT>) USING parquet;
+INSERT INTO n2 VALUES (array(1)), (array(1, 1)), (array(2, 3)), (NULL);
+SELECT u.k FROM (SELECT k FROM p UNION ALL
+                 SELECT aggregate(arr, 0, (acc, e) -> acc + e) AS k FROM n2) u
+JOIN d ON u.k = d.k WHERE d.k IN (1, 2);
+-- requirement failed: aggregate(input[0, array<int>, true], 0, lambdafunction(...)) IN dynamicpruning#N has not finished
+{code}
+
 h3. Scope
 * Reproduced on 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master (f090eaca12, 2026-10-31).
 * Fails with AQE on and off, and with factoryMode=NO_CODEGEN as well as with only spark.sql.codegen.wholeStage=false.
@@ -167,13 +178,40 @@ Set nothing else. Committers decide the backport.
 
 ---
 
+## 3b. Comment on SPARK-57499 (V2 VARIANT regression, backport request)
+
+Open <https://issues.apache.org/jira/browse/SPARK-57499> and add:
+
+```
+A related failure in the same area still reproduces on 4.1.4, 4.2.1 and branch-4.2 (4.2.2-SNAPSHOT, b7689f08), while master and 4.0.5 are fine. With the V2 file source a projection using is_variant_null fails during column pruning:
+
+{code:python}
+spark.sql("""SELECT * FROM VALUES (1, parse_json('{"a": 1, "b": "x"}')), (2, parse_json('{"a": -2}')),
+             (0, parse_json('null')), (3, parse_json('{"b": "y"}')) AS t(k, v)""").write.parquet(path)
+spark.conf.set("spark.sql.sources.useV1SourceList", "")
+spark.read.parquet(path).createOrReplaceTempView("tv")
+spark.sql("SELECT k, CASE WHEN is_variant_null(v) THEN 1 ELSE 0 END FROM tv").collect()
+{code}
+{noformat}
+org.apache.spark.sql.catalyst.analysis.UnresolvedException: [INTERNAL_ERROR] Invalid call to exprId on unresolved object
+  at org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute.exprId(unresolved.scala:310)
+  at org.apache.spark.sql.catalyst.expressions.AttributeMap$.apply(AttributeMap.scala:35)
+  at org.apache.spark.sql.catalyst.expressions.AliasHelper.getAliasMap(AliasHelper.scala:52)
+  at org.apache.spark.sql.catalyst.planning.ScanOperation$.collectProjectsAndFilters(patterns.scala:65)
+  at org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown$$anonfun$pruneColumns$1.applyOrElse(V2ScanRelationPushDown.scala:800)
+{noformat}
+The same happens for EXISTS / IN subqueries over such a projection; try_variant_get alone works, and the V1 source works. In randomized testing the V2 path also hit "[INTERNAL_ERROR_ATTRIBUTE_NOT_FOUND] Could not find v#N" (the symptom described here) and PLAN_VALIDATION_FAILED_RULE_IN_BATCH in RemoveRedundantAliases. The fix commit bd65ed7ce1 does not cherry-pick cleanly onto branch-4.2, so I could not confirm which master change fixes the is_variant_null case. Could the fix(es) be backported to branch-4.2 / branch-4.1?
+```
+
+---
+
 ## 4. Pull requests (after the JIRAs exist)
 
 Fix branches are prepared in `mhatipog/spark`; see the "Fix branches" section of
 `2026-10-31-hunt-new-bugs-and-upstream-drafts.md` for names, status and test results:
 
 - N2: `research/queryproof-fix-n2-filterestimation-ndv-zero` (commit ec22a0d)
-- N1: `research/queryproof-fix-n1-dpp-union-nonpartitioned` (commit 2eb639a)
+- N1: `research/queryproof-fix-n1-dpp-union-nonpartitioned` (commits 2eb639a fix + test, 46c0bbe default-configuration test)
 
 Optionally rename a branch to something shorter first, e.g. `SPARK-NNNNN`. Do not use
 the `…-test-only-control` branches: they contain the tests without the fix.

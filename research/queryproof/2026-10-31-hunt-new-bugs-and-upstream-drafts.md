@@ -165,12 +165,55 @@ Results:
     over-reports. Only failures that also occur with `wholeStage=false` alone count as
     user-facing. N1 does.
 
+## Round 6: user-facing switches only, V1/V2 path reads (seed 20261039)
+
+- **Generator:** `gen_feat.py`, 3,600 queries × 2 datasets.
+- **Variant set `round6` (19 configurations):**
+  - user-facing switches only, so the internal factoryMode that caused N3 is dropped;
+  - `wholeStage=false` alone and combined with AQE off, no broadcast, or DPP off;
+  - the same files read by path through the V1 source (`@paths_v1`) and the V2 file
+    source (`@paths_v2`, `spark.sql.sources.useV1SourceList=''`), with and without
+    Parquet pushdown.
+- **Run:** 41212403583.
+
+Results:
+
+1. **N1 also fails under the default configuration.**
+   - When the non-partitioned UNION branch's key is a higher-order function
+     (`aggregate(arr, 0, (acc, e) -> …)` or `transform`), the DPP predicate is evaluated
+     per row even with whole-stage codegen on.
+   - `dpp_default_probe.py` reproduces it on released 4.2.1 with defaults and with AQE
+     off. A plain `size(arr)` key works, and DPP off works.
+   - On master with the N1 fix, all nine combinations are correct (run 41219613198).
+   - A second regression test on the fix branch covers this (commit 46c0bbe).
+   - About 220 further N1 hits under `wholeStage=false`, including struct-field keys.
+2. **A V2 file source plus VARIANT regression in 4.1/4.2, fixed on master (not new).**
+   - 183 cases over the VARIANT table fail only through the V2 path read:
+     - `[INTERNAL_ERROR] Invalid call to exprId on unresolved object` (160) in
+       `V2ScanRelationPushDown.pruneColumns`;
+     - `[INTERNAL_ERROR_ATTRIBUTE_NOT_FOUND] Could not find v#N`, the symptom
+       SPARK-57499 describes;
+     - plan validation failures in `RemoveRedundantAliases`.
+   - Minimal case: `SELECT k, CASE WHEN is_variant_null(v) THEN 1 ELSE 0 END FROM tv`
+     through the V2 file source.
+   - It fails on 4.1.4, 4.2.1 and branch-4.2 HEAD (`b7689f08`, 4.2.2-SNAPSHOT). It works
+     on 4.0.5 and master (`d781c67c7c`). This is a regression from the 4.1 DSv2 variant
+     pushdown (SPARK-53805/53880).
+   - SPARK-57499 (fix 4.3.0) does not cherry-pick cleanly onto branch-4.2, so the fixing
+     commit is not isolated.
+   - Classification: fixed upstream, not backported. A comment draft is in the filing guide.
+3. **N2:** 2 more hits.
+4. **No wrong answers:** the default-configuration oracles (NoREC and pinned result)
+   found no differences.
+5. **One harness-level oddity:** a case whose default run hit N1 while other
+   configurations succeeded. This is plan-dependent, the same bug.
+
 ## Fix branches (in mhatipog/spark, on top of master f090eaca12)
 
 | Bug | Branch | Commit | Verification |
 | --- | --- | --- | --- |
 | N2 | `research/queryproof-fix-n2-filterestimation-ndv-zero` | ec22a0d | `FilterEstimationSuite` 87/87 passed (run 41200217583). The end-to-end reproduction now runs (it failed on unpatched master). Negative control: the new test without the fix fails, 86 passed and 1 failed (run 41202403612). Spark's own Build workflow on the branch is running. |
-| N1 | `research/queryproof-fix-n1-dpp-union-nonpartitioned` | 2eb639a | `DynamicPartitionPruningV1/V2 SuiteAEOff/AEOn`: 183 passed, 0 failed, 5 ignored (run 41202482079). All six end-to-end shapes are correct under every configuration, including codegen off (run 41204571954). Negative control: the new test without the fix fails with "IN dynamicpruning#8480 has not finished", 49 passed and 1 failed in DynamicPartitionPruningV1SuiteAEOff (run 41205691383). |
+| N1 | `research/queryproof-fix-n1-dpp-union-nonpartitioned` | 2eb639a + 46c0bbe (second test, default configuration) | `DynamicPartitionPruningV1/V2 SuiteAEOff/AEOn`: 183 passed, 0 failed, 5 ignored (run 41202482079). All six end-to-end shapes are correct under every configuration, including codegen off (run 41204571954). Negative control: the new test without the fix fails with "IN dynamicpruning#8480 has not finished", 49 passed and 1 failed in DynamicPartitionPruningV1SuiteAEOff (run 41205691383). |
 
 - **The fixes.**
   - N2 returns selectivity 0 when `distinctCount == 0`, mirroring SPARK-23799's
