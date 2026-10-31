@@ -148,7 +148,8 @@ elif os.environ.get("QP_VARIANTS") == "round6":
 elif os.environ.get("QP_VARIANTS") == "round7":
     VARIANTS = ROUND7_VARIANTS
 KNOWN_SIGNATURES = {"has not finished": "N1: DPP through UNION, codegen off (this hunt; fix branch ready)",
-                    "Character N is neither": "N2: CBO FilterEstimation NaN (this hunt; fix branch ready)"}
+                    "Character N is neither": "N2: CBO FilterEstimation NaN (this hunt; fix branch ready)",
+                    "exprId on unresolved object": "V2 file source + VARIANT regression in 4.1/4.2 (fixed on master)"}
 TABLE_PATHS = {}  # table name -> (location, schema) of the currently loaded database
 FORMAT_PATHS = {}  # format -> {table name -> (location, schema)} of copies in other formats
 
