@@ -55,7 +55,7 @@ def main(cases_path, case_id, ds, repeats, out_path):
         seen, plans = Counter(), {}
         for _ in range(int(repeats)):
             df = spark.sql(case["sql"])
-            key = json.dumps(sorted(Counter(tuple(r) for r in df.collect()).items()))
+            key = json.dumps(sorted(Counter(tuple(r) for r in df.collect()).items()), default=str)
             seen[key] += 1
             if key not in plans:
                 plans[key] = df._jdf.queryExecution().executedPlan().toString()[:8000]
@@ -67,7 +67,7 @@ def main(cases_path, case_id, ds, repeats, out_path):
     spark.conf.unset("spark.sql.optimizer.excludedRules")
     spark.stop()
     with open(out_path, "w", newline="\n") as f:
-        json.dump(report, f, indent=1)
+        json.dump(report, f, indent=1, default=str)
 
 
 if __name__ == "__main__":
