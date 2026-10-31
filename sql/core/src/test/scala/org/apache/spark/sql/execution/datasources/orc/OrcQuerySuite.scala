@@ -786,6 +786,26 @@ abstract class OrcQuerySuite extends OrcQueryTest with SharedSparkSession {
     }
   }
 
+  test("SPARK-XXXXX: IS NULL on a field of a null struct with ORC filter pushdown") {
+    withTempPath { dir =>
+      val path = dir.getCanonicalPath
+      // One file whose only null `st._1` and `st._2` come from a null `st`: the ORC statistics
+      // of the fields count only the rows where `st` is not null, so they record no null.
+      Seq((1, Some((1, "b"))), (2, None)).toDF("k", "st").coalesce(1).write.orc(path)
+      Seq("true", "false").foreach { pushdown =>
+        withSQLConf(SQLConf.ORC_FILTER_PUSHDOWN_ENABLED.key -> pushdown) {
+          withAllNativeOrcReaders {
+            val df = spark.read.orc(path)
+            checkAnswer(df.where("st._1 IS NULL"), Row(2, null))
+            checkAnswer(df.where("st._2 IS NULL AND k > 0"), Row(2, null))
+            checkAnswer(df.where("st._1 IS NULL OR k = 1"), Seq(Row(1, Row(1, "b")), Row(2, null)))
+            checkAnswer(df.where("st._1 IS NOT NULL"), Row(1, Row(1, "b")))
+          }
+        }
+      }
+    }
+  }
+
   test("SPARK-20728 Make ORCFileFormat configurable between sql/hive and sql/core") {
     withSQLConf(SQLConf.ORC_IMPLEMENTATION.key -> "hive") {
       val e = intercept[AnalysisException] {

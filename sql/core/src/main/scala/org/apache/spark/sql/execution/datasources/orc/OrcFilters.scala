@@ -348,7 +348,10 @@ private[sql] object OrcFilters extends OrcFiltersBase {
         Some(builder.startNot()
           .lessThan(dataTypeMap(name).fieldName, getType(name), castedValue).end())
 
-      case IsNull(name) if dataTypeMap.contains(name) =>
+      // A row where a parent struct is null has a null field but no entry in the field's ORC
+      // statistics, so ORC would skip a row group of such rows for IS NULL. IsNotNull below is
+      // safe: it rejects these rows anyway.
+      case IsNull(name) if dataTypeMap.contains(name) && !dataTypeMap(name).inNullableStruct =>
         Some(builder.startAnd()
           .isNull(dataTypeMap(name).fieldName, getType(name)).end())
 

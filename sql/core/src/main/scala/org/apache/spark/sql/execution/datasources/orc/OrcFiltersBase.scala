@@ -40,7 +40,15 @@ trait OrcFiltersBase {
     }
   }
 
-  case class OrcPrimitiveField(fieldName: String, fieldType: DataType)
+  /**
+   * @param inNullableStruct whether the field is nested in a nullable struct. ORC keeps the
+   *                         statistics of such a field only for the rows where the struct is
+   *                         not null, so they do not count the rows where the struct is null.
+   */
+  case class OrcPrimitiveField(
+      fieldName: String,
+      fieldType: DataType,
+      inNullableStruct: Boolean = false)
 
   /**
    * This method returns a map which contains ORC field name and data type. Each key
@@ -57,15 +65,17 @@ trait OrcFiltersBase {
 
     def getPrimitiveFields(
         fields: Seq[StructField],
-        parentFieldNames: Seq[String] = Seq.empty): Seq[(String, OrcPrimitiveField)] = {
+        parentFieldNames: Seq[String] = Seq.empty,
+        inNullableStruct: Boolean = false): Seq[(String, OrcPrimitiveField)] = {
       fields.flatMap { f =>
         f.dataType match {
           case st: StructType =>
-            getPrimitiveFields(st.fields.toImmutableArraySeq, parentFieldNames :+ f.name)
+            getPrimitiveFields(st.fields.toImmutableArraySeq, parentFieldNames :+ f.name,
+              inNullableStruct || f.nullable)
           case BinaryType => None
           case _: AtomicType =>
             val fieldName = (parentFieldNames :+ f.name).quoted
-            val orcField = OrcPrimitiveField(fieldName, f.dataType)
+            val orcField = OrcPrimitiveField(fieldName, f.dataType, inNullableStruct)
             Some((fieldName, orcField))
           case _ => None
         }
