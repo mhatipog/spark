@@ -17,7 +17,15 @@ jobs:
     # Public fork: GitHub-hosted only (never the self-hosted VM).
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    env:
+      # Keep sbt within the hosted runner's memory (16 GB); sql/core tests need room for forks.
+      SBT_OPTS: "-Xmx4g -Xss64m -XX:ReservedCodeCacheSize=512m"
     steps:
+      - name: Free disk space (as Spark's own CI does)
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h / | tail -1
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
@@ -26,7 +34,10 @@ jobs:
       - name: Read the request
         run: |
           read BRANCH TESTSPEC REPRO < qp/tools/queryproof_hunt_20261023/FIX_VERIFY_REQUEST
-          echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"; echo "TESTSPEC=${TESTSPEC//\*/ *}" >> "$GITHUB_ENV"; echo "REPRO=$REPRO" >> "$GITHUB_ENV"
+          # TESTSPEC uses '*' between the sbt command and each suite pattern and ',' between patterns,
+          # e.g. sql/testOnly*SuiteA,*SuiteB -> "sql/testOnly *SuiteA *SuiteB"
+          spec="${TESTSPEC//,/ }"; echo "TESTSPEC=${spec/\*/ *}" >> "$GITHUB_ENV"
+          echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"; echo "REPRO=$REPRO" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.BRANCH }}
