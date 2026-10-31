@@ -131,7 +131,8 @@ def main(cases_path, out_path, shard=0, count=1):
                                                        if x["full"] == "ok" and x["sqlite"] != "ok")),
     }
     with open(out_path, "w", newline="\n") as f:
-        json.dump({"summary": summary, "excluded_rules": excluded, "results": results}, f, indent=1)
+        # default=str: DECIMAL cases return Decimal values in their recorded rows
+        json.dump({"summary": summary, "excluded_rules": excluded, "results": results}, f, indent=1, default=str)
     print("QUERYPROOF_HUNT", json.dumps(summary, sort_keys=True))
 
 

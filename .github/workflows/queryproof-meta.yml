@@ -1,0 +1,81 @@
+name: "QueryProof bug hunt - metamorphic configurations over partitioned Parquet"
+on:
+  # The marker holds SEED QUERIES DATASETS LQS_PATCH (none | spark-57956).
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_hunt_20261023/META_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-meta
+  cancel-in-progress: false
+jobs:
+  shard:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_hunt_20261023
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install PySpark 4.2.1 and DuckDB; optionally apply the SPARK-57956 fix
+        run: |
+          read SEED N DS PATCH < tools/queryproof_hunt_20261023/META_REQUEST
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.1 duckdb==2.0.0
+          if [ "$PATCH" = "spark-57956" ]; then bash tools/queryproof_hunt_20261023/patch_lqs.sh; fi
+          cd tools/queryproof_hunt_20261023 && python -B gen_rich.py "$SEED" "$N" ../../cases.json "$DS"
+      - name: Run every configuration on this shard
+        run: |
+          mkdir -p out
+          python -B tools/queryproof_hunt_20261023/run_meta.py cases.json out/meta_${{ matrix.shard }}.json ${{ matrix.shard }} 12 2>spark.log \
+            || { grep -v ' WARN ' spark.log | tail -n 80; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meta-shard-${{ matrix.shard }}
+          path: out/
+  merge:
+    needs: shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: meta-shard-*
+          merge-multiple: true
+          path: out
+      - name: Merge
+        run: |
+          python - <<'PY'
+          import json, glob
+          from collections import Counter
+          fs = [json.load(open(p)) for p in sorted(glob.glob("out/meta_*.json"))]
+          findings = [f for d in fs for f in d["findings"]]
+          totals = Counter()
+          for d in fs:
+              for k, v in d["summary"].items():
+                  if isinstance(v, (int, float)):
+                      totals[k] += v
+          by = Counter(n for f in findings for n in f["diff"])
+          summary = {"shards": len(fs), **dict(totals), "diff_by_oracle": dict(by.most_common())}
+          json.dump({"summary": summary, "findings": findings}, open("meta.json", "w"), indent=1)
+          print("QUERYPROOF_META_ALL", json.dumps(summary, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meta-merged
+          path: meta.json
