@@ -54,8 +54,7 @@ DPP_AGGRESSIVE = {"spark.sql.optimizer.dynamicPartitionPruning.reuseBroadcastOnl
                   "spark.sql.optimizer.dynamicPartitionPruning.fallbackFilterRatio": "1.0"}
 BLOOM = {"spark.sql.optimizer.runtime.bloomFilter.enabled": "true",
          "spark.sql.optimizer.runtime.bloomFilter.applicationSideScanSizeThreshold": "0",
-         "spark.sql.optimizer.runtime.bloomFilter.creationSideThreshold": "100MB",
-         "spark.sql.optimizer.runtimeFilter.semiJoinReduction.enabled": "true"}
+         "spark.sql.optimizer.runtime.bloomFilter.creationSideThreshold": "100MB"}
 WIDE_VARIANTS = {
     "aqe_off": VARIANTS["aqe_off"],
     "no_broadcast": VARIANTS["no_broadcast"],
