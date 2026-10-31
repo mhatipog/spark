@@ -57,7 +57,7 @@ def run(spark, sql):
         return {"error": (c.toString() if c is not None else str(exc)).split("\n")[0][:300]}
 
 
-def main(out_path):
+def main(out_path="dpp.json"):
     wh = tempfile.mkdtemp(prefix="qp_dpp_")
     spark = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false")
              .config("spark.sql.warehouse.dir", wh).getOrCreate())
