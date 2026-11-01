@@ -1,1 +1,1 @@
-run 10 (baseline lead: Spark reading pyarrow ORC with a NULL middle struct)
+run 11 (baseline lead bisect: exact shape R002_026 and variants)
