@@ -7,6 +7,13 @@ GitHub Issues is enabled on apache/spark, but the contributing guide
 (<https://spark.apache.org/contributing.html>) still points bug reports to JIRA, and
 committers triage there.
 
+**Suggested order:**
+1. N4 (§2b), a wrong result under default settings.
+2. N5 (§2c).
+3. N1 (§1).
+4. N2 (§2).
+5. The two backport comments (§3, §3b).
+
 ## 0. One-time setup
 
 1. **JIRA account.** Request one at <https://selfserve.apache.org/jira-account.html>.
@@ -153,6 +160,91 @@ Found by automated differential testing (CBO on/off oracle over partitioned Parq
 
 ---
 
+## 2b. JIRA: N4 (ORC: IS NULL on a field of a NULL struct drops rows) — file this one first
+
+This is a silent wrong result under the default configuration, so add the label
+`correctness` (Spark's convention for wrong-result bugs).
+
+- **Project:** Spark · **Issue type:** Bug · **Priority:** Critical (wrong result)
+- **Labels:** correctness
+- **Component/s:** SQL
+- **Affects Version/s:** 3.5.0, 4.0.0, 4.1.0, 4.2.1, 5.0.0
+- **Summary:**
+  `ORC filter pushdown of IS NULL on a struct field skips rows where the struct itself is NULL`
+- **Description:**
+
+```
+With the default configuration (spark.sql.orc.filterPushdown=true), a filter `st.x IS NULL` on an ORC file returns no rows for the rows where the whole struct `st` is NULL, although `st.x` is NULL there.
+
+h3. Reproduction (PySpark)
+{code:python}
+df = spark.createDataFrame([(1, (1, "b")), (2, None)], "k INT, st STRUCT<x: INT, y: STRING>")
+df.coalesce(1).write.mode("overwrite").orc("/tmp/orc_null_struct")
+spark.read.orc("/tmp/orc_null_struct").where("st.x IS NULL").show()
+# returns no rows; expected: (2, NULL)
+spark.conf.set("spark.sql.orc.filterPushdown", "false")
+spark.read.orc("/tmp/orc_null_struct").where("st.x IS NULL").show()
+# returns (2, NULL)
+{code}
+
+h3. Scope
+* Reproduced on 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master (81654b27d2, 5.0.0-SNAPSHOT), with the V1 and the V2 ORC source and with the vectorized and the row-based reader. Parquet is not affected.
+* `st.y IS NULL`, `NOT (st.x IS NOT NULL)` and `st.x IS NULL OR ...` are affected the same way. Setting spark.sql.optimizer.nestedPredicatePushdownSupportedFileSources to exclude orc did not stop the pushdown in our tests: the scan still reports PushedFilters: [IsNull(st.x)].
+* Whether a query is affected depends on the file layout: a stripe or row group is skipped when every NULL of st.x in it comes from a NULL st. In a partitioned table this happens per partition.
+
+h3. Analysis
+The writer's file statistics for the example (ORC reader getStatistics()):
+{noformat}
+column 2 (st):   count: 1 hasNull: true
+column 3 (st.x): count: 1 hasNull: false min: 1 max: 1
+column 4 (st.y): count: 1 hasNull: false min: b max: b
+{noformat}
+ORC keeps a child column's statistics only for the rows where the parent struct is present, so st.x records hasNull = false. OrcFilters.buildLeafSearchArgument pushes IsNull("st.x") as an IS_NULL leaf on the nested column, ORC evaluates it against those statistics as NO and skips the row group. Spark re-applies the filter after the scan, but the skipped rows never reach it.
+
+A Spark-side fix is to not push IsNull for a field nested in a nullable struct (IsNotNull and the value comparisons are safe, because they reject these rows anyway). A fix branch with tests is available. ORC itself could also take the parent's hasNull into account when it evaluates a nested IS_NULL leaf.
+
+Found by automated metamorphic testing (the same rows read as Parquet and as ORC must give the same result).
+```
+
+---
+
+## 2c. JIRA: N5 (aggregate pushdown: COUNT over no file returns NULL)
+
+- **Project:** Spark · **Issue type:** Bug · **Priority:** Major
+- **Labels:** correctness
+- **Component/s:** SQL
+- **Affects Version/s:** 3.5.0, 4.0.0, 4.1.0, 4.2.1, 5.0.0
+- **Summary:**
+  `Aggregate push down: global COUNT returns NULL instead of 0 when the scan reads no file`
+- **Description:**
+
+```
+With spark.sql.parquet.aggregatePushdown=true (or spark.sql.orc.aggregatePushdown=true) and the DSv2 file source, a global COUNT over a scan that reads no file returns NULL instead of 0. MIN/MAX correctly return NULL.
+
+h3. Reproduction (PySpark)
+{code:python}
+spark.conf.set("spark.sql.sources.useV1SourceList", "")
+spark.range(10).selectExpr("id", "id % 3 AS p").write.partitionBy("p").parquet("/tmp/agg_count")
+spark.read.parquet("/tmp/agg_count").createOrReplaceTempView("t")
+spark.conf.set("spark.sql.parquet.aggregatePushdown", "true")
+spark.sql("SELECT count(*), count(id) FROM t WHERE p = 5").show()
+# returns (NULL, NULL); expected (0, 0), as with aggregatePushdown=false
+{code}
+
+h3. Scope
+* Reproduced on 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master (81654b27d2, 5.0.0-SNAPSHOT).
+* Parquet: a partition filter that prunes every file, an empty partitioned table, and an empty non-partitioned table written from an empty DataFrame. ORC: the first two (an empty ORC file carries a row count of 0).
+* It also changes results that depend on the count, e.g. `WHERE (SELECT count(b) FROM empty_t) < 2` keeps no rows.
+* Note for reproducing in Scala: Dataset.collect() shows 0, because the count column is declared not nullable and the row encoder then reads the null slot as 0. PySpark, scalar subqueries and predicates over the count see the NULL; df.queryExecution.executedPlan.executeCollect().head.isNullAt(0) is true.
+
+h3. Analysis
+For file sources the aggregate is pushed down partially: each file returns its count and V2ScanRelationPushDown rewrites COUNT into SUM over these partial counts. When no file is read the scan returns no row, and SUM over no rows is NULL, in a column declared not nullable. Coalescing the sum of the pushed down counts with 0 for global aggregates fixes it (grouped aggregates have no group without rows). A fix branch with a test is available.
+
+Found by automated metamorphic testing (aggregate push down on/off must give the same result).
+```
+
+---
+
 ## 3. Comment on SPARK-57956 (backport request)
 
 Open <https://issues.apache.org/jira/browse/SPARK-57956> and add a comment:
@@ -212,6 +304,11 @@ Fix branches are prepared in `mhatipog/spark`; see the "Fix branches" section of
 
 - N2: `research/queryproof-fix-n2-filterestimation-ndv-zero` (commit ec22a0d)
 - N1: `research/queryproof-fix-n1-dpp-union-nonpartitioned` (commit 2eb639a: fix and test)
+- N4: `research/queryproof-fix-n4-orc-nested-isnull` (commit 4c95160). It also updates
+  nine existing `OrcFilterSuite` checks that expected IS NULL on nested fields to be
+  pushed down; say so in the PR description ("IS NULL on fields nested in a nullable
+  struct is no longer pushed down to ORC").
+- N5: `research/queryproof-fix-n5-agg-pushdown-empty-count` (commit 8a54e2f)
 
 Optionally rename a branch to something shorter first, e.g. `SPARK-NNNNN`. Do not use
 the `…-test-only-control` branches: they contain the tests without the fix.

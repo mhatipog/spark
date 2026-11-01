@@ -1,4 +1,4 @@
-# QueryProof bug hunt, rounds 2–4: two new Spark bugs (31 October 2026)
+# QueryProof bug hunt, rounds 2–7: four new Spark bugs (31 October – 1 November 2026)
 
 This document continues `2026-10-23-hunt-spark-4.2.0-findings.md`. All runs used
 GitHub-hosted runners on the public fork. Every finding was reproduced in isolation
@@ -214,6 +214,100 @@ Results:
 5. **One harness-level oddity:** a case whose default run hit N1 while other
    configurations succeeded. This is plan-dependent, the same bug.
 
+## Round 7: other file formats and cached tables (seed 20261041)
+
+- **Generator:** `gen_feat.py`, 3,600 queries × 2 datasets.
+- **Variant set `round7` (19 configurations):** the same rows copied, with the same
+  partition layout, into ORC, JSON and CSV files and read by path (`@fmt_<format>_*`):
+  - V1 and V2 file sources;
+  - each format's filter pushdown and vectorized-reader switches;
+  - ORC and Parquet aggregate pushdown (DSv2);
+  - whole-stage codegen off over ORC;
+  - every table cached (`@cache*`), with and without in-memory batch pruning and the
+    vectorized cache reader.
+  CSV copies skip the nested-type table, and the VARIANT table stays Parquet everywhere.
+- **Runs:**
+  - Smoke run 41235097266 (96 queries).
+  - **Failed run 41235307041**, kept as is: 7 of 12 shards lost the SparkContext after
+    about 40 minutes (the driver had the 1 GB default heap). Its 5 finished shards already
+    showed both new bugs.
+  - Rerun **41240610895** with the same seed, a 5 GB driver and less retained execution
+    history: 12/12 shards, 7,200 runs, 369 cases with a difference.
+
+### N4. ORC filter pushdown drops rows whose struct is NULL for `st.x IS NULL` (wrong result, default configuration)
+
+- **Symptom:**
+  - 47 cases differ under every ORC variant except the two with ORC filter pushdown off.
+  - Every one filters on a struct field being NULL: `st.x IS NULL`, `st.y IS NULL`,
+    `NOT (st.x IS NOT NULL)`, or an alias of `st.x` tested for NULL.
+- **Minimal case** (`orc_nested_probe.py`): one ORC file with the rows `(1, {x:1, y:'b'})`
+  and `(2, NULL)`; `WHERE st.x IS NULL` returns 0 rows instead of 1.
+- **Cause:**
+  - The writer's file statistics give `st` hasNull: true, but `st.x` and `st.y`
+    hasNull: false. ORC records a child's statistics only for rows where the parent
+    struct is present.
+  - `OrcFilters` pushes `IsNull(st.x)`, so ORC skips the row group.
+  - The internal switch `nestedPredicatePushdownSupportedFileSources` did not stop the
+    pushdown: the plan still showed `PushedFilters: [IsNull(st.x)]`.
+- **Versions** (run 41246318970): 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master 81654b27d2
+  (5.0.0-SNAPSHOT); V1 and V2; vectorized and row-based readers. Parquet is correct.
+- **Novelty:** no matching JIRA or PR found. The neighbours SPARK-52032/ORC-1898 (`<=>`
+  over an all-NULL row group) and SPARK-59605 (NULL in an ORC `IN` filter) are different
+  defects.
+- **Fix branch:** `research/queryproof-fix-n4-orc-nested-isnull` (4c95160). See the table
+  below.
+
+### N5. DSv2 aggregate pushdown returns NULL for a global COUNT when no file is read
+
+- **Symptom:** `F041_01087` returns 2 rows by default and none under ORC or Parquet
+  aggregate pushdown. Its scalar subquery `(SELECT COUNT(b) FROM tb) < 2` runs over an
+  empty `tb`, and the pushed-down COUNT is NULL.
+- **Minimal cases** (`agg_empty_probe.py`): `COUNT(*)` and `COUNT(col)` return NULL
+  instead of 0 in these cases:
+  - Parquet: an empty table, an empty partitioned table, and a partition filter that
+    prunes every file;
+  - ORC: the last two.
+
+  MIN and MAX are correct.
+- **Cause:** `V2ScanRelationPushDown` rewrites a partially pushed COUNT into SUM over the
+  per-file counts. With no file there is no partial row, and SUM over no rows is NULL.
+- **The NULL lands in a column declared not nullable.** On the same DataFrame, PySpark's
+  collect returns `(None, None)`, but the JVM `collectAsList()` returns `[0,0]`: the row
+  encoder trusts the nullability and reads the null slot as 0 (`agg_shape_probe.py`, run
+  41252499749).
+  - That is why the first suite test passed without the fix (run 41247307363). A Scala
+    `checkAnswer` sees 0.
+  - The final test also checks `executedPlan.executeCollect()` for null slots, and runs a
+    scalar subquery over the count.
+- **First fix attempt (94db9cb) failed 20 tests** (run 41247282189). `transform` visited the
+  newly built SUM and looked it up in the ordinal map. Superseded by 8a54e2f, which guards
+  that case.
+- **Versions** (run 41246318970): 3.5.9, 4.0.5, 4.1.4, 4.2.1, master 81654b27d2.
+- **Off by default:** `spark.sql.{parquet,orc}.aggregatePushdown` must be set.
+- **Novelty:** no matching JIRA or PR found. The neighbours SPARK-59607 (COUNT on a null
+  partition column) and SPARK-57739/57746 (all-null or missing Parquet statistics) are
+  different defects.
+- **Fix branch:** `research/queryproof-fix-n5-agg-pushdown-empty-count` (8a54e2f). See the
+  table below.
+
+### Everything else in round 7 (known or by design)
+
+- **N1:** 105 hits under `@fmt_orc_wholestage_off`, plus 2 runs whose default run fails
+  with N1's higher-order-function key while the format and cache variants succeed.
+- **V2 VARIANT regression family:** 213 errors (179 + 18 + 16) under Parquet aggregate
+  pushdown (which
+  reads the Parquet copies through DSv2). All of these cases read the VARIANT table, with
+  the round 6 signatures (exprId on unresolved object, ATTRIBUTE_NOT_FOUND v#N,
+  RemoveRedundantAliases plan validation).
+  - These signatures were checked on 4.2.1 only in this round. Round 6 showed the family
+    fixed on master.
+- **By design:** "No min/max found for Parquet file … Set spark.sql.parquet.aggregatePushdown
+  to false" (9). Spark refuses MIN/MAX pushdown when statistics are missing and says so;
+  no wrong result.
+- **No differences:** JSON, CSV and cached-table variants found nothing beyond those 2
+  plan-dependent N1 runs.
+- **No wrong answers:** default-configuration oracles (NoREC, pinned result) found none.
+
 ## Fix branches (in mhatipog/spark, on top of master f090eaca12)
 
 | Bug | Branch | Commit | Verification |
@@ -221,7 +315,17 @@ Results:
 | N2 | `research/queryproof-fix-n2-filterestimation-ndv-zero` | ec22a0d | `FilterEstimationSuite` 87/87 passed (run 41200217583). The end-to-end reproduction now runs (it failed on unpatched master). Negative control: the new test without the fix fails, 86 passed and 1 failed (run 41202403612). Spark's own Build workflow on the branch is running. |
 | N1 | `research/queryproof-fix-n1-dpp-union-nonpartitioned` | 2eb639a | `DynamicPartitionPruningV1/V2 SuiteAEOff/AEOn`: 183 passed, 0 failed, 5 ignored (run 41202482079). All six end-to-end shapes are correct under every configuration, including codegen off (run 41204571954). Negative control: the new test without the fix fails with "IN dynamicpruning#8480 has not finished", 49 passed and 1 failed in DynamicPartitionPruningV1SuiteAEOff (run 41205691383). |
 
+| N4 | `research/queryproof-fix-n4-orc-nested-isnull` | 4c95160 | `OrcFilterSuite`, `OrcV1FilterSuite`, `OrcV1QuerySuite`, `OrcV2QuerySuite`: 156 passed, 0 failed (run 41241804639). `orc_nested_probe.py` on the built branch: all 168 combinations correct. Negative control (tests without the fix): 10 failed, the new end-to-end test plus the 9 adjusted nested IS NULL checks (run 41241839332). |
+| N5 | `research/queryproof-fix-n5-agg-pushdown-empty-count` | 8a54e2f | Parquet/ORC V1/V2 aggregate pushdown suites and `JDBCV2Suite`: 187 passed, 0 failed (run 41252647958). `agg_empty_probe.py` on the built branch: 30/30 correct. Negative control: the new test fails in the Parquet and ORC V2 suites, 49 passed and 2 failed, with "isNullAt(0) was true" (run 41254747137; the earlier control run 41252673603 failed without printing, a workflow bug fixed since). |
+
+- **N4 base:** the N4 and N5 branches are also on f090eaca12. Both bugs were reproduced on
+  that base and on master 81654b27d2.
+
 - **The fixes.**
+  - N4 does not push `IsNull` down to ORC for a field nested in a nullable struct, using a
+    new `inNullableStruct` flag on `OrcPrimitiveField`. Top-level columns and
+    `IsNotNull` are unchanged.
+  - N5 rewrites a partially pushed global COUNT as `coalesce(sum(partial counts), 0)`.
   - N2 returns selectivity 0 when `distinctCount == 0`, mirroring SPARK-23799's
     `evaluateInSet`.
   - N1 makes `CleanupDynamicPruningFilters` drop a DPP predicate over a scan when its
@@ -229,7 +333,7 @@ Results:
     of file and Hive tables, non-runtime-filter attributes of DSv2 scans).
 - **Commit message and PR body.** Each commit message carries the PR body in Spark's
   template form, with the JIRA number left as `SPARK-XXXXX`.
-- **Not for upstream:** the branches `research/queryproof-fix-n{1,2}-test-only-control`
+- **Not for upstream:** the branches `research/queryproof-fix-n{1,2,4,5}-test-only-control`
   are controls only.
 
 ## Drafts for upstream (to be posted by the account owner)
