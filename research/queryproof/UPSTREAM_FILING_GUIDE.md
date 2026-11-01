@@ -323,7 +323,7 @@ The same happens for EXISTS / IN subqueries over such a projection; try_variant_
 - **Project:** Spark · **Issue type:** Bug · **Priority:** Major
 - **Labels:** correctness
 - **Component/s:** SQL
-- **Affects Version/s:** 4.0.0, 4.1.0, 4.2.1, 5.0.0 (3.5: see the verification table in the findings doc)
+- **Affects Version/s:** 3.5.0, 4.0.0, 4.1.0, 4.2.1, 5.0.0 (reproduced on 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master 4fecd73)
 - **Summary:**
   `Filter pushdown with a DATE between 1582-10-05 and 1582-10-14 skips rows of 1582-10-15 in Parquet and ORC`
 - **Description:**
@@ -364,7 +364,7 @@ Search once more right before filing, with `project = ORC AND text ~ "UTF-16"` a
 
 - **Project:** ORC · **Issue type:** Bug · **Priority:** Major
 - **Component/s:** Java
-- **Affects Version/s:** 2.1.4, 2.2.2, 2.3.0 (seen through Spark 4.0.5, 4.1.4, 4.2.1)
+- **Affects Version/s:** 2.1.4, 2.2.2, 2.3.0, and the ORC version of Spark 3.5.9 (seen through Spark 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master)
 - **Summary:**
   `Predicate pushdown compares strings in UTF-16 order against UTF-8 ordered statistics and skips matching row groups`
 - **Description:**

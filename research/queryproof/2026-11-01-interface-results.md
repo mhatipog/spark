@@ -16,7 +16,7 @@ Drafts for filing: `UPSTREAM_FILING_GUIDE.md` §2d (G), §2e (S), §2f (T3).
   - 41286231489: the G fix, 191 of 191 tests pass, and the probe shows no G difference on the fixed master.
   - 41286256046: the G negative control, which fails the new test.
   - 41291209213: the T3 probe on Trino.
-  - 41292295627: G and S on 3.5.9 and master, pending.
+  - 41292295627: G and S reproduce on 3.5.9 and master 4fecd73, as on 4.0.5, 4.1.4 and 4.2.1 (21 differences on each line).
 
 ## New bugs, by concept and engine
 
