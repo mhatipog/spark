@@ -1,1 +1,1 @@
-baseline-a no random:1 spark,duckdb,datafusion,trino
+baseline-b no random:2 spark,duckdb,datafusion
