@@ -37,3 +37,24 @@ The checkpoint is about three weeks of CI effort, around **2026-11-22**.
 - **Otherwise stop** and write a workshop or industry-track note around N1, N2, N4 and N5.
 
 Frozen results from earlier rounds are not revised. Failed runs stay recorded as failed.
+
+## Pair three design (2026-11-01, not yet built)
+
+Contract items no shape covers yet, picked from C1–C4 only:
+
+- **C3 UINT_\* ordering:** uint8/16/32/64 columns with values around the signed maximum
+  (127/128/255, 2^31−1/2^31/2^32−1, 2^63−1/2^63/2^64−1). Files are split so that some
+  files' statistics cross the signed boundary. Parquet only: Arrow's ORC writer has no
+  unsigned types. Needs uint types in `shapes.py` (`parse_type`, `to_arrow`, `sql_type`:
+  Spark reads UINT_8→SMALLINT, UINT_16→INT, UINT_32→BIGINT, UINT_64→DECIMAL(20,0)), a
+  per-shape `formats` switch in `writers.py` and `run_interface.py`, and the same types in
+  `random_gen.TYPES` (matched baseline).
+- **C2 E3:** a directory with no data file (`files=[]`).
+- **C2 E2:** a 0-row row group next to a non-empty one (a pyarrow ParquetWriter that
+  writes an empty batch first).
+- **C2 templates:** GROUP BY over a predicate that prunes everything, and a scalar
+  subquery over the global aggregates, compared with 0 / NULL.
+- ±Infinity is already covered (O3).
+
+Run with `all_error` on (both passes): spec3 against random seed 4 at a matched check
+count.
