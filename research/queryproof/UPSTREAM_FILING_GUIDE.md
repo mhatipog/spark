@@ -25,9 +25,15 @@ are kept only as a record. Our fix branches for N4 and N5 add nothing upstream, 
 open PRs from them.
 
 **Suggested order:**
-1. N1 (§1).
-2. N2 (§2).
-3. The two backport comments (§3, §3b).
+1. G (§2d): a wrong result under default settings, with a verified fix branch.
+2. S (§2e): ORC JIRA; a wrong result in Spark under default settings.
+3. T3 (§2f): Trino GitHub issue.
+4. N1 (§1).
+5. N2 (§2).
+6. The two backport comments (§3, §3b), and optionally §3c.
+
+Before filing each item, run the novelty search again. Several neighbouring bugs were
+filed in October 2026.
 
 ## 0. One-time setup
 
@@ -390,6 +396,53 @@ this to the ORC fix unless committers ask.
 
 ---
 
+## 2f. Trino GitHub issue: T3 (ORC `IS NULL` two struct levels deep). Found by the interface hunt.
+
+Trino tracks bugs as GitHub issues: <https://github.com/trinodb/trino/issues/new/choose>
+(the "Bug report" template). Search the issues for "ORC" "IS NULL" "row" once more
+before filing.
+
+- **Title:** `Hive ORC: IS NULL on a field of a nested ROW skips rows where the middle ROW is NULL`
+- **Body:**
+
+````
+**Version:** Trino 484 (Docker image trinodb/trino:484), Hive connector, file metastore, local file system.
+
+**What happens.** For a column `o ROW(i ROW(c INTEGER), z INTEGER)` in an ORC file, `WHERE o.i.c IS NULL` does not return a row where `o` is present and `o.i` is NULL, although `o.i.c` is NULL there. `WHERE o.i IS NULL` returns it. A NULL `o` itself is handled correctly, and Parquet files with the same rows are correct.
+
+**Reproduction** (files written by pyarrow 26; one stripe each):
+```python
+import pyarrow as pa, pyarrow.orc as orc
+T = pa.struct([("i", pa.struct([("c", pa.int32())])), ("z", pa.int32())])
+orc.write_table(pa.table({"k": pa.array([2, 4], pa.int32()),
+                          "o": pa.array([{"i": None, "z": 1}, {"i": {"c": 7}, "z": None}], T)}),
+                "/data/t/part-0.orc")
+```
+```sql
+CREATE TABLE hive.qp.t (k INTEGER, o ROW(i ROW(c INTEGER), z INTEGER))
+  WITH (external_location = 'local:///data/t', format = 'ORC');
+SELECT k FROM hive.qp.t WHERE o.i.c IS NULL;   -- returns no row; expected 2
+SELECT k FROM hive.qp.t WHERE o.i IS NULL;     -- returns 2
+```
+
+**Which layouts are affected:**
+
+| Rows in the stripe | `o.i.c IS NULL` |
+|---|---|
+| only `o.i` NULL | wrong (no row) |
+| `o.i` NULL and a row with `o.i.c = 7` | wrong (no row) |
+| `o.i` NULL and a row with `o.i.c` NULL | correct |
+| `o` NULL (top-level) | correct |
+
+The result depends on whether some row of the stripe has an explicit NULL in `c`. So it looks like statistics-based skipping. ORC keeps a child column's statistics only for rows where its parent is present, so `c` has `hasNull = false` when every NULL of `o.i.c` comes from a NULL `o.i`. The plan pushes a constraint on the dereferenced field: `ScanFilterProject[... constraint on [o], filterPredicate = (o_i_c IS NULL)]`.
+
+The top-level case being correct suggests that the reader accounts for a NULL top-level column but not for an intermediate ROW. (Spark had the same problem at one level: SPARK-60362.)
+
+Found by spec-driven testing of storage interfaces: the same files and predicates across engines, with skipping on and off.
+````
+
+---
+
 ## 3c. Optional comment on SPARK-59607 (affected versions)
 
 SPARK-59607 lists only 5.0.0 and says "Parquet". Our probe (`partcount_probe.py`, run
@@ -412,6 +465,9 @@ Fix branches are prepared in `mhatipog/spark`; see the "Fix branches" section of
 
 - N2: `research/queryproof-fix-n2-filterestimation-ndv-zero` (commit ec22a0d)
 - N1: `research/queryproof-fix-n1-dpp-union-nonpartitioned` (commit 2eb639a: fix and test)
+- G: `research/queryproof-fix-g-gap-date-pushdown` (commit c2fe5d8, on master 4fecd73).
+  Verified: 191 of 191 tests pass, and the negative control
+  `research/queryproof-fix-g-test-only-control` fails the new test.
 - N4 (`research/queryproof-fix-n4-orc-nested-isnull`, 4c95160) and N5
   (`research/queryproof-fix-n5-agg-pushdown-empty-count`, 8a54e2f): **do not open PRs.**
   apache/spark#59747 and #59763 already fix them (see the correction at the top). Keep
