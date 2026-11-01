@@ -1,0 +1,39 @@
+name: "QueryProof interface hunt - Trino probe"
+on:
+  # The marker holds TRINO_VERSION SCRIPT, e.g. 484 trino_probe.py
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_interface/TRINO_PROBE_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-trino-probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_interface
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Start Trino and run the probe
+        run: |
+          read VERSION SCRIPT < tools/queryproof_interface/TRINO_PROBE_REQUEST
+          python -m pip install --disable-pip-version-check --no-cache-dir pyarrow==26.0.0 trino==0.340.0
+          mkdir -p "$RUNNER_TEMP/iface" "$RUNNER_TEMP/trino-catalog"
+          printf '%s\n' connector.name=hive hive.metastore=file hive.metastore.catalog.dir=local:///tmp/qpmeta \
+            fs.native-local.enabled=true local.location=/ hive.orc.use-column-names=true > "$RUNNER_TEMP/trino-catalog/hive.properties"
+          docker run -d --name trino -p 8080:8080 -v "$RUNNER_TEMP/iface:/qpdata:ro" \
+            -v "$RUNNER_TEMP/trino-catalog/hive.properties:/etc/trino/catalog/hive.properties:ro" "trinodb/trino:$VERSION"
+          for i in $(seq 1 60); do curl -sf localhost:8080/v1/info | grep -q '"starting":false' && break; sleep 5; done
+          curl -s localhost:8080/v1/info || { docker logs trino 2>&1 | grep -v ' INFO ' | tail -n 60; exit 1; }
+          echo
+          python -B "tools/queryproof_interface/$SCRIPT" "$RUNNER_TEMP/iface"
