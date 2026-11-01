@@ -135,10 +135,57 @@ ROUND7_VARIANTS = {
     "@cache_no_vectorized": {"spark.sql.inMemoryColumnarStorage.enableVectorizedReader": "false"},
     "@cache_wholestage_off": WS_OFF,
 }
+# Sixth set (QP_VARIANTS=round8): Parquet copies written so that skipping actually happens on
+# small data (row groups and pages of a few rows, dictionaries and bloom filters, or data page
+# v2 with delta encodings), read with each reader and batch size; and execution fallbacks that
+# large inputs reach (spilling join and window buffers, sort-based aggregation, top-K
+# fallback, skew splits, shuffled hash joins chosen by AQE). Several of these keys are
+# internal; a difference counts as user-facing only if a large input reaches the same path.
+SPILL = {"spark.sql.autoBroadcastJoinThreshold": "-1"}
+ROUND8_VARIANTS = {
+    "@fmt_pqsmall_v1": {},
+    "@fmt_pqsmall_v2": ORC_V2,
+    "@fmt_pqsmall_no_vectorized": {"spark.sql.parquet.enableVectorizedReader": "false"},
+    "@fmt_pqsmall_batch3": {"spark.sql.parquet.columnarReaderBatchSize": "3"},
+    "@fmt_pqsmall_no_nested_vectorized": {"spark.sql.parquet.enableNestedColumnVectorizedReader": "false"},
+    "@fmt_pqsmall_aggregate_pushdown": {**ORC_V2, "spark.sql.parquet.aggregatePushdown": "true"},
+    "@fmt_pqsmall_in_threshold": {"spark.sql.parquet.pushdown.inFilterThreshold": "1000"},
+    "@fmt_pqv2_v1": {},
+    "@fmt_pqv2_no_vectorized": {"spark.sql.parquet.enableVectorizedReader": "false"},
+    "@fmt_pqv2_batch3": {"spark.sql.parquet.columnarReaderBatchSize": "3"},
+    "@fmt_orc_batch3": {"spark.sql.orc.columnarReaderBatchSize": "3"},
+    "smj_spill": {**SPILL, "spark.sql.sortMergeJoinExec.buffer.in.memory.threshold": "1",
+                  "spark.sql.sortMergeJoinExec.buffer.spill.threshold": "1"},
+    "window_spill": {"spark.sql.windowExec.buffer.in.memory.threshold": "1",
+                     "spark.sql.windowExec.buffer.spill.threshold": "1"},
+    "agg_sort_fallback": {"spark.sql.objectHashAggregate.sortBased.fallbackThreshold": "1"},
+    "sort_agg": {"spark.sql.execution.replaceHashWithSortAgg": "true"},
+    "no_object_hash": {"spark.sql.execution.useObjectHashAggregateExec": "false"},
+    "topk_fallback": {"spark.sql.execution.topKSortFallbackThreshold": "1"},
+    "fastmap_vectorized": {"spark.sql.codegen.aggregate.map.vectorized.enable": "true",
+                           "spark.sql.codegen.aggregate.map.twolevel.enabled": "true"},
+    "no_subexpr": {"spark.sql.subexpressionElimination.enabled": "false"},
+    "inset1": {"spark.sql.optimizer.inSetConversionThreshold": "1"},
+    "skew_force": {**SPILL, "spark.sql.adaptive.forceOptimizeSkewedJoin": "true",
+                   "spark.sql.adaptive.skewJoin.skewedPartitionThresholdInBytes": "1",
+                   "spark.sql.adaptive.skewJoin.skewedPartitionFactor": "1",
+                   "spark.sql.adaptive.advisoryPartitionSizeInBytes": "1"},
+    "aqe_shj": {**SPILL, "spark.sql.adaptive.maxShuffledHashJoinLocalMapThreshold": "1g"},
+    "no_null_aware_anti": {"spark.sql.optimizeNullAwareAntiJoin": "false"},
+}
 # Formats that cannot hold a column type keep the catalog Parquet table for that table.
-FORMAT_TYPES = {"orc": None, "json": None, "csv": {"integer", "string", "decimal(5,2)", "date"}}
+FORMAT_TYPES = {"orc": None, "json": None, "csv": {"integer", "string", "decimal(5,2)", "date"},
+                "pqsmall": None, "pqv2": None}
+# Copies that are Parquet files written with other writer settings.
+FORMAT_SOURCE = {"pqsmall": "parquet", "pqv2": "parquet"}
+SMALL_PAGES = {"parquet.block.size": "64", "parquet.block.size.row.check.min": "1",
+               "parquet.block.size.row.check.max": "2", "parquet.page.row.count.limit": "2",
+               "parquet.page.size.row.check.min": "1", "parquet.page.size.row.check.max": "2"}
 # A NULL marker distinct from the empty string, which the CSV writer quotes as "".
 FORMAT_OPTIONS = {"csv": {"nullValue": "\\N"}}
+FORMAT_WRITE_OPTIONS = {"pqsmall": {**SMALL_PAGES, "parquet.bloom.filter.enabled": "true"},
+                        "pqv2": {**SMALL_PAGES, "parquet.writer.version": "PARQUET_2_0",
+                                 "parquet.enable.dictionary": "false"}}
 if os.environ.get("QP_VARIANTS") == "wide":
     VARIANTS = WIDE_VARIANTS
 elif os.environ.get("QP_VARIANTS") == "feat":
@@ -147,6 +194,8 @@ elif os.environ.get("QP_VARIANTS") == "round6":
     VARIANTS = ROUND6_VARIANTS
 elif os.environ.get("QP_VARIANTS") == "round7":
     VARIANTS = ROUND7_VARIANTS
+elif os.environ.get("QP_VARIANTS") == "round8":
+    VARIANTS = ROUND8_VARIANTS
 KNOWN_SIGNATURES = {"has not finished": "N1: DPP through UNION, codegen off (this hunt; fix branch ready)",
                     "Character N is neither": "N2: CBO FilterEstimation NaN (this hunt; fix branch ready)",
                     "exprId on unresolved object": "V2 file source + VARIANT regression in 4.1/4.2 (fixed on master)"}
@@ -158,7 +207,7 @@ def run_over_paths(spark, sql, fmt="parquet"):
     """Run sql with catalog tables shadowed by temp views reading their files by path."""
     paths = TABLE_PATHS if fmt == "parquet" else FORMAT_PATHS[fmt]
     for name, (loc, schema) in paths.items():
-        spark.read.format(fmt).options(**FORMAT_OPTIONS.get(fmt, {})).schema(schema).load(loc) \
+        spark.read.format(FORMAT_SOURCE.get(fmt, fmt)).options(**FORMAT_OPTIONS.get(fmt, {})).schema(schema).load(loc) \
             .createOrReplaceTempView(name)
     try:
         return spark_rows(spark, sql)
@@ -199,9 +248,42 @@ def write_format_copies(spark, dataset, base):
                 continue
             kind, col = LAYOUT.get(name, ("plain", None))
             loc = os.path.join(base, fmt, name)
-            w = spark.table(name).write.format(fmt).options(**FORMAT_OPTIONS.get(fmt, {})).mode("overwrite")
+            w = spark.table(name).write.format(FORMAT_SOURCE.get(fmt, fmt)).mode("overwrite") \
+                .options(**FORMAT_OPTIONS.get(fmt, {}), **FORMAT_WRITE_OPTIONS.get(fmt, {}))
             (w.partitionBy(col) if kind == "partition" else w).save(loc)
             FORMAT_PATHS[fmt][name] = (loc, spark.table(name).schema)
+            if fmt in FORMAT_WRITE_OPTIONS and fmt not in ROW_GROUPS_LOGGED:
+                log_row_groups(spark, fmt, name, loc)
+
+
+ROW_GROUPS_LOGGED = []
+
+
+def log_row_groups(spark, fmt, name, loc):
+    """Print row groups and rows per file once, to show the writer settings took effect."""
+    try:
+        jvm = spark._jvm
+        conf = spark._jsc.hadoopConfiguration()
+        path = jvm.org.apache.hadoop.fs.Path(loc)
+        fs = path.getFileSystem(conf)
+        it = fs.listFiles(path, True)
+        groups = rows = files = 0
+        while it.hasNext():
+            p = it.next().getPath()
+            if not p.getName().endswith(".parquet"):
+                continue
+            inp = jvm.org.apache.parquet.hadoop.util.HadoopInputFile.fromPath(p, conf)
+            reader = jvm.org.apache.parquet.hadoop.ParquetFileReader.open(inp)
+            blocks = reader.getFooter().getBlocks()
+            files, groups = files + 1, groups + blocks.size()
+            rows += sum(blocks.get(i).getRowCount() for i in range(blocks.size()))
+            reader.close()
+        print(f"QUERYPROOF_ROWGROUPS {fmt} {name} files={files} row_groups={groups} rows={rows}",
+              file=sys.stderr, flush=True)
+        if groups > files:
+            ROW_GROUPS_LOGGED.append(fmt)
+    except Exception as exc:  # noqa: BLE001 - diagnostics only
+        print("QUERYPROOF_ROWGROUPS failed", str(exc)[:200], file=sys.stderr, flush=True)
 LAYOUT = {"ta": ("partition", "a"), "tb": ("partition", "a"), "te": ("partition", "k"),
           "tc": ("bucket", "k"), "td": ("plain", None), "tf": ("partition", "k")}
 SPARK_TYPES = {"integer": "int", "string": "string", "decimal(5,2)": "decimal(5,2)", "date": "date",
