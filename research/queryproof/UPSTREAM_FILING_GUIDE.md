@@ -25,12 +25,13 @@ are kept only as a record. Our fix branches for N4 and N5 add nothing upstream, 
 open PRs from them.
 
 **Suggested order:**
-1. G (§2d): a wrong result under default settings, with a verified fix branch.
-2. S (§2e): ORC JIRA; a wrong result in Spark under default settings.
-3. T3 (§2f): Trino GitHub issue.
-4. N1 (§1).
-5. N2 (§2).
-6. The two backport comments (§3, §3b), and optionally §3c.
+1. A1 (§2g): Arrow GitHub issue. pyarrow writes corrupt ORC files with nested structs; this is silent data corruption.
+2. G (§2d): a wrong result under default settings, with a verified fix branch.
+3. S (§2e): ORC JIRA; a wrong result in Spark under default settings.
+4. T3 (§2f): Trino GitHub issue.
+5. N1 (§1).
+6. N2 (§2).
+7. The two backport comments (§3, §3b), and optionally §3c.
 
 Before filing each item, run the novelty search again. Several neighbouring bugs were
 filed in October 2026.
@@ -439,6 +440,48 @@ The result depends on whether some row of the stripe has an explicit NULL in `c`
 The top-level case being correct suggests that the reader accounts for a NULL top-level column but not for an intermediate ROW. (Spark had the same problem at one level: SPARK-60362.)
 
 Found by spec-driven testing of storage interfaces: the same files and predicates across engines, with skipping on and off.
+````
+
+---
+
+## 2g. Arrow GitHub issue: A1 (the ORC writer corrupts a struct nested in a struct). Found by the random baseline.
+
+Arrow tracks bugs as GitHub issues: <https://github.com/apache/arrow/issues/new/choose>
+("Bug report"; components C++ and Python). Search for "ORC struct" once more before filing.
+
+- **Title:** `[C++][Python][ORC] Writing a struct inside a struct shifts child values when only the inner struct has nulls`
+- **Body:**
+
+````
+**Describe the bug**
+
+Writing a column `struct<i: struct<c: int32>>` to ORC, where the outer struct has no nulls and the inner struct has a null, writes wrong values: every child value after the null row is shifted by one, and the first shifted value becomes 0 (or "" for strings). pyarrow's own reader returns the wrong values, and so does the ORC Java reader (Spark 3.5.9–4.2.1). So the file content is wrong, not one reader.
+
+```python
+import pyarrow as pa, pyarrow.orc as orc
+I = pa.struct([("c", pa.int32())])
+t = pa.table({"o": pa.array([{"i": {"c": 1}}, {"i": None}, {"i": {"c": 3}}], pa.struct([("i", I)]))})
+orc.write_table(t, "/tmp/a.orc")
+print(orc.read_table("/tmp/a.orc").to_pylist())
+# [{'o': {'i': {'c': 1}}}, {'o': {'i': None}}, {'o': {'i': {'c': 0}}}]   <- expected c = 3
+```
+
+With five rows (c = 95, 8, <i null>, 61, 41) the values read are 95, 8, <null>, 0, 61: the 41 is lost.
+
+**Scope:**
+* Affected: pyarrow 12.0.1, 15.0.2, 18.1.0, 21.0.0, 24.0.0 and 26.0.0 (Linux; 26.0.0 also on Windows).
+* The same happens with a string child (`""` instead of the value).
+* Not affected:
+  * if the outer struct also has a null anywhere in the batch;
+  * a single-level struct with a null;
+  * a list of structs with a null element;
+  * a struct containing a list with a null list.
+
+So it looks like the null mask of the inner struct is not applied to its children when the outer struct has no nulls (`hasNulls` is false). The child then gets a value written for the row where its parent is null, and every reader takes one value too many from the child's data stream. The struct path is `WriteStructBatch` in `cpp/src/arrow/adapters/orc/util.cc`, together with how ORC C++'s struct writer passes the incoming null mask to its children.
+
+**Component(s):** C++, Python
+
+Found by randomized cross-engine testing of storage formats (the same rows read back by several engines).
 ````
 
 ---
