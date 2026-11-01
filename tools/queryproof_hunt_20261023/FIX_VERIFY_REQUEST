@@ -1,1 +1,1 @@
-research/queryproof-fix-g-gap-date-pushdown sql/testOnly*FileBasedDataSourceSuite,*DataSourceStrategySuite,*OrcFilterSuite,*ParquetV1FilterSuite iface_probe.py
+research/queryproof-fix-g-test-only-control sql/testOnly*FileBasedDataSourceSuite none
