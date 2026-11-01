@@ -312,6 +312,84 @@ The same happens for EXISTS / IN subqueries over such a projection; try_variant_
 
 ---
 
+## 2d. JIRA: G (filter pushdown with a DATE in the 1582 calendar gap). Found by the interface hunt.
+
+- **Project:** Spark · **Issue type:** Bug · **Priority:** Major
+- **Labels:** correctness
+- **Component/s:** SQL
+- **Affects Version/s:** 4.0.0, 4.1.0, 4.2.1, 5.0.0 (3.5: see the verification table in the findings doc)
+- **Summary:**
+  `Filter pushdown with a DATE between 1582-10-05 and 1582-10-14 skips rows of 1582-10-15 in Parquet and ORC`
+- **Description:**
+
+```
+DATE values from 1582-10-05 to 1582-10-14 are valid in Spark's proleptic Gregorian calendar, but do not exist in the hybrid Julian/Gregorian calendar of java.sql.Date. When such a literal is pushed down to Parquet or ORC it becomes 1582-10-15, and row groups holding 1582-10-15 are skipped. This happens with the default configuration.
+
+h3. Reproduction (PySpark)
+{code:python}
+import datetime
+for d in ["1582-10-04", "1582-10-15", "1582-10-16"]:   # one file per value
+    spark.createDataFrame([(datetime.date.fromisoformat(d),)], "d DATE").coalesce(1) \
+        .write.mode("append").parquet("/tmp/gap_dates")
+spark.read.parquet("/tmp/gap_dates").where("d > DATE'1582-10-10'").show()
+# returns 1582-10-16 only; expected 1582-10-15 and 1582-10-16
+spark.read.parquet("/tmp/gap_dates").where("d <> DATE'1582-10-10'").count()
+# returns 2; expected 3
+{code}
+EXPLAIN shows the shifted literal: PushedFilters: [IsNotNull(d), GreaterThan(d,1582-10-15)]. With spark.sql.parquet.filterPushdown=false both queries are correct. ORC (spark.sql.orc.filterPushdown) behaves the same. With spark.sql.datetime.java8API.enabled=true Parquet is correct, but ORC still is not.
+
+h3. Analysis
+* DataSourceStrategy.translateLeafNodeFilter converts the literal with CatalystTypeConverters.convertToScala, which gives a java.sql.Date unless the Java 8 time API is enabled. A day of the gap has no java.sql.Date, so the Filter carries 1582-10-15. ParquetFilters and OrcFilters then push 1582-10-15.
+* OrcFilters.castLiteralValue also converts a LocalDate to java.sql.Date (toJavaDate), because ORC's DATE literal is java.sql.Date. So ORC is affected with the Java 8 API too.
+* Comparisons whose truth changes between the gap date and 1582-10-15 give wrong results: >, <> and NOT <=>. For the others, pushing 1582-10-15 only skips less.
+
+A fix is to not push down a predicate with a DATE literal in the gap: in DataSourceStrategy when the Filter would carry java.sql.Date, and in OrcFilters for LocalDate. A fix branch with a test is available.
+
+Found by spec-driven testing of storage interfaces: the same files and predicates with filter pushdown on and off.
+```
+
+---
+
+## 2e. ORC JIRA (not Spark): string predicates compare in UTF-16 order, statistics are in UTF-8 order. Found by the interface hunt.
+
+File this at <https://issues.apache.org/jira/projects/ORC> (it uses the same JIRA account).
+Search once more right before filing, with `project = ORC AND text ~ "UTF-16"` and
+`text ~ "surrogate"`.
+
+- **Project:** ORC · **Issue type:** Bug · **Priority:** Major
+- **Component/s:** Java
+- **Affects Version/s:** 2.1.4, 2.2.2, 2.3.0 (seen through Spark 4.0.5, 4.1.4, 4.2.1)
+- **Summary:**
+  `Predicate pushdown compares strings in UTF-16 order against UTF-8 ordered statistics and skips matching row groups`
+- **Description:**
+
+```
+The writer keeps string minimum/maximum in UTF-8 byte order (StringStatisticsImpl updates them with Text.compareTo). The reader's row-group and stripe pruning compares a STRING predicate with them as java.lang.String (RecordReaderImpl.getBaseObjectForComparison returns obj.toString(); ValueRange then uses String.compareTo), i.e. in UTF-16 code-unit order. The two orders differ for characters above U+FFFF against characters from U+E000 to U+FFFF: in UTF-8, U+1F600 sorts after U+E000; in UTF-16, its high surrogate 0xD83D sorts before 0xE000.
+
+So a row group whose values are all above U+FFFF is skipped for predicates it satisfies.
+
+h3. Reproduction (through Spark 4.2.1, ORC 2.3.0; one file per row)
+{code:python}
+for k, s in [(1, "\U0001F600"), (2, ""), (3, "￿"), (4, "\U00010000"), (5, "z")]:
+    spark.createDataFrame([(k, s)], "k INT, s STRING").coalesce(1).write.mode("append").orc("/tmp/orc_astral")
+spark.read.orc("/tmp/orc_astral").where("s > ''").select("k").show()
+# returns 3; expected 1, 3, 4 (as with spark.sql.orc.filterPushdown=false)
+spark.read.orc("/tmp/orc_astral").where("s >= '￿'").select("k").show()
+# returns 3; expected 1, 3, 4
+{code}
+The ORC Java API reports the expected statistics, e.g. min = max = "😀" for the file of row 1. Files written by the C++ writer (pyarrow 26) are pruned the same way, so the reader side is at fault. By the same reasoning, equality and IN should also be affected when a row group's [min, max] contains the literal in UTF-8 order but not in UTF-16 order. That case was not tested: these files hold one value each.
+
+A fix is to compare STRING predicate literals and statistics as UTF-8 bytes in getBaseObjectForComparison / ValueRange, e.g. as org.apache.hadoop.io.Text.
+
+Found by spec-driven testing of storage interfaces: the same files and predicates with filter pushdown on and off.
+```
+
+Spark could also add a workaround: do not push a string comparison whose literal has a
+character at or above U+D800. For such a literal the two orders cannot disagree. Leave
+this to the ORC fix unless committers ask.
+
+---
+
 ## 3c. Optional comment on SPARK-59607 (affected versions)
 
 SPARK-59607 lists only 5.0.0 and says "Parquet". Our probe (`partcount_probe.py`, run

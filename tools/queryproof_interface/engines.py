@@ -190,7 +190,7 @@ class Trino(Engine):
     name, dialect, formats, cores = "trino", "trino", ("parquet", "orc"), 4
     modes = {"off": TRINO_OFF, "default": {}, "orc_bloom": {"orc_bloom_filters_enabled": "true"}}
 
-    def __init__(self, base, mount="/data", version="484"):
+    def __init__(self, base, mount="/qpdata", version="484"):
         import trino
         self.trino, self.base, self.mount = trino, os.path.abspath(base), mount
         self.name = "trino-" + version
