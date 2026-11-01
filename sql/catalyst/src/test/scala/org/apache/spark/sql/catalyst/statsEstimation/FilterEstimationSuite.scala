@@ -468,6 +468,27 @@ class FilterEstimationSuite extends StatsEstimationTestBase {
     }
   }
 
+  test("numeric range estimation remains finite after valid NDV reaches zero") {
+    // Initial column statistics are valid: two distinct values, min=-3 and max=1.
+    // Repeated inferred range predicates can reduce the estimated NDV to zero.
+    // A subsequent comparison must not divide by zero or produce NaN.
+    val a = AttributeReference("a", IntegerType)()
+    val validStats = ColumnStat(distinctCount = Some(2), min = Some(-3), max = Some(1),
+      nullCount = Some(0), avgLen = Some(4), maxLen = Some(4))
+    val less = LessThan(a, Literal(1))
+    val greater = GreaterThan(a, Literal(0))
+    val predicates: Seq[Seq[Expression]] = Seq(
+      Seq(less, greater, less, greater),
+      Seq(greater, less, greater, less))
+    predicates.foreach { conditions =>
+      val source = StatsTestPlan(Seq(a), 2, AttributeMap(Seq(a -> validStats)))
+      validateEstimatedStats(
+        Filter(conditions.reduceLeft(And.apply), source),
+        Nil,
+        expectedRowCount = 0)
+    }
+  }
+
   test("evaluateInSet with string") {
     validateEstimatedStats(
       Filter(InSet(attrString, Set("A0")),
