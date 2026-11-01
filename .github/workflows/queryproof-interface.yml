@@ -1,6 +1,6 @@
 name: "QueryProof interface hunt - spec-driven Parquet and ORC files across engines"
 on:
-  # The marker holds: TAG MASTER (yes | no) [GEN (spec | random:SEED) [ENGINES]]. MASTER=yes also builds
+  # The marker holds: TAG MASTER (yes | no) [GEN (spec | spec2 | random:SEED) [ENGINES [RANDOM_Q]]]. MASTER=yes also builds
   # apache/spark master and runs Spark there.
   push:
     branches:
@@ -51,8 +51,8 @@ jobs:
         run: |
           start=$(date +%s)
           # GEN: spec (the contract shapes) or random:SEED (the matched random baseline).
-          read TAG MASTER GEN ENGINES < IFACE_REQUEST
-          export QP_IFACE_GEN="${GEN:-spec}"
+          read TAG MASTER GEN ENGINES RANDOM_Q < IFACE_REQUEST
+          export QP_IFACE_GEN="${GEN:-spec}" QP_IFACE_RANDOM_Q="${RANDOM_Q:-114}"
           python -B writers.py "$RUNNER_TEMP/iface" "$RUNNER_TEMP/iface/manifest.json"
           mkdir -p "$GITHUB_WORKSPACE/out"
           python -B run_interface.py "${ENGINES:-spark,duckdb,datafusion,trino}" "$RUNNER_TEMP/iface" "$GITHUB_WORKSPACE/out/iface_${{ matrix.shard }}.json" ${{ matrix.shard }} 8 4.2.1 2>run.log \

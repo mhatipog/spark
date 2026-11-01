@@ -5,7 +5,8 @@ the rows split into files (`files`: list of row-index lists; an empty list is a 
 Writers then split each file further into row groups, pages and stripes (writers.py).
 `read_as` optionally declares a wider read schema (type widening, contract D2).
 
-Type language: int32 int64 float32 float64 string date decimal(p,s)
+Type language: int8 int16 int32 int64 float32 float64 string date ts decimal(p,s)
+               (ts: microsecond timestamps adjusted to UTC)
                struct<name:type,...> list<type> map<string,type>
 """
 import datetime
@@ -30,7 +31,7 @@ def parse_type(ty):
                 return ("list", parse_type(inner[0]))
             assert parse_type(inner[0]) == ("string",)
             return ("map", parse_type(inner[1]))
-    assert ty in ("int32", "int64", "float32", "float64", "string", "date"), ty
+    assert ty in ("int8", "int16", "int32", "int64", "float32", "float64", "string", "date", "ts"), ty
     return (ty,)
 
 
@@ -58,10 +59,12 @@ def to_arrow(t):
         return pa.list_(to_arrow(t[1]))
     if k == "map":
         return pa.map_(pa.string(), to_arrow(t[1]))
-    return {"int32": pa.int32(), "int64": pa.int64(), "float32": pa.float32(), "float64": pa.float64(),
-            "string": pa.string(), "date": pa.date32()}[k]
+    return {"int8": pa.int8(), "int16": pa.int16(), "int32": pa.int32(), "int64": pa.int64(),
+            "float32": pa.float32(), "float64": pa.float64(), "string": pa.string(), "date": pa.date32(),
+            "ts": pa.timestamp("us", tz="UTC")}[k]
 
 
+SMALL_INTS = {"int8": "TINYINT", "int16": "SMALLINT"}
 SQL_ATOMIC = {
     "spark": {"int32": "INT", "int64": "BIGINT", "float32": "FLOAT", "float64": "DOUBLE", "string": "STRING", "date": "DATE"},
     "duckdb": {"int32": "INTEGER", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE"},
@@ -86,6 +89,11 @@ def sql_type(t, dialect):
         return f"ARRAY({sql_type(t[1], dialect)})"
     if dialect == "trino" and k == "map":
         return f"MAP(VARCHAR, {sql_type(t[1], dialect)})"
+    if k in SMALL_INTS:
+        return SMALL_INTS[k]
+    if k == "ts":
+        return {"spark": "TIMESTAMP", "duckdb": "TIMESTAMPTZ", "datafusion": "TIMESTAMP",
+                "trino": "TIMESTAMP(6)"}[dialect]
     assert k in SQL_ATOMIC[dialect], (dialect, t)
     return SQL_ATOMIC[dialect][k]
 
@@ -206,9 +214,13 @@ def is_nan(v):
     return isinstance(v, float) and math.isnan(v)
 
 
-# QP_IFACE_GEN=random:SEED replaces the contract shapes with the matched random baseline.
+# QP_IFACE_GEN=random:SEED replaces the contract shapes with the matched random baseline,
+# QP_IFACE_GEN=spec2 with the second contract shape set.
 GEN = os.environ.get("QP_IFACE_GEN", "spec")
 if GEN.startswith("random:"):
     import random_gen
     SHAPES = random_gen.make_shapes(int(GEN.split(":", 1)[1]))
+elif GEN == "spec2":  # the second contract shape set (pair two)
+    import spec2_shapes
+    SHAPES = spec2_shapes.SHAPES2
 check_shapes()

@@ -24,6 +24,8 @@ PA_PARQUET = {
                                          write_page_index=True, max_rows_per_page=1, bloom=True),
     "pa_decint_nostats_index": dict(row_group_size=3, store_decimal_as_integer=True, write_page_index=False,
                                     data_page_version="2.0"),
+    # Statistics only for `k`: the other columns have no null_count, min or max (C1 N7, C2 E7).
+    "pa_stats_k_only": dict(row_group_size=2, write_statistics=["k"], write_page_index=False),
 }
 PA_ORC = {
     "pa_orc_stride1_bloom": dict(row_index_stride=1, bloom=True),
@@ -39,6 +41,11 @@ SPARK_WRITERS = {
         "parquet.block.size": "64", "parquet.block.size.row.check.min": "1", "parquet.block.size.row.check.max": "2",
         "parquet.page.row.count.limit": "1", "parquet.writer.version": "PARQUET_2_0",
         "parquet.enable.dictionary": "false"}),
+    # Truncated string statistics and column index (C3 O2): bounds, not values.
+    "mr_parquet_trunc4": ("parquet", {
+        "parquet.block.size": "64", "parquet.block.size.row.check.min": "1", "parquet.block.size.row.check.max": "2",
+        "parquet.page.row.count.limit": "1", "parquet.statistics.truncate.length": "4",
+        "parquet.columnindex.truncate.length": "4"}),
     "orcj_stride_bloom": ("orc", {"orc.row.index.stride": "1000", "orc.bloom.filter.columns": "*",
                                   "orc.stripe.size": "1024"}),
 }

@@ -1,1 +1,1 @@
-baseline-b no random:2 spark,duckdb,datafusion
+pair2-spec2 no spec2 spark,duckdb,datafusion,trino

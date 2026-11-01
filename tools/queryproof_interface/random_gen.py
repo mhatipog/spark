@@ -10,13 +10,16 @@ those are what the spec-driven method claims to add.
 Enabled with QP_IFACE_GEN=random:SEED (see shapes.py).
 """
 import datetime
+import os
 import random
 from decimal import Decimal
 
-TYPES = ["int32", "int64", "float64", "float32", "string", "date", "decimal(9,2)",
+TYPES = ["int8", "int16", "int32", "int64", "float64", "float32", "string", "date", "ts", "decimal(9,2)",
          "struct<x:int32,y:string>", "list<int32>", "map<string,int32>",
          "struct<i:struct<c:int32>,z:int32>"]
-FUZZ_CONSTANTS = {"int32": [0, -1, 1, 2 ** 31 - 1, -2 ** 31], "int64": [0, -1, 1, 2 ** 63 - 1, -2 ** 63],
+FUZZ_CONSTANTS = {"int8": [0, -1, 1, 127, -128], "int16": [0, -1, 1, 32767, -32768],
+                  "ts": [datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)],
+                  "int32": [0, -1, 1, 2 ** 31 - 1, -2 ** 31], "int64": [0, -1, 1, 2 ** 63 - 1, -2 ** 63],
                   "float64": [0.0, -1.0, 1.0], "float32": [0.0, -1.0, 1.0], "string": [""],
                   "date": [datetime.date(1970, 1, 1)], "decimal(9,2)": [Decimal("0.00"), Decimal("-1.00")]}
 NULL_P = 0.15
@@ -28,8 +31,11 @@ def value(rng, ty):
         return None
     if ty in FUZZ_CONSTANTS and rng.random() < 0.05:
         return rng.choice(FUZZ_CONSTANTS[ty])
-    if ty == "int32":
+    if ty in ("int8", "int16", "int32"):
         return rng.randint(-100, 100)
+    if ty == "ts":
+        return (datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+                + datetime.timedelta(seconds=rng.randint(0, 2 * 10 ** 9), microseconds=rng.randint(0, 999999)))
     if ty == "int64":
         return rng.randint(-10 ** 6, 10 ** 6)
     if ty in ("float64", "float32"):
@@ -72,8 +78,11 @@ def make_shapes(seed, n=32):
     return out
 
 
-def random_queries(shape, leaf_types, n=114):
+def random_queries(shape, leaf_types, n=None):
     """n random predicate and aggregate queries over the shape's leaves (templates.py AST)."""
+    # QP_IFACE_RANDOM_Q matches the query count of the spec set it is compared with (pair one 114
+    # for 3,636 contract queries, pair two 76 for 2,434).
+    n = n or int(os.environ.get("QP_IFACE_RANDOM_Q", "114"))
     rng = random.Random(shape["random_seed"])
     paths = [p for p in leaf_types if p != ("k",)] or [("k",)]
 

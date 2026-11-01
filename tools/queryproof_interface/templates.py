@@ -23,7 +23,7 @@ getcontext().prec = 100  # DECIMAL(38) sums and normalize() must not round
 
 from shapes import is_nan, parse_type, sql_type
 
-NUMERIC = ("int32", "int64", "float32", "float64", "decimal")
+NUMERIC = ("int8", "int16", "int32", "int64", "float32", "float64", "decimal")
 
 
 class NoExpected(Exception):
@@ -43,6 +43,9 @@ def lit_sql(v, ty, dialect):
         return f"CAST('{s}' AS {sql_type(t, dialect)})"
     if t[0] == "string":
         return "'" + v.replace("'", "''") + "'"
+    if t[0] == "ts":  # an aware UTC datetime
+        text = v.astimezone(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")
+        return f"CAST('{text}{'+00' if dialect == 'duckdb' else ''}' AS {sql_type(t, dialect)})"
     return f"CAST('{v}' AS {sql_type(t, dialect)})"
 
 
@@ -228,6 +231,8 @@ def norm(v):
         return str(v.normalize()) if v != 0 else "0"
     if isinstance(v, int):
         return v
+    if isinstance(v, datetime.datetime) and v.tzinfo is not None:  # compare instants in UTC
+        return v.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
     if isinstance(v, (datetime.date, datetime.datetime)):
         return v.isoformat()
     return v
@@ -277,8 +282,15 @@ def neighbours(vals, ty):
     t = parse_type(ty)
     out = []
     for v in sorted(set(v for v in vals if v is not None and not is_nan(v)), key=repr):
-        if t[0] in ("int32", "int64"):
+        if t[0] in ("int8", "int16", "int32", "int64"):
             out += [v - 1, v, v + 1]
+        elif t[0] == "ts":
+            for delta in (datetime.timedelta(microseconds=-1), datetime.timedelta(0),
+                          datetime.timedelta(microseconds=1), datetime.timedelta(days=1)):
+                try:
+                    out.append(v + delta)
+                except OverflowError:
+                    pass
         elif t[0] in ("float32", "float64"):
             out += [math.nextafter(v, -math.inf), v, math.nextafter(v, math.inf)] if math.isfinite(v) else [v]
         elif t[0] == "decimal":
@@ -296,8 +308,9 @@ def neighbours(vals, ty):
         out += [math.nan, -0.0, 0.0, math.inf, -math.inf]
     if t[0] == "string":
         out += ["", "￿", "\U0010ffff"]
-    if t[0] in ("int32",):
-        out = [v for v in out if -2 ** 31 <= v < 2 ** 31]
+    bits = {"int8": 8, "int16": 16, "int32": 32, "int64": 64}.get(t[0])
+    if bits:
+        out = [v for v in out if -2 ** (bits - 1) <= v < 2 ** (bits - 1)]
     if t[0] == "decimal":
         lim = Decimal(10) ** (t[1] - t[2])
         out = [v for v in out if -lim < v < lim]
@@ -380,6 +393,8 @@ def shape_rows(shape):
                     r[name] = struct.unpack("f", struct.pack("f", r[name]))[0]  # float32 widened exactly
                 if ty == "float64" and isinstance(r[name], int):
                     r[name] = float(r[name])
+                if ty.startswith("decimal") and isinstance(r[name], int):
+                    r[name] = Decimal(r[name])
             out.append(r)
     for r in out:  # float32 columns hold float32 values
         for name, ty in shape["columns"]:

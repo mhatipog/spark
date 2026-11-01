@@ -50,6 +50,7 @@ class Spark(Engine):
         self.name = "spark-" + version_tag
         self.spark = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false")
                       .config("spark.sql.shuffle.partitions", "2").config("spark.driver.memory", "4g")
+                      .config("spark.sql.session.timeZone", "UTC")
                       .config("spark.sql.ui.retainedExecutions", "10").getOrCreate())
         self.spark.sparkContext.setLogLevel("ERROR")
 
