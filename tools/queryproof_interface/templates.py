@@ -222,7 +222,8 @@ def norm(v):
     if isinstance(v, float):
         if math.isnan(v):
             return "NaN"
-        return 0.0 if v == 0 else v
+        # 12 significant digits: a floating-point SUM depends on the order of its inputs.
+        return 0.0 if v == 0 else float(f"{v:.12g}")
     if isinstance(v, Decimal):
         return str(v.normalize()) if v != 0 else "0"
     if isinstance(v, int):
@@ -315,6 +316,9 @@ def build_queries(shape, max_lits=12):
     """Every query for one shape, as (qid, query) pairs; qids are stable across runs."""
     cols = shape["read_as"] or shape["columns"]
     lt = leaves(cols)
+    if "random_seed" in shape:  # the matched random baseline (random_gen.py)
+        import random_gen
+        return random_gen.random_queries(shape, lt), lt
     rows = shape_rows(shape)
     qs = []
     for path, ty in lt.items():

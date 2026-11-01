@@ -10,6 +10,7 @@ Type language: int32 int64 float32 float64 string date decimal(p,s)
 """
 import datetime
 import math
+import os
 import re
 from decimal import Decimal
 
@@ -205,4 +206,9 @@ def is_nan(v):
     return isinstance(v, float) and math.isnan(v)
 
 
+# QP_IFACE_GEN=random:SEED replaces the contract shapes with the matched random baseline.
+GEN = os.environ.get("QP_IFACE_GEN", "spec")
+if GEN.startswith("random:"):
+    import random_gen
+    SHAPES = random_gen.make_shapes(int(GEN.split(":", 1)[1]))
 check_shapes()
