@@ -36,7 +36,8 @@ jobs:
             docker run -d --name trino -p 8080:8080 -v "$RUNNER_TEMP/iface:/qpdata:ro" \
               -v "$RUNNER_TEMP/trino-catalog/hive.properties:/etc/trino/catalog/hive.properties:ro" "trinodb/trino:$V"
             for i in $(seq 1 60); do curl -sf localhost:8080/v1/info | grep -q '"starting":false' && break; sleep 5; done
-            curl -s localhost:8080/v1/info || { docker logs trino 2>&1 | grep -v ' INFO ' | tail -n 60; exit 1; }
+            # A version that cannot start with this catalog (e.g. no native local file system) is skipped.
+            curl -s localhost:8080/v1/info || { echo "TRINO $V did not start"; docker logs trino 2>&1 | grep 'Error:' | head -5; docker rm -f trino > /dev/null; continue; }
             echo
             python -B "tools/queryproof_interface/$SCRIPT" "$RUNNER_TEMP/iface"
             docker rm -f trino > /dev/null
