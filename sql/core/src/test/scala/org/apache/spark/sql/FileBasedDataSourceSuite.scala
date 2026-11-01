@@ -1881,6 +1881,38 @@ class FileBasedDataSourceSuite extends SharedSparkSession
       }
     }
   }
+
+  test("SPARK-XXXXX: filter pushdown with a TIMESTAMP in a day that the hybrid calendar skips") {
+    // Timestamps on 1582-10-05 to 1582-10-14 were pushed down to Parquet ten days later.
+    Seq("false", "true").foreach { java8Api =>
+      withSQLConf(
+          SQLConf.DATETIME_JAVA8API_ENABLED.key -> java8Api,
+          SQLConf.PARQUET_OUTPUT_TIMESTAMP_TYPE.key -> "TIMESTAMP_MICROS") {
+        withTempPath { dir =>
+          val path = dir.getCanonicalPath
+          // One file per value, so that the statistics of a file hold one value.
+          Seq("1582-10-04 12:00:00", "1582-10-10 12:00:00", "1582-10-15 00:00:00",
+              "1582-10-16 00:00:00").foreach { t =>
+            sql(s"SELECT TIMESTAMP'$t' AS t").write.mode("append").parquet(path)
+          }
+          val df = spark.read.parquet(path)
+          Seq(
+            "t = TIMESTAMP'1582-10-10 12:00:00'" -> Seq("1582-10-10 12:00:00"),
+            "t >= TIMESTAMP'1582-10-10 12:00:00'" ->
+              Seq("1582-10-10 12:00:00", "1582-10-15 00:00:00", "1582-10-16 00:00:00"),
+            "t > TIMESTAMP'1582-10-14 23:59:59.999999'" ->
+              Seq("1582-10-15 00:00:00", "1582-10-16 00:00:00"),
+            "t <> TIMESTAMP'1582-10-05 00:00:00'" -> Seq("1582-10-04 12:00:00",
+              "1582-10-10 12:00:00", "1582-10-15 00:00:00", "1582-10-16 00:00:00"),
+            "t IN (TIMESTAMP'1582-10-10 12:00:00', TIMESTAMP'1582-10-16 00:00:00')" ->
+              Seq("1582-10-10 12:00:00", "1582-10-16 00:00:00")
+          ).foreach { case (condition, expected) =>
+            checkAnswer(df.where(condition).selectExpr("CAST(t AS STRING)"), expected.map(Row(_)))
+          }
+        }
+      }
+    }
+  }
 }
 
 object TestingUDT {

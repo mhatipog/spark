@@ -44,6 +44,7 @@ import org.apache.spark.sql.catalyst.plans.logical.{AppendData, InsertIntoDir, I
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.catalyst.streaming.{StreamingRelationV2, StreamingSourceIdentifyingName, Unassigned}
 import org.apache.spark.sql.catalyst.types.DataTypeUtils
+import org.apache.spark.sql.catalyst.util.DateTimeConstants.MICROS_PER_DAY
 import org.apache.spark.sql.catalyst.util.{GeneratedColumn, IdentityColumn, PushableExpression, ResolveDefaultColumns}
 import org.apache.spark.sql.classic.{SparkSession, Strategy}
 import org.apache.spark.sql.connector.catalog.{SupportsRead, V1Table}
@@ -640,19 +641,31 @@ object DataSourceStrategy
   private val calendarGapDays =
     LocalDate.of(1582, 10, 5).toEpochDay.toInt to LocalDate.of(1582, 10, 14).toEpochDay.toInt
 
-  private def hasDateInCalendarGap(predicate: Expression): Boolean = predicate.exists {
-    case Literal(days: Int, DateType) => calendarGapDays.contains(days)
-    case expressions.InSet(child, set) if child.dataType == DateType =>
-      set.exists(days => calendarGapDays.contains(days.asInstanceOf[Int]))
+  // A TIMESTAMP converts to java.sql.Timestamp in the JVM time zone, so the gap is widened by a
+  // day on each side (UTC 1582-10-04 to 1582-10-16) to hold its local days in every time zone.
+  private val calendarGapMicros =
+    LocalDate.of(1582, 10, 4).toEpochDay * MICROS_PER_DAY until
+      LocalDate.of(1582, 10, 16).toEpochDay * MICROS_PER_DAY
+
+  private def isInCalendarGap(value: Any, dataType: DataType): Boolean = (value, dataType) match {
+    case (days: Int, DateType) => calendarGapDays.contains(days)
+    case (micros: Long, TimestampType) => calendarGapMicros.contains(micros)
+    case _ => false
+  }
+
+  private def hasDatetimeInCalendarGap(predicate: Expression): Boolean = predicate.exists {
+    case Literal(v, t) => isInCalendarGap(v, t)
+    case expressions.InSet(child, set) => set.exists(isInCalendarGap(_, child.dataType))
     case _ => false
   }
 
   private def translateLeafNodeFilter(
       predicate: Expression,
       pushableColumn: PushableColumnBase): Option[Filter] = predicate match {
-    // A filter takes a DATE as java.sql.Date unless the Java 8 time API is enabled, and a date that
-    // the hybrid calendar skips would be pushed down as 1582-10-15.
-    case _ if !SQLConf.get.datetimeJava8ApiEnabled && hasDateInCalendarGap(predicate) => None
+    // A filter takes a DATE as java.sql.Date and a TIMESTAMP as java.sql.Timestamp unless the
+    // Java 8 time API is enabled, and a day that the hybrid calendar skips would be pushed down
+    // ten days later (from 1582-10-15).
+    case _ if !SQLConf.get.datetimeJava8ApiEnabled && hasDatetimeInCalendarGap(predicate) => None
 
     case expressions.EqualTo(e @ pushableColumn(name), Literal(v, t)) =>
       Some(collationAwareFilter(sources.EqualTo(name, convertToScala(v, t)), e.dataType))
