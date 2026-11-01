@@ -43,7 +43,8 @@ jobs:
           docker run -d --name trino -p 8080:8080 -v "$RUNNER_TEMP/iface:/data:ro" \
             -v "$RUNNER_TEMP/trino-catalog/hive.properties:/etc/trino/catalog/hive.properties:ro" trinodb/trino:484
           for i in $(seq 1 60); do curl -sf localhost:8080/v1/info | grep -q '"starting":false' && break; sleep 5; done
-          curl -s localhost:8080/v1/info; echo
+          curl -s localhost:8080/v1/info || { docker ps -a; docker logs trino 2>&1 | grep -v ' INFO ' | tail -n 60; exit 1; }
+          echo
       - name: Write files and run every engine on this shard
         working-directory: tools/queryproof_interface
         run: |
