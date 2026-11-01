@@ -17,6 +17,7 @@
 
 package org.apache.spark.sql.execution.datasources
 
+import java.time.LocalDate
 import java.util.Locale
 
 import scala.collection.immutable.ListMap
@@ -634,9 +635,25 @@ object DataSourceStrategy
     }
   }
 
+  // The days of 1582-10-05 to 1582-10-14, which the hybrid Julian/Gregorian calendar of
+  // java.sql.Date skips: such a date converts to another java.sql.Date.
+  private val calendarGapDays =
+    LocalDate.of(1582, 10, 5).toEpochDay.toInt to LocalDate.of(1582, 10, 14).toEpochDay.toInt
+
+  private def hasDateInCalendarGap(predicate: Expression): Boolean = predicate.exists {
+    case Literal(days: Int, DateType) => calendarGapDays.contains(days)
+    case expressions.InSet(child, set) if child.dataType == DateType =>
+      set.exists(days => calendarGapDays.contains(days.asInstanceOf[Int]))
+    case _ => false
+  }
+
   private def translateLeafNodeFilter(
       predicate: Expression,
       pushableColumn: PushableColumnBase): Option[Filter] = predicate match {
+    // A filter takes a DATE as java.sql.Date unless the Java 8 time API is enabled, and a date that
+    // the hybrid calendar skips would be pushed down as 1582-10-15.
+    case _ if !SQLConf.get.datetimeJava8ApiEnabled && hasDateInCalendarGap(predicate) => None
+
     case expressions.EqualTo(e @ pushableColumn(name), Literal(v, t)) =>
       Some(collationAwareFilter(sources.EqualTo(name, convertToScala(v, t)), e.dataType))
     case expressions.EqualTo(Literal(v, t), e @ pushableColumn(name)) =>
