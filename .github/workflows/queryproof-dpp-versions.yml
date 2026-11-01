@@ -44,6 +44,8 @@ jobs:
           python -B tools/queryproof_hunt_20261023/agg_empty_probe.py 2>agg.log || { grep -v ' WARN ' agg.log | tail -20; true; }
           python -B tools/queryproof_hunt_20261023/partcount_probe.py 2>agg.log || { grep -v ' WARN ' agg.log | tail -20; true; }
           python -B tools/queryproof_hunt_20261023/iface_probe.py 2>agg.log || { grep -v ' WARN ' agg.log | tail -20; true; }
+          python -m pip install --disable-pip-version-check -q pyarrow==26.0.0
+          python -B tools/queryproof_hunt_20261023/orc_nested_read_probe.py 2>orcread.log || { grep -v ' WARN ' orcread.log | tail -20; true; }
   master:
     # Builds apache/spark master from source (about 40 minutes) and runs the same probe.
     runs-on: ubuntu-latest
@@ -86,3 +88,5 @@ jobs:
           python -B qp/tools/queryproof_hunt_20261023/agg_empty_probe.py 2>agg.log || { grep -v ' WARN ' agg.log | tail -40; exit 1; }
           python -B qp/tools/queryproof_hunt_20261023/partcount_probe.py 2>agg.log || { grep -v ' WARN ' agg.log | tail -40; exit 1; }
           python -B qp/tools/queryproof_hunt_20261023/iface_probe.py 2>agg.log || { grep -v ' WARN ' agg.log | tail -40; exit 1; }
+          python -m pip install --disable-pip-version-check -q pyarrow==26.0.0
+          python -B qp/tools/queryproof_hunt_20261023/orc_nested_read_probe.py 2>orcread.log || { grep -v ' WARN ' orcread.log | tail -40; exit 1; }

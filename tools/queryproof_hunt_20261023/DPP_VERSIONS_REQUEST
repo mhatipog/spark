@@ -1,1 +1,1 @@
-run 9 (gap DATE probe with the 3.5 rebase setting; master)
+run 10 (baseline lead: Spark reading pyarrow ORC with a NULL middle struct)
