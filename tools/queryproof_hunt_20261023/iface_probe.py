@@ -13,7 +13,9 @@ import tempfile
 from pyspark.sql import SparkSession
 
 spark = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false")
-         .config("spark.sql.shuffle.partitions", "2").config("spark.sql.session.timeZone", "UTC").getOrCreate())
+         .config("spark.sql.shuffle.partitions", "2").config("spark.sql.session.timeZone", "UTC")
+         # 3.5 refuses to write dates before 1582-10-15 without a rebase mode
+         .config("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED").getOrCreate())
 spark.sparkContext.setLogLevel("ERROR")
 print("PYSPARK", spark.version)
 base = tempfile.mkdtemp(prefix="qp_ifaceprobe_")

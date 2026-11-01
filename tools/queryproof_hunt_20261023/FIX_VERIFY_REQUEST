@@ -1,2 +1,1 @@
-research/queryproof-fix-n5-test-only-control sql/testOnly*ParquetV2AggregatePushDownSuite,*OrcV2AggregatePushDownSuite agg_empty_probe.py
-# rerun
+research/queryproof-fix-g-gap-date-pushdown sql/testOnly*FileBasedDataSourceSuite,*DataSourceStrategySuite,*OrcFilterSuite,*ParquetV1FilterSuite iface_probe.py
