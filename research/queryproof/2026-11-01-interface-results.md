@@ -201,6 +201,12 @@ in a TINYINT column of a Spark v2 Parquet file. Nothing else new.
 - The Java 8 time API is correct. The V2 reader pushes no timestamp filter.
 - G's fix branch now covers TIMESTAMP too (commit f6e82df: a test plus a UTC window
   widened by a day). Verification run 41310770200, negative control 41310801761.
+  - *Added later the same day:* run 41310770200 **failed**. f6e82df built a `NumericRange`
+    of microseconds, which has too many elements and throws. Commit 406b84e99b0 compares
+    with two bounds instead. On it, 81/81 tests of the suite pass (run 41325775517, whose
+    end-to-end step was misconfigured), and the end-to-end probe on the fixed build shows
+    every G and GT line equal (run 41326938070; its 8 remaining differences are S, which
+    this branch does not touch). The control run 41310801761 fails both new tests.
 - It joins G's draft (§2d) instead of becoming a new JIRA, and is not counted as a new bug.
 
 **TD.**
@@ -237,6 +243,94 @@ in a TINYINT column of a Spark v2 Parquet file. Nothing else new.
   but the counts are small.
 - Pair two's spec shapes found no new C1 bug, although they now combine the NULL levels
   that A1 needed. Only known bugs (A1, N4, ORC-2226) came back.
+
+## Pair three (2026-11-01)
+
+**Design** (see the plan, "Pair three design"):
+
+- **Spec:** `spec3_shapes.py`, 16 shapes from contract items not covered before:
+  - UINT_8/16/32/64 values on both sides of the signed maximum;
+  - bloom filters and dictionaries on unsigned columns read as a wider type;
+  - all-NULL unsigned columns;
+  - a directory with no data file;
+  - files whose first row group has 0 rows, including nested columns;
+  - map statistics over entries;
+  - DECIMAL(18,2) sign order.
+- **New for both methods:**
+  - the unsigned types, which the random generator draws too;
+  - GROUP BY and scalar-subquery templates;
+  - the `all_error` kind;
+  - integral decimals compared as integers.
+- **Random:** seed 4, 57 queries per shape. Local check counts match (72,960 against
+  73,240 on DuckDB and DataFusion).
+
+| Run | Method | Checks | Findings | Engine core-hours | Runner-hours |
+| --- | --- | --- | --- | --- | --- |
+| 41326817833 | spec3 | 231,559 | 3,407 | 3.00 | 1.42 |
+| 41326848563 | random seed 4 | 286,140 | 1,074 | 3.32 | 1.56 |
+
+**Result: no new bug in either pass.** Every finding is classified below.
+
+**Spec3 triage** (3,407 findings, 4,135 finding kinds; one finding can carry several):
+
+| Cluster | Kinds | Class |
+| --- | --- | --- |
+| DuckDB and DataFusion refuse a directory with no file when they must infer the schema | 1,376 | by design |
+| Trino reads UINT_32 values above 2³¹−1 as negative numbers (skipping off) | 805 | trinodb#31908 (filed 2026-10-30) |
+| Trino "Corrupted statistics" on UINT_32 bounds that straddle the sign bit | 534 | trinodb#27274 (fix PR trinodb#31909 open) |
+| Trino rejects UINT_64 declared as `decimal(20,0)` | 1,372 | feature gap (see below) |
+| Trino bloom filter drops a UINT_32 row (BIGINT hash probing an INT32 filter) | 6 | trinodb#30544, also fixed by trinodb#31909 |
+| Spark-written ORC, `IS NULL` on a field under a NULL struct | 42 | N4 = SPARK-60362 |
+
+**Random seed 4 triage** (1,074 findings, 1,532 finding kinds):
+
+| Cluster | Kinds | Class |
+| --- | --- | --- |
+| Trino Hive table creation rejects `timestamp(6)` ("configured precision is MILLISECONDS") | 912 | harness gap (see below) |
+| Spark ORC pushdown NPE on an `IN` list containing NULL (all numeric types) | 420 | SPARK-59605 |
+| Trino rejects UINT_64 as `decimal(20,0)` | 95 | feature gap |
+| pyarrow ORC `struct<struct>` read wrong (Spark and Trino) | 16 | A1, known (ours) |
+| Spark-written ORC nested `IS NULL` | 28 | N4 = SPARK-60362 |
+| ORC "Seek … outside of the data" | 49 | ORC-2226 |
+| "No min/max" / "Number of nulls not set" under aggregate pushdown | 12 | by design |
+
+**Harness problems, recorded here and not fixed by rerunning:**
+
+- **UINT_64 on Trino.** The plan assumed that Trino reads UINT_64 as `decimal(20,0)`, as
+  Spark does. Trino builds a long-decimal reader only for a column with a DECIMAL
+  annotation (`ColumnReaderFactory`), so every query fails. UINT_64 therefore has no
+  Trino coverage in this pair, for either method. That is a missing feature, not a wrong
+  answer, and it is not counted.
+- **TIMESTAMP on Trino.** The Hive connector's default `timestamp_precision` is
+  MILLISECONDS, so `CREATE TABLE` fails for every shape with a TIMESTAMP column. Spec3
+  has no TIMESTAMP shape; random seed 4 has two. Pair two's Trino TIMESTAMP coverage is
+  probably affected the same way. The fix is the session property
+  `hive.timestamp_precision = 'MICROSECONDS'`, for the next run.
+- **No-file directory on DuckDB and DataFusion.** This shape needs a declared schema on
+  those engines. As run, only Spark and Trino tested it, and both were correct.
+
+**What pair three says about the contracts:**
+
+- The unsigned contract item (C3) is where Trino breaks, but someone had already reported
+  every failure in October 2026, one of them two days before this run.
+- Spark, DuckDB and DataFusion handled every unsigned shape, every 0-row row group, the
+  directory with no data file, and the new GROUP BY and scalar-subquery templates without
+  a difference.
+
+**Cumulative matched comparison (pairs one to three):**
+
+| Method | Engine core-hours | Checks | New bugs | Per core-hour | Outside Spark | Found only by this method |
+| --- | --- | --- | --- | --- | --- | --- |
+| Spec-driven | 18.47 | 1,633,510 | 4 (G, S, T3, TD) | 0.22 | 3 (S, T3, TD) | 3 (G, S, T3), plus GT |
+| Random, same harness | 18.36 | 1,710,076 | 2 (A1, TD) | 0.11 | 2 (A1, TD) | 1 (A1) |
+
+**Reading for the stop rule:**
+
+- The ratio holds at two to one, but the last two pairs added one new bug between them
+  (TD, found by both methods).
+- Spec-driven yield has fallen pair by pair: three new bugs, then one, then none.
+- Spec3's best region, Trino's unsigned reads, had already been reported by others. The
+  shapes were good, but this ground had just been searched.
 
 ## Earlier cost estimate (superseded by the matched comparison above)
 

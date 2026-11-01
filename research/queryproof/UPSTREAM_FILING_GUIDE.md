@@ -570,9 +570,15 @@ Fix branches are prepared in `mhatipog/spark`; see the "Fix branches" section of
 
 - N2: `research/queryproof-fix-n2-filterestimation-ndv-zero` (commit ec22a0d)
 - N1: `research/queryproof-fix-n1-dpp-union-nonpartitioned` (commit 2eb639a: fix and test)
-- G: `research/queryproof-fix-g-gap-date-pushdown` (commit c2fe5d8, on master 4fecd73).
-  Verified: 191 of 191 tests pass, and the negative control
-  `research/queryproof-fix-g-test-only-control` fails the new test.
+- G: `research/queryproof-fix-g-gap-date-pushdown` (head 406b84e99b0, on master 4fecd73).
+  It has three commits:
+  - c2fe5d8, DATE: 191 of 191 tests pass;
+  - f6e82df, TIMESTAMP (GT);
+  - 406b84e99b0, which fixes f6e82df's failing range.
+  Verified at the head: 81/81 tests of `FileBasedDataSourceSuite` pass (run 41325775517),
+  and the end-to-end probe shows no G or GT difference (run 41326938070). The negative
+  control `research/queryproof-fix-g-test-only-control` fails both new tests
+  (run 41310801761). Squash the three commits into one before opening the PR.
 - N4 (`research/queryproof-fix-n4-orc-nested-isnull`, 4c95160) and N5
   (`research/queryproof-fix-n5-agg-pushdown-empty-count`, 8a54e2f): **do not open PRs.**
   apache/spark#59747 and #59763 already fix them (see the correction at the top). Keep
