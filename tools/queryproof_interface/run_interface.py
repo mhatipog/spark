@@ -1,7 +1,7 @@
 """Spec-driven storage-interface hunt: adversarial files x fixed templates x engines x modes.
 
 Usage: python run_interface.py ENGINES BASE OUT.json [SHARD COUNT [SPARK_TAG]]
-  ENGINES   comma list of spark, duckdb, datafusion
+  ENGINES   comma list of spark, duckdb, datafusion, trino (a Trino server on localhost:8080)
   BASE      directory holding writers.py output and manifest.json
 Shards split the shapes. Findings:
   skip_diff     a mode's bag differs from the same engine's "off" bag
@@ -28,7 +28,8 @@ def main(engine_list, base, out_path, shard=0, count=1, spark_tag="4.2.1"):
     names = engine_list.split(",")
     engines = []
     for n in names:
-        engines.append({"spark": lambda: E.Spark(spark_tag), "duckdb": E.DuckDB, "datafusion": E.DataFusion}[n]())
+        engines.append({"spark": lambda: E.Spark(spark_tag), "duckdb": E.DuckDB, "datafusion": E.DataFusion,
+                        "trino": lambda: E.Trino(base)}[n]())
     spark = next((e for e in engines if isinstance(e, E.Spark)), None)
     if spark is not None:  # Spark's own writers add file sets that every engine reads
         t0 = time.time()

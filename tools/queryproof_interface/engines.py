@@ -179,3 +179,56 @@ class DataFusion(Engine):
             except Exception as exc:  # noqa: BLE001
                 out.append({"error": str(exc).split("\n")[0][:300]})
         return out
+
+
+# ------------------------------------------------------------------ Trino (Docker, Hive connector on the local file system)
+TRINO_OFF = {"parquet_ignore_statistics": "true", "parquet_use_column_index": "false",
+             "parquet_use_bloom_filter": "false", "orc_bloom_filters_enabled": "false"}
+
+
+class Trino(Engine):
+    name, dialect, formats, cores = "trino", "trino", ("parquet", "orc"), 4
+    modes = {"off": TRINO_OFF, "default": {}, "orc_bloom": {"orc_bloom_filters_enabled": "true"}}
+
+    def __init__(self, base, mount="/data", version="484"):
+        import trino
+        self.trino, self.base, self.mount = trino, os.path.abspath(base), mount
+        self.name = "trino-" + version
+        self.tables = {}
+        self._sql("CREATE SCHEMA IF NOT EXISTS hive.qp", {})
+
+    def _conn(self, props):
+        return self.trino.dbapi.connect(host="localhost", port=8080, user="qp", catalog="hive", schema="qp",
+                                        session_properties={f"hive.{k}": v for k, v in props.items()})
+
+    def _sql(self, sql, props):
+        cur = self._conn(props).cursor()
+        cur.execute(sql)
+        return cur.fetchall()
+
+    def _table(self, fileset, shape):
+        if fileset["dir"] in self.tables:
+            return self.tables[fileset["dir"]]
+        name = f"t{len(self.tables)}"
+        rel = os.path.relpath(os.path.abspath(fileset["dir"]), self.base).replace("\\", "/")
+        cols = ", ".join(f'"{n}" {sql_type(parse_type(ty), "trino")}' for n, ty in read_cols(shape))
+        fmt = fileset["format"].upper()
+        self._sql(f"CREATE TABLE {name} ({cols}) WITH (external_location = 'local://{self.mount}/{rel}', "
+                  f"format = '{fmt}')", {})
+        self.tables[fileset["dir"]] = name
+        return name
+
+    def run(self, mode, fileset, shape, sqls):
+        try:
+            name = self._table(fileset, shape)
+        except Exception as exc:  # noqa: BLE001
+            return [{"error": "create: " + str(exc).split("\n")[0][:280]}] * len(sqls)
+        cur = self._conn(self.modes[mode]).cursor()
+        out = []
+        for s in sqls:
+            try:
+                cur.execute(s.replace(" FROM t", f" FROM {name}"))
+                out.append({"rows": [list(r) for r in cur.fetchall()]})
+            except Exception as exc:  # noqa: BLE001
+                out.append({"error": str(exc).split("\n")[0][:300]})
+        return out

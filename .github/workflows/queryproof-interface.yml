@@ -15,11 +15,11 @@ jobs:
   released:
     # Public fork: GitHub-hosted only (never the self-hosted VM).
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4, 5]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,15 +34,24 @@ jobs:
           java-version: '17'
       - name: Install engines
         run: |
-          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.1 duckdb==2.0.0 datafusion==55.0.0 pyarrow==26.0.0
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.1 duckdb==2.0.0 datafusion==55.0.0 pyarrow==26.0.0 trino==0.340.0
+      - name: Start Trino 484 (Hive connector, file metastore, local file system mounted at /data)
+        run: |
+          mkdir -p "$RUNNER_TEMP/iface" "$RUNNER_TEMP/trino-catalog"
+          printf '%s\n' connector.name=hive hive.metastore=file hive.metastore.catalog.dir=local:///tmp/qpmeta \
+            fs.native-local.enabled=true local.location=/ hive.orc.use-column-names=true > "$RUNNER_TEMP/trino-catalog/hive.properties"
+          docker run -d --name trino -p 8080:8080 -v "$RUNNER_TEMP/iface:/data:ro" \
+            -v "$RUNNER_TEMP/trino-catalog/hive.properties:/etc/trino/catalog/hive.properties:ro" trinodb/trino:484
+          for i in $(seq 1 60); do curl -sf localhost:8080/v1/info | grep -q '"starting":false' && break; sleep 5; done
+          curl -s localhost:8080/v1/info; echo
       - name: Write files and run every engine on this shard
         working-directory: tools/queryproof_interface
         run: |
           start=$(date +%s)
           python -B writers.py "$RUNNER_TEMP/iface" "$RUNNER_TEMP/iface/manifest.json"
           mkdir -p "$GITHUB_WORKSPACE/out"
-          python -B run_interface.py spark,duckdb,datafusion "$RUNNER_TEMP/iface" "$GITHUB_WORKSPACE/out/iface_${{ matrix.shard }}.json" ${{ matrix.shard }} 6 4.2.1 2>run.log \
-            || { grep -v ' WARN ' run.log | tail -n 60; exit 1; }
+          python -B run_interface.py "${ENGINES:-spark,duckdb,datafusion,trino}" "$RUNNER_TEMP/iface" "$GITHUB_WORKSPACE/out/iface_${{ matrix.shard }}.json" ${{ matrix.shard }} 8 4.2.1 2>run.log \
+            || { grep -v ' WARN ' run.log | tail -n 60; docker logs trino 2>&1 | grep -E 'ERROR|Exception' | head -n 20; exit 1; }
           grep -E 'QUERYPROOF_IFACE_(WRITE_FAILED|SPARK_WRITE)' run.log | head -n 20 || true
           echo "QUERYPROOF_JOB_WALL_SECONDS $(( $(date +%s) - start ))"
       - uses: actions/upload-artifact@v4

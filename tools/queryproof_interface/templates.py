@@ -50,7 +50,8 @@ def col_sql(path, dialect):
     out = path[0]
     for p in path[1:]:
         if isinstance(p, tuple):
-            out = f"try_element_at({out}, '{p[1]}')" if dialect == "spark" else f"{out}['{p[1]}']"
+            out = {"spark": f"try_element_at({out}, '{p[1]}')", "trino": f"element_at({out}, '{p[1]}')"}.get(
+                dialect, f"{out}['{p[1]}']")
         else:
             out = f"{out}.{p}"
     return out

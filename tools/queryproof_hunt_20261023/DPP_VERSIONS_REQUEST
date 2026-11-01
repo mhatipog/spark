@@ -1,1 +1,1 @@
-run 7 (round 8 lead: COUNT of a NULL partition column under aggregate pushdown)
+run 8 (interface leads: DATE literals in the 1582 gap, ORC strings above U+FFFF)

@@ -79,6 +79,12 @@ def sql_type(t, dialect):
         return f"ARRAY<{sql_type(t[1], dialect)}>"
     if dialect == "spark" and k == "map":
         return f"MAP<STRING, {sql_type(t[1], dialect)}>"
+    if dialect == "trino" and k == "struct":
+        return "ROW(" + ", ".join(f"{n} {sql_type(c, dialect)}" for n, c in t[1]) + ")"
+    if dialect == "trino" and k == "list":
+        return f"ARRAY({sql_type(t[1], dialect)})"
+    if dialect == "trino" and k == "map":
+        return f"MAP(VARCHAR, {sql_type(t[1], dialect)})"
     assert k in SQL_ATOMIC[dialect], (dialect, t)
     return SQL_ATOMIC[dialect][k]
 
