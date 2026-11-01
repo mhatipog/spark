@@ -7,12 +7,27 @@ GitHub Issues is enabled on apache/spark, but the contributing guide
 (<https://spark.apache.org/contributing.html>) still points bug reports to JIRA, and
 committers triage there.
 
+**Correction (2026-11-01): do not file N4 or N5.** A full-text JIRA search during round 8
+found that both were reported before we found them, and both already have open fix PRs
+that take the same approach as our branches:
+
+- **N4** is a duplicate of [SPARK-60362](https://issues.apache.org/jira/browse/SPARK-60362),
+  filed 2026-10-19. The fix PR is [apache/spark#59747](https://github.com/apache/spark/pull/59747),
+  opened 2026-10-23. It stops pushing IS NULL for a field under a nullable struct, and it
+  adjusts the same OrcFilterSuite checks.
+- **N5** is a duplicate of [SPARK-60487](https://issues.apache.org/jira/browse/SPARK-60487),
+  filed 2026-10-22. The fix PR is [apache/spark#59763](https://github.com/apache/spark/pull/59763),
+  opened 2026-10-24. It uses `Coalesce(…, 0)` and its test also checks the raw rows for
+  NULL slots.
+
+The round 7 novelty search (summary and keyword search) missed both. §2b and §2c below
+are kept only as a record. Our fix branches for N4 and N5 add nothing upstream, so do not
+open PRs from them.
+
 **Suggested order:**
-1. N4 (§2b), a wrong result under default settings.
-2. N5 (§2c).
-3. N1 (§1).
-4. N2 (§2).
-5. The two backport comments (§3, §3b).
+1. N1 (§1).
+2. N2 (§2).
+3. The two backport comments (§3, §3b).
 
 ## 0. One-time setup
 
@@ -160,7 +175,7 @@ Found by automated differential testing (CBO on/off oracle over partitioned Parq
 
 ---
 
-## 2b. JIRA: N4 (ORC: IS NULL on a field of a NULL struct drops rows) — file this one first
+## 2b. JIRA: N4 (ORC: IS NULL on a field of a NULL struct drops rows) — DO NOT FILE (duplicate of SPARK-60362)
 
 This is a silent wrong result under the default configuration, so add the label
 `correctness` (Spark's convention for wrong-result bugs).
@@ -208,7 +223,7 @@ Found by automated metamorphic testing (the same rows read as Parquet and as ORC
 
 ---
 
-## 2c. JIRA: N5 (aggregate pushdown: COUNT over no file returns NULL)
+## 2c. JIRA: N5 (aggregate pushdown: COUNT over no file returns NULL) — DO NOT FILE (duplicate of SPARK-60487)
 
 - **Project:** Spark · **Issue type:** Bug · **Priority:** Major
 - **Labels:** correctness
@@ -297,6 +312,21 @@ The same happens for EXISTS / IN subqueries over such a projection; try_variant_
 
 ---
 
+## 3c. Optional comment on SPARK-59607 (affected versions)
+
+SPARK-59607 lists only 5.0.0 and says "Parquet". Our probe (`partcount_probe.py`, run
+41284727455) shows the bug on every released line, for ORC too. Add this only if it helps:
+
+```
+This also reproduces on 3.5.x, 4.0.x, 4.1.x and 4.2.1, and for ORC with spark.sql.orc.aggregatePushdown=true (DSv2 file source). Partitioned by a with rows (1,10),(1,NULL),(NULL,20),(NULL,NULL),(NULL,30),(2,40):
+  SELECT COUNT(a) FROM t                      -> 6 (expected 3)
+  SELECT a, COUNT(a) FROM t GROUP BY a        -> the NULL group has COUNT(a) = 3 (expected 0)
+  SELECT COUNT(a) FROM t WHERE a IS NULL      -> 3 (expected 0)
+Both ParquetUtils.getPushedDownAggResult and OrcUtils add the file's row count for a partition column without looking at the file's partition value.
+```
+
+---
+
 ## 4. Pull requests (after the JIRAs exist)
 
 Fix branches are prepared in `mhatipog/spark`; see the "Fix branches" section of
@@ -304,11 +334,10 @@ Fix branches are prepared in `mhatipog/spark`; see the "Fix branches" section of
 
 - N2: `research/queryproof-fix-n2-filterestimation-ndv-zero` (commit ec22a0d)
 - N1: `research/queryproof-fix-n1-dpp-union-nonpartitioned` (commit 2eb639a: fix and test)
-- N4: `research/queryproof-fix-n4-orc-nested-isnull` (commit 4c95160). It also updates
-  nine existing `OrcFilterSuite` checks that expected IS NULL on nested fields to be
-  pushed down; say so in the PR description ("IS NULL on fields nested in a nullable
-  struct is no longer pushed down to ORC").
-- N5: `research/queryproof-fix-n5-agg-pushdown-empty-count` (commit 8a54e2f)
+- N4 (`research/queryproof-fix-n4-orc-nested-isnull`, 4c95160) and N5
+  (`research/queryproof-fix-n5-agg-pushdown-empty-count`, 8a54e2f): **do not open PRs.**
+  apache/spark#59747 and #59763 already fix them (see the correction at the top). Keep
+  the branches as research records.
 
 Optionally rename a branch to something shorter first, e.g. `SPARK-NNNNN`. Do not use
 the `…-test-only-control` branches: they contain the tests without the fix.

@@ -1,5 +1,19 @@
 # QueryProof bug hunt, rounds 2–7: four new Spark bugs (31 October – 1 November 2026)
 
+> **Correction (2026-11-01, round 8 triage).** Only N1 and N2 below are new. N4 and N5
+> were reported upstream before we found them:
+>
+> - **N4** = [SPARK-60362](https://issues.apache.org/jira/browse/SPARK-60362), filed
+>   2026-10-19; fix PR apache/spark#59747, opened 2026-10-23.
+> - **N5** = [SPARK-60487](https://issues.apache.org/jira/browse/SPARK-60487), filed
+>   2026-10-22; fix PR apache/spark#59763, opened 2026-10-24.
+>
+> Our round 7 novelty check searched JIRA summaries with keywords and missed both, and
+> it also missed both PRs. Since then, every check runs JIRA full-text JQL (`text ~`)
+> and searches apache/spark PRs. The round 7 measurements below are unchanged: the runs,
+> the reproductions and the verified fixes all stand. Only the "new" label is withdrawn
+> for N4 and N5. The title is kept as written.
+
 This document continues `2026-10-23-hunt-spark-4.2.0-findings.md`. All runs used
 GitHub-hosted runners on the public fork. Every finding was reproduced in isolation
 before it was classified.
@@ -307,6 +321,61 @@ Results:
 - **No differences:** JSON, CSV and cached-table variants found nothing beyond those 2
   plan-dependent N1 runs.
 - **No wrong answers:** default-configuration oracles (NoREC, pinned result) found none.
+
+## Round 8: Parquet skipping on small data, spill and fallback paths (seed 20261051)
+
+The last random round against Spark alone. From now on QueryProof does spec-driven
+storage-interface testing across engines; see `2026-11-01-interface-plan.md`.
+
+**Setup.** Run 41280429257: `gen_feat.py`, 3,600 queries × 2 datasets, 23 variants
+(`QP_VARIANTS=round8`), 7,200 runs, 71 cases with differences, about 6.6 h of shard time.
+
+- **Parquet copies:**
+  - `pqsmall`: row groups and pages of a few rows, dictionary on, bloom filters;
+  - `pqv2`: data page v2, dictionary off;
+  - each read with the V1 and V2 readers, without the vectorized reader, with batch size 3,
+    without the nested vectorized reader, with aggregate pushdown, and with a large
+    `inFilterThreshold`;
+  - also ORC with batch size 3.
+- **Execution fallbacks:**
+  - spilling sort-merge-join and window buffers (threshold 1);
+  - sort-based object-hash fallback, `replaceHashWithSortAgg`, hash aggregate instead of
+    object hash;
+  - top-K fallback;
+  - vectorized fast hash map;
+  - subexpression elimination off, `inSetConversionThreshold=1`;
+  - forced skew splits, a shuffled hash join chosen by AQE, null-aware anti join off.
+
+**Did the Parquet copies have several row groups?** The run printed its row-group counts
+to stderr, which the workflow does not keep, so check run 41284727434 (`rowgroup_check.py`)
+rebuilt the copies for the same seed:
+
+- **Non-partitioned and bucketed tables** (`td`, `tc`): 2 files with 2–14 row groups,
+  about 2–3 rows per row group.
+- **Partitioned tables** (`ta`, `tb`, `te`, `tf`): mostly one row group per file. Each
+  partition file holds only 1–3 rows; up to 15 row groups over 7–10 files.
+
+So the skipping half did test row-group skipping, but mainly on `td` and `tc`. Page-level
+splitting was not measured.
+
+**Triage** (all of it is known or by design):
+
+| Signature | Findings (of 71) | Class |
+| --- | --- | --- |
+| `@fmt_orc_batch3`, `st.x/st.y IS NULL` over ORC | 50 | N4 (= SPARK-60362) |
+| Group key of a `UTF8_LCASE` column ("B" vs "b") in GROUP BY or DISTINCT | 5 | By design: any member of the group may represent it |
+| `@fmt_pqsmall_aggregate_pushdown`, `COUNT(a) … GROUP BY a` with `a` a partition column that is NULL | 3 | Known: [SPARK-59607](https://issues.apache.org/jira/browse/SPARK-59607), fix PR apache/spark#59125. Parquet and ORC both count the NULL partition's rows (code: `ParquetUtils.getPushedDownAggResult`, `OrcUtils` `isPartitionColumn`) |
+| `@fmt_pqsmall_aggregate_pushdown`, `(SELECT COUNT(*) FROM <empty table>) < 2` keeps no row | 1 | N5 (= SPARK-60487) |
+| "No min/max found for Parquet file" | 9 | By design |
+| `requirement failed: aggregate(coalesce(arr, …), …)` with the default failing and variants succeeding | 3 | N1, higher-order-function key variant (round 6) |
+
+- **No other differences.** The spill and fallback variants found no difference beyond the
+  N1 plan-dependence above.
+- **No user-facing new bug in round 8.** The `pqsmall`/`pqv2` read variants differ from
+  the default only through the classes above.
+- **Probe for the partition-COUNT lead:** run 41284727455 (`partcount_probe.py`, in
+  `queryproof-dpp-versions.yml`) reproduces it on the released versions and master. It
+  was written before the JIRA check found SPARK-59607 and is kept for the version list.
 
 ## Fix branches (in mhatipog/spark, on top of master f090eaca12)
 
