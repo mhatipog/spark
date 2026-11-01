@@ -14,10 +14,12 @@ import os
 import random
 from decimal import Decimal
 
-TYPES = ["int8", "int16", "int32", "int64", "float64", "float32", "string", "date", "ts", "decimal(9,2)",
+TYPES = ["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float64", "float32", "string", "date", "ts", "decimal(9,2)",
          "struct<x:int32,y:string>", "list<int32>", "map<string,int32>",
          "struct<i:struct<c:int32>,z:int32>"]
 FUZZ_CONSTANTS = {"int8": [0, -1, 1, 127, -128], "int16": [0, -1, 1, 32767, -32768],
+                  "uint8": [0, 1, 255], "uint16": [0, 1, 65535], "uint32": [0, 1, 2 ** 32 - 1],
+                  "uint64": [0, 1, 2 ** 64 - 1],
                   "ts": [datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)],
                   "int32": [0, -1, 1, 2 ** 31 - 1, -2 ** 31], "int64": [0, -1, 1, 2 ** 63 - 1, -2 ** 63],
                   "float64": [0.0, -1.0, 1.0], "float32": [0.0, -1.0, 1.0], "string": [""],
@@ -33,6 +35,10 @@ def value(rng, ty):
         return rng.choice(FUZZ_CONSTANTS[ty])
     if ty in ("int8", "int16", "int32"):
         return rng.randint(-100, 100)
+    if ty in ("uint8", "uint16", "uint32"):  # pair three: the same unsigned types as spec3
+        return rng.randint(0, 200)
+    if ty == "uint64":
+        return rng.randint(0, 10 ** 6)
     if ty == "ts":
         return (datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
                 + datetime.timedelta(seconds=rng.randint(0, 2 * 10 ** 9), microseconds=rng.randint(0, 999999)))

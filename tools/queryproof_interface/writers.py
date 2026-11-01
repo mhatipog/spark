@@ -79,9 +79,19 @@ def write_pyarrow(base):
             d = os.path.join(base, s["id"], wname)
             os.makedirs(d, exist_ok=True)
             for fi, idx in enumerate(s["files"]):
-                pq.write_table(arrow_table(s, idx), os.path.join(d, f"part-{fi:03d}.parquet"), **opts)
+                p = os.path.join(d, f"part-{fi:03d}.parquet")
+                if s.get("empty_row_group_first"):  # a 0-row row group, then the rows (C2 E2)
+                    t = arrow_table(s, idx)
+                    wopts = {k: v for k, v in opts.items() if k != "row_group_size"}
+                    with pq.ParquetWriter(p, t.schema, **wopts) as w:
+                        w.write_table(t.slice(0, 0))
+                        w.write_table(t, row_group_size=opts.get("row_group_size"))
+                else:
+                    pq.write_table(arrow_table(s, idx), p, **opts)
             out.append(entry(s, wname, "parquet", "pyarrow", d))
         for wname, opts in PA_ORC.items():
+            if "orc" not in s.get("formats", ("parquet", "orc")):
+                continue
             opts = dict(opts)
             if opts.pop("bloom", False):
                 opts["bloom_filter_columns"] = [i for i, (n, ty) in enumerate(s["columns"])

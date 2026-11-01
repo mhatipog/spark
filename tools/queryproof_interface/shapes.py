@@ -5,8 +5,9 @@ the rows split into files (`files`: list of row-index lists; an empty list is a 
 Writers then split each file further into row groups, pages and stripes (writers.py).
 `read_as` optionally declares a wider read schema (type widening, contract D2).
 
-Type language: int8 int16 int32 int64 float32 float64 string date ts decimal(p,s)
-               (ts: microsecond timestamps adjusted to UTC)
+Type language: int8 int16 int32 int64 uint8 uint16 uint32 uint64 float32 float64 string date ts
+               decimal(p,s)   (ts: microsecond timestamps adjusted to UTC; uintN: Parquet UINT_N,
+               Parquet only, read by Spark and Trino as the next wider signed type, see UNSIGNED)
                struct<name:type,...> list<type> map<string,type>
 """
 import datetime
@@ -31,7 +32,8 @@ def parse_type(ty):
                 return ("list", parse_type(inner[0]))
             assert parse_type(inner[0]) == ("string",)
             return ("map", parse_type(inner[1]))
-    assert ty in ("int8", "int16", "int32", "int64", "float32", "float64", "string", "date", "ts"), ty
+    assert ty in ("int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64",
+                  "string", "date", "ts"), ty
     return (ty,)
 
 
@@ -60,11 +62,22 @@ def to_arrow(t):
     if k == "map":
         return pa.map_(pa.string(), to_arrow(t[1]))
     return {"int8": pa.int8(), "int16": pa.int16(), "int32": pa.int32(), "int64": pa.int64(),
+            "uint8": pa.uint8(), "uint16": pa.uint16(), "uint32": pa.uint32(), "uint64": pa.uint64(),
             "float32": pa.float32(), "float64": pa.float64(), "string": pa.string(), "date": pa.date32(),
             "ts": pa.timestamp("us", tz="UTC")}[k]
 
 
 SMALL_INTS = {"int8": "TINYINT", "int16": "SMALLINT"}
+# Unsigned Parquet integers (pair three, contract C3 UINT_* order). Spark reads UINT_8/16/32/64 as
+# SMALLINT/INT/BIGINT/DECIMAL(20,0); Trino is declared the same way; DuckDB and DataFusion have
+# native unsigned types.
+UNSIGNED = {
+    "spark": {"uint8": "SMALLINT", "uint16": "INT", "uint32": "BIGINT", "uint64": "DECIMAL(20,0)"},
+    "trino": {"uint8": "SMALLINT", "uint16": "INTEGER", "uint32": "BIGINT", "uint64": "DECIMAL(20,0)"},
+    "duckdb": {"uint8": "UTINYINT", "uint16": "USMALLINT", "uint32": "UINTEGER", "uint64": "UBIGINT"},
+    "datafusion": {"uint8": "TINYINT UNSIGNED", "uint16": "SMALLINT UNSIGNED", "uint32": "INT UNSIGNED",
+                   "uint64": "BIGINT UNSIGNED"},
+}
 SQL_ATOMIC = {
     "spark": {"int32": "INT", "int64": "BIGINT", "float32": "FLOAT", "float64": "DOUBLE", "string": "STRING", "date": "DATE"},
     "duckdb": {"int32": "INTEGER", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE"},
@@ -91,6 +104,8 @@ def sql_type(t, dialect):
         return f"MAP(VARCHAR, {sql_type(t[1], dialect)})"
     if k in SMALL_INTS:
         return SMALL_INTS[k]
+    if k in UNSIGNED[dialect]:
+        return UNSIGNED[dialect][k]
     if k == "ts":
         return {"spark": "TIMESTAMP", "duckdb": "TIMESTAMPTZ", "datafusion": "TIMESTAMP",
                 "trino": "TIMESTAMP(6)"}[dialect]
@@ -106,10 +121,19 @@ D = datetime.date
 NAN, INF = float("nan"), float("inf")
 
 
-def shape(sid, concept, columns, rows, files=None, read_as=None, note=""):
+def has_unsigned(columns):
+    return any(re.search(r"uint(8|16|32|64)", ty) for _, ty in columns)
+
+
+def shape(sid, concept, columns, rows, files=None, read_as=None, note="", empty_row_group_first=False):
+    """`formats` and `spark_write` follow from the types: unsigned columns are Parquet-only and
+    cannot be written by Spark. `empty_row_group_first` makes the pyarrow Parquet writers put a
+    0-row row group before the rows of each file (contract C2 E2)."""
     files = files if files is not None else [list(range(len(rows)))]
+    unsigned = has_unsigned(columns)
     return {"id": sid, "concept": concept, "columns": columns, "rows": rows, "files": files,
-            "read_as": read_as, "note": note}
+            "read_as": read_as, "note": note, "formats": ("parquet",) if unsigned else ("parquet", "orc"),
+            "spark_write": not unsigned, "empty_row_group_first": empty_row_group_first}
 
 
 ST = "struct<x:int32,y:string>"
@@ -223,4 +247,7 @@ if GEN.startswith("random:"):
 elif GEN == "spec2":  # the second contract shape set (pair two)
     import spec2_shapes
     SHAPES = spec2_shapes.SHAPES2
+elif GEN == "spec3":  # the third contract shape set (pair three)
+    import spec3_shapes
+    SHAPES = spec3_shapes.SHAPES3
 check_shapes()

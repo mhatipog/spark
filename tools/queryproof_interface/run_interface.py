@@ -36,6 +36,8 @@ def main(engine_list, base, out_path, shard=0, count=1, spark_tag="4.2.1"):
     if spark is not None:  # Spark's own writers add file sets that every engine reads
         t0 = time.time()
         for s in mine:
+            if not s.get("spark_write", True):  # unsigned columns: Spark has no unsigned types to write
+                continue
             for wname, (fmt, opts) in writers.SPARK_WRITERS.items():
                 d = os.path.join(base, s["id"], wname + "-" + spark.name)
                 try:

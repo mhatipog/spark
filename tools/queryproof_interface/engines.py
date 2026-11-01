@@ -82,6 +82,7 @@ class Spark(Engine):
         from pyspark.sql import Row  # noqa: F401
         ddl = spark_ddl(shape["columns"])
         types = [parse_type(ty) for _, ty in shape["columns"]]
+        os.makedirs(d, exist_ok=True)  # a shape with no file is an empty directory (C2 E3)
         for idx in shape["files"]:
             rows = [tuple(spark_value(v, t) for v, t in zip(shape["rows"][i], types)) for i in idx]
             df = self.spark.createDataFrame(rows, ddl).coalesce(1)
@@ -126,7 +127,10 @@ class DuckDB(Engine):
                 sel.append(f"CAST({n} AS {sql_type(parse_type(ty), 'duckdb')}) AS {n}")
             else:
                 sel.append(n)
-        con.execute(f"CREATE VIEW t AS SELECT {', '.join(sel)} FROM read_parquet('{glob}')")
+        try:
+            con.execute(f"CREATE VIEW t AS SELECT {', '.join(sel)} FROM read_parquet('{glob}')")
+        except Exception as exc:  # noqa: BLE001 - e.g. no file in the directory (C2 E3)
+            return [{"error": "view: " + str(exc).split("\n")[0][:280]}] * len(sqls)
         out = []
         for s in sqls:
             try:

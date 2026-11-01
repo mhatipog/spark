@@ -11,6 +11,9 @@ A query is a tuple tree. Expressions:
 Queries: ('rows', pred) -> SELECT k FROM t WHERE pred
          ('agg', path, pred|None) -> SELECT count(*), count(x), min(x), max(x)[, sum(x)] FROM t [WHERE]
          ('grouped', pred) -> SELECT k, count(*) FROM t WHERE pred GROUP BY k
+         ('grouped_col', path, pred) -> SELECT x, count(*) FROM t WHERE pred GROUP BY x
+         ('scalar', path, pred) -> SELECT (SELECT count(x) FROM t WHERE pred), (SELECT max(x) FROM t WHERE pred)
+           (the last two from contract C2's templates, added in pair three)
 Python evaluation follows SQL three-valued logic. It returns None (no expected answer) for
 anything whose semantics differ between engines by design: NaN, signed zero in results,
 array membership with NULL elements, collations.
@@ -23,7 +26,8 @@ getcontext().prec = 100  # DECIMAL(38) sums and normalize() must not round
 
 from shapes import is_nan, parse_type, sql_type
 
-NUMERIC = ("int8", "int16", "int32", "int64", "float32", "float64", "decimal")
+NUMERIC = ("int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "decimal")
+INT_BITS = {"int8": 8, "int16": 16, "int32": 32, "int64": 64, "uint8": 8, "uint16": 16, "uint32": 32, "uint64": 64}
 
 
 class NoExpected(Exception):
@@ -103,9 +107,14 @@ def query_sql(q, d, leaf_types):
         return f"SELECT k, count(*) FROM t WHERE {expr_sql(q[1], d)} GROUP BY k"
     path, pred = q[1], q[2]
     c = col_sql(path, d)
+    if q[0] == "grouped_col":
+        return f"SELECT {c}, count(*) FROM t WHERE {expr_sql(pred, d)} GROUP BY {c}"
+    if q[0] == "scalar":
+        w = expr_sql(pred, d)
+        return f"SELECT (SELECT count({c}) FROM t WHERE {w}), (SELECT max({c}) FROM t WHERE {w})"
     aggs = [f"coalesce(count(*), -1)", f"coalesce(count({c}), -1)", f"min({c})", f"max({c})"]
-    if parse_type(leaf_types[path])[0] in NUMERIC:
-        aggs.append(f"sum({c})")
+    if parse_type(leaf_types[path])[0] in NUMERIC and parse_type(leaf_types[path])[0] != "uint64":
+        aggs.append(f"sum({c})")  # no uint64 SUM: its overflow behaviour is engine-specific
     return f"SELECT {', '.join(aggs)} FROM t" + (f" WHERE {expr_sql(pred, d)}" if pred else "")
 
 
@@ -206,8 +215,13 @@ def expected(q, rows, leaf_types):
         keep = [r for r in rows if pred is None or ev(pred, r) is True]
         vals = [get_path(r, path) for r in keep]
         nn = [v for v in vals if v is not None]
+        if q[0] == "grouped_col":
+            from collections import Counter
+            return sorted((norm([v, n]) for v, n in Counter(vals).items()), key=repr)
+        if q[0] == "scalar":
+            return [norm([len(nn), max(nn) if nn else None])]
         out = [len(keep), len(nn), min(nn) if nn else None, max(nn) if nn else None]
-        if ty[0] in NUMERIC:
+        if ty[0] in NUMERIC and ty[0] != "uint64":
             out.append(sum(nn) if nn else None)
         return [norm(out)]
     except NoExpected:
@@ -228,7 +242,11 @@ def norm(v):
         # 12 significant digits: a floating-point SUM depends on the order of its inputs.
         return 0.0 if v == 0 else float(f"{v:.12g}")
     if isinstance(v, Decimal):
-        return str(v.normalize()) if v != 0 else "0"
+        # integral decimals as ints (pair three): UINT_64 reads as DECIMAL(20,0) in Spark and Trino
+        # but as an integer elsewhere; both sides of every comparison go through norm()
+        if v == v.to_integral_value():
+            return int(v)
+        return str(v.normalize())
     if isinstance(v, int):
         return v
     if isinstance(v, datetime.datetime) and v.tzinfo is not None:  # compare instants in UTC
@@ -282,7 +300,7 @@ def neighbours(vals, ty):
     t = parse_type(ty)
     out = []
     for v in sorted(set(v for v in vals if v is not None and not is_nan(v)), key=repr):
-        if t[0] in ("int8", "int16", "int32", "int64"):
+        if t[0] in INT_BITS:
             out += [v - 1, v, v + 1]
         elif t[0] == "ts":
             for delta in (datetime.timedelta(microseconds=-1), datetime.timedelta(0),
@@ -308,8 +326,10 @@ def neighbours(vals, ty):
         out += [math.nan, -0.0, 0.0, math.inf, -math.inf]
     if t[0] == "string":
         out += ["", "￿", "\U0010ffff"]
-    bits = {"int8": 8, "int16": 16, "int32": 32, "int64": 64}.get(t[0])
-    if bits:
+    bits = INT_BITS.get(t[0])
+    if bits and t[0].startswith("uint"):
+        out = [v for v in out if 0 <= v < 2 ** bits]
+    elif bits:
         out = [v for v in out if -2 ** (bits - 1) <= v < 2 ** (bits - 1)]
     if t[0] == "decimal":
         lim = Decimal(10) ** (t[1] - t[2])
@@ -364,6 +384,13 @@ def build_queries(shape, max_lits=12):
         qs.append((f"{name}:agg_none", ("agg", path, ("cmp", "<", ("col", ("k",)), ("lit", -1000, "int32")))))
         qs.append((f"{name}:agg_isnull", ("agg", path, ("isnull", col))))
         qs.append((f"{name}:agg_notnull", ("agg", path, ("notnull", col))))
+        none = ("cmp", "<", ("col", ("k",)), ("lit", -1000, "int32"))  # prunes every file
+        every = ("cmp", ">", ("col", ("k",)), ("lit", -1000, "int32"))
+        qs.append((f"{name}:scalar_none", ("scalar", path, none)))
+        qs.append((f"{name}:scalar_all", ("scalar", path, every)))
+        if ty not in ("float32", "float64"):
+            qs.append((f"{name}:grouped_col_none", ("grouped_col", path, none)))
+            qs.append((f"{name}:grouped_col_all", ("grouped_col", path, every)))
     for path, t in containers(cols).items():
         col, name = ("col", path), ".".join(path)
         qs.append((f"{name}:c_isnull", ("rows", ("isnull", col))))
