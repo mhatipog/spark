@@ -1850,6 +1850,37 @@ class FileBasedDataSourceSuite extends SharedSparkSession
       }
     }
   }
+
+  test("SPARK-XXXXX: filter pushdown with a DATE that the hybrid calendar skips") {
+    // 1582-10-05 to 1582-10-14 do not exist in the hybrid Julian/Gregorian calendar of
+    // java.sql.Date and were pushed down as 1582-10-15, which skipped the file of 1582-10-15.
+    Seq("parquet", "orc").foreach { format =>
+      Seq("false", "true").foreach { java8Api =>
+        withSQLConf(SQLConf.DATETIME_JAVA8API_ENABLED.key -> java8Api) {
+          withTempPath { dir =>
+            val path = dir.getCanonicalPath
+            // One file per date, so that the statistics of a file hold one value.
+            Seq("1582-10-04", "1582-10-15", "1582-10-16").foreach { d =>
+              sql(s"SELECT DATE'$d' AS d").write.mode("append").format(format).save(path)
+            }
+            val df = spark.read.format(format).load(path)
+            Seq(
+              "d > DATE'1582-10-10'" -> Seq("1582-10-15", "1582-10-16"),
+              "d >= DATE'1582-10-14'" -> Seq("1582-10-15", "1582-10-16"),
+              "d < DATE'1582-10-05'" -> Seq("1582-10-04"),
+              "d <> DATE'1582-10-14'" -> Seq("1582-10-04", "1582-10-15", "1582-10-16"),
+              "NOT (d <=> DATE'1582-10-05')" -> Seq("1582-10-04", "1582-10-15", "1582-10-16"),
+              "d IN (DATE'1582-10-10', DATE'1582-10-16')" -> Seq("1582-10-16"),
+              "d NOT IN (DATE'1582-10-10', DATE'1582-10-16')" -> Seq("1582-10-04", "1582-10-15")
+            ).foreach { case (condition, expected) =>
+              checkAnswer(
+                df.where(condition).selectExpr("CAST(d AS STRING)"), expected.map(Row(_)))
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 object TestingUDT {
