@@ -29,9 +29,10 @@ open PRs from them.
 2. G (§2d): a wrong result under default settings, with a verified fix branch.
 3. S (§2e): ORC JIRA; a wrong result in Spark under default settings.
 4. T3 (§2f): Trino GitHub issue.
-5. N1 (§1).
-6. N2 (§2).
-7. The two backport comments (§3, §3b), and optionally §3c.
+5. TD (§2h): Trino GitHub issue; a query failure, not a wrong result.
+6. N1 (§1).
+7. N2 (§2).
+8. The two backport comments (§3, §3b), and optionally §3c.
 
 Before filing each item, run the novelty search again. Several neighbouring bugs were
 filed in October 2026.
@@ -319,14 +320,19 @@ The same happens for EXISTS / IN subqueries over such a projection; try_variant_
 
 ---
 
-## 2d. JIRA: G (filter pushdown with a DATE in the 1582 calendar gap). Found by the interface hunt.
+## 2d. JIRA: G (filter pushdown with a DATE or TIMESTAMP in the 1582 calendar gap). Found by the interface hunt.
+
+*Updated after pair two (2026-11-01): the same conversion shifts TIMESTAMP literals on
+those days, for Parquet. Reproduced on 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master (runs
+41308537516 and 41309355229). One JIRA covers both; the fix branch now handles both.
+ORC TIMESTAMPs before 1582-10-15 are a separate, known issue (SPARK-60152); leave them out.*
 
 - **Project:** Spark · **Issue type:** Bug · **Priority:** Major
 - **Labels:** correctness
 - **Component/s:** SQL
 - **Affects Version/s:** 3.5.0, 4.0.0, 4.1.0, 4.2.1, 5.0.0 (reproduced on 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master 4fecd73)
 - **Summary:**
-  `Filter pushdown with a DATE between 1582-10-05 and 1582-10-14 skips rows of 1582-10-15 in Parquet and ORC`
+  `Filter pushdown with a DATE or TIMESTAMP between 1582-10-05 and 1582-10-14 skips matching rows in Parquet and ORC`
 - **Description:**
 
 ```
@@ -345,12 +351,24 @@ spark.read.parquet("/tmp/gap_dates").where("d <> DATE'1582-10-10'").count()
 {code}
 EXPLAIN shows the shifted literal: PushedFilters: [IsNotNull(d), GreaterThan(d,1582-10-15)]. With spark.sql.parquet.filterPushdown=false both queries are correct. ORC (spark.sql.orc.filterPushdown) behaves the same. With spark.sql.datetime.java8API.enabled=true Parquet is correct, but ORC still is not.
 
+TIMESTAMP literals on those days are shifted the same way when pushed to Parquet (TIMESTAMP_MICROS columns, e.g. files written by other tools, or by Spark with spark.sql.parquet.outputTimestampType=TIMESTAMP_MICROS):
+{code:python}
+spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
+for t in ["1582-10-04 12:00:00", "1582-10-10 12:00:00", "1582-10-15 00:00:00"]:   # one file per value
+    spark.sql(f"SELECT TIMESTAMP'{t}' AS t").coalesce(1).write.mode("append").parquet("/tmp/gap_ts")
+spark.read.parquet("/tmp/gap_ts").where("t = TIMESTAMP'1582-10-10 12:00:00'").count()
+# returns 0; expected 1. PushedFilters: [IsNotNull(t), EqualTo(t,1582-10-15 12:00:00.0)]
+{code}
+Here equality is wrong too, because the stored value is the gap value itself.
+
 h3. Analysis
 * DataSourceStrategy.translateLeafNodeFilter converts the literal with CatalystTypeConverters.convertToScala, which gives a java.sql.Date unless the Java 8 time API is enabled. A day of the gap has no java.sql.Date, so the Filter carries 1582-10-15. ParquetFilters and OrcFilters then push 1582-10-15.
 * OrcFilters.castLiteralValue also converts a LocalDate to java.sql.Date (toJavaDate), because ORC's DATE literal is java.sql.Date. So ORC is affected with the Java 8 API too.
 * Comparisons whose truth changes between the gap date and 1582-10-15 give wrong results: >, <> and NOT <=>. For the others, pushing 1582-10-15 only skips less.
 
-A fix is to not push down a predicate with a DATE literal in the gap: in DataSourceStrategy when the Filter would carry java.sql.Date, and in OrcFilters for LocalDate. A fix branch with a test is available.
+* For TIMESTAMP, convertToScala gives a java.sql.Timestamp (DateTimeUtils.toJavaTimestamp rebases to the hybrid calendar in the JVM time zone), and a time on a gap day becomes the same time ten days later.
+
+A fix is to not push down a predicate with a DATE or TIMESTAMP literal in the gap: in DataSourceStrategy when the Filter would carry java.sql.Date or java.sql.Timestamp (for TIMESTAMP, the gap widened by a day on each side in UTC, to cover every JVM time zone), and in OrcFilters for LocalDate. A fix branch with tests is available.
 
 Found by spec-driven testing of storage interfaces: the same files and predicates with filter pushdown on and off.
 ```
@@ -482,6 +500,50 @@ So it looks like the null mask of the inner struct is not applied to its childre
 **Component(s):** C++, Python
 
 Found by randomized cross-engine testing of storage formats (the same rows read back by several engines).
+````
+
+---
+
+## 2h. Trino GitHub issue: TD (DELTA_BINARY_PACKED TINYINT/SMALLINT fails with "byte overflow"). Found by the interface hunt, both methods.
+
+Found in pair two by the spec-driven shapes (run 41302131902) and, independently, by the
+random baseline (run 41302164093). Confirmed on Trino 476, 480 and 484 (probe run
+41310624280); 458 and 466 did not start with the test catalog, so they are untested.
+The code is unchanged on Trino master. Search the issues for "byte overflow" and
+"DELTA_BINARY_PACKED" once more before filing (nothing on 2026-11-01).
+
+- **Title:** `Parquet: reading a DELTA_BINARY_PACKED TINYINT or SMALLINT column fails with "byte overflow" / "short overflow"`
+- **Body:**
+
+````
+**Version:** Trino 476, 480 and 484 (Docker images), Hive connector, default session properties.
+
+**What happens.** A query that reads a valid Parquet file fails with `GENERIC_INTERNAL_ERROR: byte overflow` (TINYINT) or `short overflow` (SMALLINT). The column is INT32 with logical type INT(8) or INT(16), encoded as DELTA_BINARY_PACKED (for example by parquet-mr with `parquet.writer.version=PARQUET_2_0` and dictionary encoding off, or by pyarrow with `column_encoding`). pyarrow, DuckDB, DataFusion and Spark read the same files correctly.
+
+**Reproduction:**
+```python
+import pyarrow as pa, pyarrow.parquet as pq
+pq.write_table(pa.table({"b": pa.array([-128, 127], pa.int8())}), "/data/t/part-0.parquet",
+               use_dictionary=False, column_encoding={"b": "DELTA_BINARY_PACKED"}, data_page_version="2.0")
+```
+```sql
+CREATE TABLE hive.qp.t (b TINYINT) WITH (external_location = 'local:///data/t', format = 'PARQUET');
+SELECT count(*), sum(b) FROM hive.qp.t;   -- fails: byte overflow; expected 2, -1
+```
+The same with `pa.int16()`, values `[-32768, 32767]` and a SMALLINT column fails with `short overflow`.
+
+**Which data is affected:**
+
+| Values in the page | Result |
+|---|---|
+| `[-128, 127]` or `[127, -128]` | fails |
+| 33 × `127`, then `-128` (the last miniblock holds one delta) | fails |
+| `0, 1, …, 99` | correct |
+| 5,000 and 200,000 uniform random values, several page sizes | correct |
+
+**Cause.** `DeltaPackingUtils.unpackDelta(byte[] …)` calls `unpackEmpty(…, toByteExact(minDelta))` when a miniblock has bit width 0, and the `short[]` variant calls `toShortExact(minDelta)`. In DELTA_BINARY_PACKED the deltas of an INT32 column are int32 values: going from -128 to 127 is a delta of 255, and only the sum wraps back into the logical range. When a miniblock's deltas all equal the block's minimum delta (bit width 0), and that delta is outside the byte or short range, the exact cast throws. The bit-width > 0 path (`unpackByte`, `unpackShort`) has no exact cast, and uniform random data, which almost never produces a bit-width-0 miniblock, reads correctly. A fix is to narrow without the check, e.g. `(byte) minDelta` and `(short) minDelta`, as the other path effectively does.
+
+Found by spec-driven testing of storage interfaces: the same files and predicates across engines, with skipping on and off.
 ````
 
 ---

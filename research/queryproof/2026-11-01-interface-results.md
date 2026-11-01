@@ -1,7 +1,7 @@
 # Interface hunt: results so far (2026-11-01, day 1 of about 21)
 
 Method: `2026-11-01-interface-plan.md`. Specs: `2026-11-01-storage-interface-contracts.md`.
-Drafts for filing: `UPSTREAM_FILING_GUIDE.md` §2d (G), §2e (S), §2f (T3).
+Drafts for filing: `UPSTREAM_FILING_GUIDE.md` §2d (G, with GT), §2e (S), §2f (T3), §2g (A1), §2h (TD).
 
 ## Runs
 
@@ -27,7 +27,7 @@ or PR turns up with full-text search.
 | --- | --- | --- | --- | --- | --- |
 | C1 NULL semantics in statistics | (N4 = SPARK-60362, known) | – | **T3**: ORC `o.i.c IS NULL` drops rows with a NULL middle ROW | – | – |
 | C2 empty or pruned input | (N5 = SPARK-60487, SPARK-59607, known) | – | – | – | – |
-| C3 min/max ordering | **G**: a DATE literal in the 1582 gap is pushed as 1582-10-15 (Parquet and ORC; fix verified) | **S**: predicates in UTF-16 order vs UTF-8 statistics | – | – | – |
+| C3 min/max ordering | **G**: a DATE literal in the 1582 gap is pushed as 1582-10-15 (Parquet and ORC; fix verified); pair two: also TIMESTAMP (GT, Parquet) | **S**: predicates in UTF-16 order vs UTF-8 statistics | **TD** (pair two): DELTA_BINARY_PACKED TINYINT/SMALLINT read fails, found on small-integer bounds | – | – |
 | C4 dictionary and bloom | (SPARK-60322 signed zero, known) | – | (#30544 widened column + bloom, #31905 signed zero, known) | – | (#26491 bloom signed zero, known) |
 
 C3 also had known issues in DuckDB (#25521, NaN excluded from min/max) and DataFusion
@@ -140,6 +140,103 @@ recorded.
   before 11-22: new spec shapes written from C1–C4 only, against new random seeds.
 - The spec generator should combine NULL levels per file the way the random one does,
   without looking at A1's data. The contract already asks for it.
+
+## Pair two (2026-11-01)
+
+**What changed, for both methods alike:**
+
+- new types: TINYINT, SMALLINT and TIMESTAMP;
+- two new writer settings: pyarrow with statistics only on `k` (`pa_stats_k_only`), and
+  parquet-mr with string statistics and the column index truncated to 4 bytes
+  (`mr_parquet_trunc4`);
+- Spark's session time zone is fixed to UTC.
+
+**The two passes:**
+
+- **Spec:** `spec2_shapes.py`, 18 shapes written from the contract items of C1–C4 that the
+  first set covered too coarsely or not at all:
+  - NULL levels combined within one file (the gap that let A1 through);
+  - lists of structs, and structs of lists;
+  - children that are all NULL;
+  - missing statistics;
+  - empty files with nested columns;
+  - timestamps from year 1 to 9999, including the gap;
+  - strings around the truncation limits;
+  - DECIMAL(38,10) bounds;
+  - small-integer bounds and widening.
+- **Random:** seed 3, 32 shapes, 76 queries per shape, so the local check counts match
+  (95,600 against 97,280 on DuckDB and DataFusion).
+
+| Run | Method | Checks | Findings | Engine core-hours | Runner-hours |
+| --- | --- | --- | --- | --- | --- |
+| 41302131902 | spec2 | 446,022 | 528 | 5.22 | 2.48 |
+| 41302164093 | random seed 3 | 449,920 | 190 | 5.01 | 2.29 |
+
+The runner-hours are now close (pair one: 14.5 against 4.9). Pair one's spec figure
+included two failed Trino starts and larger shapes, so the 4× gap noted above was mostly
+not the method.
+
+**Spec2 triage** (528 findings, all classified):
+
+| Cluster | Class |
+| --- | --- |
+| pyarrow ORC `struct<struct>` read wrong with skipping off (Spark and Trino) | A1, known (ours) |
+| ORC Java writer, `IS NULL` on a nested field | N4 = SPARK-60362 |
+| Spark ORC "Seek … outside of the data" on all-NULL row groups | ORC-2226 |
+| ORC TIMESTAMP equality with sub-millisecond digits | SPARK-60326 |
+| Spark-written ORC moves 1582-10-05..14 values by 10 days (skipping off) | SPARK-31423 (Not A Problem) |
+| Trino bloom filter, SMALLINT read as BIGINT | trinodb#30544 |
+| DataFusion INT96 timestamps outside 1677–2262 wrap | datafusion#5655 / #9981 (`coerce_int96` opt-in) |
+| **GT:** Spark Parquet pushdown of a TIMESTAMP literal on a gap day, shifted 10 days | **same root cause as G**, new type |
+| **TD:** Trino fails reading DELTA_BINARY_PACKED TINYINT/SMALLINT ("byte overflow") | **new** (Trino) |
+
+**Random seed 3 triage** (190 findings, all classified): SPARK-59605 (ORC `IN` with NULL),
+ORC-2226, N4, A1, the by-design aggregate-pushdown errors, and **TD**, found independently
+in a TINYINT column of a Spark v2 Parquet file. Nothing else new.
+
+**GT.**
+- Reproduced on 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master, for pyarrow-written and
+  Spark-written TIMESTAMP_MICROS files (runs 41308537516 and 41309355229; 8 wrong
+  queries per line).
+- The Java 8 time API is correct. The V2 reader pushes no timestamp filter.
+- G's fix branch now covers TIMESTAMP too (commit f6e82df: a test plus a UTC window
+  widened by a day). Verification run 41310770200, negative control 41310801761.
+- It joins G's draft (§2d) instead of becoming a new JIRA, and is not counted as a new bug.
+
+**TD.**
+- Trino 476, 480 and 484 fail on `[-128, 127]` and on a page ending in one large jump
+  (probe run 41310624280). A ramp, and 5,000 and 200,000 uniform random values over
+  several page sizes, read correctly.
+- The cause is an exact cast of the block's minimum delta when a miniblock has bit
+  width 0 (`DeltaPackingUtils`, unchanged on master).
+- It is user-facing in the sense of the rule: default Trino settings and any writer that
+  uses DELTA_BINARY_PACKED for small integers. The data trigger is narrow, and a large
+  uniform input does not reach it.
+- Draft: §2h.
+
+**Oracle gap found by TD.**
+- An error in *every* mode was never recorded, because skip and mode checks compare modes
+  with each other and the semantic check needs an "off" result.
+- TD surfaced only because Trino's default mode skipped the bad file for some queries.
+- `run_interface.py` now records `all_error` (every mode fails on a query the generator
+  answers). Pair one and both pair-two passes ran without it, so their counts may miss
+  such failures, for both methods equally.
+
+**Cumulative matched comparison (pairs one and two):**
+
+| Method | Engine core-hours | Checks | New bugs | Per core-hour | Outside Spark | Found only by this method |
+| --- | --- | --- | --- | --- | --- | --- |
+| Spec-driven | 15.47 | 1,401,951 | 4 (G, S, T3, TD) | 0.26 | 3 (S, T3, TD) | 3 (G, S, T3), plus GT |
+| Random, same harness | 15.04 | 1,423,936 | 2 (A1, TD) | 0.13 | 2 (A1, TD) | 1 (A1) |
+
+**Reading for the stop rule:**
+
+- Pair two on its own is a tie: one new bug each, and it is the same bug. Spec2 also
+  extended G to a second type.
+- Overall, spec-driven is ahead two to one per core-hour, and it finds bugs outside Spark,
+  but the counts are small.
+- Pair two's spec shapes found no new C1 bug, although they now combine the NULL levels
+  that A1 needed. Only known bugs (A1, N4, ORC-2226) came back.
 
 ## Earlier cost estimate (superseded by the matched comparison above)
 
