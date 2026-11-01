@@ -515,6 +515,11 @@ case class FilterEstimation(
     val max = statsInterval.max
     val min = statsInterval.min
     val ndv = colStat.distinctCount.get.toDouble
+    if (ndv == 0) {
+      // An earlier filter estimate may reduce distinctCount to zero while retaining min/max.
+      // Do not divide by zero at an interval boundary or convert NaN to BigDecimal.
+      return Some(0.0)
+    }
 
     // determine the overlapping degree between predicate interval and column's interval
     val numericLiteral = EstimationUtils.toDouble(literal.value, literal.dataType)
