@@ -1,1 +1,1 @@
-run 6 (ORC nested pushdown with the fixed probe; aggregate pushdown over no rows)
+run 7 (round 8 lead: COUNT of a NULL partition column under aggregate pushdown)

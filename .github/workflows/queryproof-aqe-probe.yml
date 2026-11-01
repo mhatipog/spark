@@ -1,6 +1,6 @@
 name: "QueryProof bug hunt - AQE one-row probe (default configuration)"
 on:
-  # The marker holds REPEATS.
+  # The marker holds REPEATS [SCRIPT] (default agg_shape_probe.py).
   push:
     branches:
       - research/queryproof-phase-local-independent-20261020
@@ -39,9 +39,9 @@ jobs:
           if [ "${{ matrix.lqs_patch }}" = "spark-57956" ]; then bash tools/queryproof_hunt_20261023/patch_lqs.sh; fi
       - name: Probe
         run: |
-          read REP < tools/queryproof_hunt_20261023/AQE_PROBE_REQUEST
+          read REP SCRIPT < tools/queryproof_hunt_20261023/AQE_PROBE_REQUEST
           nproc
-          python -B tools/queryproof_hunt_20261023/agg_shape_probe.py 2>cbo_min.log || { grep -v ' WARN ' cbo_min.log | tail -40; exit 1; }
+          python -B "tools/queryproof_hunt_20261023/${SCRIPT:-agg_shape_probe.py}" 2>cbo_min.log || { grep -v ' WARN ' cbo_min.log | tail -40; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: aqe-probe-${{ matrix.pyspark }}-${{ matrix.lqs_patch }}
