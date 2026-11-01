@@ -14,6 +14,7 @@ Usage: python trino_delta_probe.py BASE
 import os
 import random
 import sys
+import time
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -23,6 +24,13 @@ base = sys.argv[1]
 rng = random.Random(7)
 SPECS = {"tinyint": (pa.int8(), -128, 127), "smallint": (pa.int16(), -32768, 32767)}
 cur = trino.dbapi.connect(host="localhost", port=8080, user="qp", catalog="hive", schema="qp").cursor()
+for _ in range(60):  # the coordinator reports ready before its worker registers (run 41309246189 on 476)
+    try:
+        cur.execute("SELECT 1")
+        cur.fetchall()
+        break
+    except Exception:  # noqa: BLE001
+        time.sleep(2)
 cur.execute("CREATE SCHEMA IF NOT EXISTS hive.qp")
 cur.fetchall()
 cur.execute("SELECT node_version FROM system.runtime.nodes")
@@ -36,6 +44,8 @@ for sql_type, (pa_type, lo, hi) in SPECS.items():
         "ramp": (list(range(0, 100)), {}),
         "random_page_default": ([rng.randint(lo, hi) for _ in range(5000)], {}),
         "random_page_1000": ([rng.randint(lo, hi) for _ in range(5000)], {"data_page_size": 1000}),
+        # large input, many pages of varied length: does uniform data reach the failing miniblock?
+        "random_200k_pages_256": ([rng.randint(lo, hi) for _ in range(200000)], {"data_page_size": 256}),
     }
     for name, (vals, opts) in layouts.items():
         d = os.path.join(base, "trino_delta", f"{sql_type}_{name}")
@@ -49,7 +59,7 @@ for sql_type, (pa_type, lo, hi) in SPECS.items():
                     f"WITH (external_location = 'local:///qpdata/trino_delta/{sql_type}_{name}', format = 'PARQUET')")
         cur.fetchall()
         for qid, sql, expected in (("count_sum", f"SELECT count(*), sum(b) FROM {table}", [[len(vals), sum(vals)]]),
-                                   ("rows", f"SELECT k, b FROM {table} ORDER BY k", [[i, v] for i, v in enumerate(vals)])):
+                                   ("rows", f"SELECT k, b FROM {table} ORDER BY k", [[i, v] for i, v in enumerate(vals)]) if len(vals) <= 5000 else ("max", f"SELECT max(b) FROM {table}", [[max(vals)]])):
             try:
                 cur.execute(sql)
                 got = [list(r) for r in cur.fetchall()]
