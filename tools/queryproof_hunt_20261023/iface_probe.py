@@ -62,6 +62,37 @@ for fmt in ("parquet", "orc"):
     check("G_java8", fmt, loc, "k INT, d DATE", "SELECT k FROM t WHERE d > DATE '1582-10-14'",
           {"spark.sql.datetime.java8API.enabled": "true"})
 
+# GT (pair two, run 41302131902): TIMESTAMP literals inside the gap, against Parquet files that
+# were not written by Spark (pyarrow, microseconds, UTC), so no rebase metadata is involved
+try:
+    import datetime as _dt
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    U = _dt.timezone.utc
+    ts_rows = [(1, _dt.datetime(1582, 10, 4, 12, tzinfo=U)), (2, _dt.datetime(1582, 10, 10, 12, tzinfo=U)),
+               (3, _dt.datetime(1582, 10, 15, tzinfo=U)), (4, _dt.datetime(1582, 10, 16, tzinfo=U))]
+    loc = os.path.join(base, "ts_pyarrow")
+    os.makedirs(loc)
+    for k, v in ts_rows:
+        pq.write_table(pa.table({"k": pa.array([k], pa.int32()), "t": pa.array([v], pa.timestamp("us", tz="UTC"))}),
+                       os.path.join(loc, f"part-{k}.parquet"))
+    for lit in ("1582-10-05 00:00:00", "1582-10-10 12:00:00", "1582-10-14 23:59:59.999999", "1582-10-15 00:00:00"):
+        for op in (">", ">=", "<", "=", "<>"):
+            check("GT", "parquet", loc, "k INT, t TIMESTAMP", f"SELECT k FROM t WHERE t {op} TIMESTAMP '{lit}'")
+    for tag, extra in (("GT_java8", {"spark.sql.datetime.java8API.enabled": "true"}),
+                       ("GT_v2", {"spark.sql.sources.useV1SourceList": ""})):
+        check(tag, "parquet", loc, "k INT, t TIMESTAMP", "SELECT k FROM t WHERE t = TIMESTAMP '1582-10-10 12:00:00'",
+              extra)
+    # Spark-written TIMESTAMP_MICROS with the proleptic calendar (the 4.x write default)
+    spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
+    loc = write_rows("parquet", "ts_spark", [(k, v) for k, v in ts_rows], "k INT, t TIMESTAMP")
+    spark.conf.unset("spark.sql.parquet.outputTimestampType")
+    check("GT_spark_written", "parquet", loc, "k INT, t TIMESTAMP",
+          "SELECT k FROM t WHERE t = TIMESTAMP '1582-10-10 12:00:00'")
+except ImportError as exc:
+    print("IFACEPROBE GT skipped", exc)
+
 # S: strings above U+FFFF against U+E000..U+FFFF
 strs = [(1, "\U0001f600"), (2, ""), (3, "￿"), (4, "\U00010000"), (5, "z")]
 for fmt in ("orc", "parquet"):

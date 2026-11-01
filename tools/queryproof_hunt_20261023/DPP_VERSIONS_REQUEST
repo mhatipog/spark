@@ -1,1 +1,2 @@
 run 11 (baseline lead bisect: exact shape R002_026 and variants)
+# pair two: GT gap TIMESTAMP literals on Parquet

@@ -7,6 +7,8 @@ Shards split the shapes. Findings:
   skip_diff     a mode's bag differs from the same engine's "off" bag
   mode_error    a mode fails where "off" succeeds (or the reverse: off_error)
   semantic_diff "off" differs from the generator's Python answer (triaged separately)
+  all_error     every mode fails on a query the generator has an answer for (added in pair two,
+                after run 41302131902: such failures were not recorded before)
 Prints QUERYPROOF_CPU interface <engine> <core-seconds> for the bugs-per-CPU-hour accounting.
 """
 import json
@@ -77,6 +79,8 @@ def main(engine_list, base, out_path, shard=0, count=1, spark_tag="4.2.1"):
                     if e is not None and "rows" in base_r and bag(base_r["rows"]) != sorted(
                             json.dumps(x, sort_keys=True, default=str) for x in e):
                         kinds.append(("semantic_diff", "off"))
+                    if e is not None and all("rows" not in rr[i] for rr in res.values()):
+                        kinds.append(("all_error", "off"))
                     for k, m in kinds:
                         counts[f"{k}:{eng.name}"] += 1
                     if kinds:
