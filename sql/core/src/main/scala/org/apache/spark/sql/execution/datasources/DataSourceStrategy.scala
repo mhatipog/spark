@@ -643,13 +643,14 @@ object DataSourceStrategy
 
   // A TIMESTAMP converts to java.sql.Timestamp in the JVM time zone, so the gap is widened by a
   // day on each side (UTC 1582-10-04 to 1582-10-16) to hold its local days in every time zone.
-  private val calendarGapMicros =
-    LocalDate.of(1582, 10, 4).toEpochDay * MICROS_PER_DAY until
-      LocalDate.of(1582, 10, 16).toEpochDay * MICROS_PER_DAY
+  // Bounds, not a NumericRange: a range of microseconds this long has too many elements.
+  private val calendarGapMicrosStart = LocalDate.of(1582, 10, 4).toEpochDay * MICROS_PER_DAY
+  private val calendarGapMicrosEnd = LocalDate.of(1582, 10, 16).toEpochDay * MICROS_PER_DAY
 
   private def isInCalendarGap(value: Any, dataType: DataType): Boolean = (value, dataType) match {
     case (days: Int, DateType) => calendarGapDays.contains(days)
-    case (micros: Long, TimestampType) => calendarGapMicros.contains(micros)
+    case (micros: Long, TimestampType) =>
+      micros >= calendarGapMicrosStart && micros < calendarGapMicrosEnd
     case _ => false
   }
 
