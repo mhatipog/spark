@@ -1,0 +1,145 @@
+name: "QueryProof interface hunt - spec-driven Parquet and ORC files across engines"
+on:
+  # The marker holds: TAG MASTER (yes | no). MASTER=yes also builds apache/spark master and runs Spark there.
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_interface/IFACE_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-interface
+  cancel-in-progress: false
+jobs:
+  released:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_interface
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install engines
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.1 duckdb==2.0.0 datafusion==55.0.0 pyarrow==26.0.0
+      - name: Write files and run every engine on this shard
+        working-directory: tools/queryproof_interface
+        run: |
+          start=$(date +%s)
+          python -B writers.py "$RUNNER_TEMP/iface" "$RUNNER_TEMP/iface/manifest.json"
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          python -B run_interface.py spark,duckdb,datafusion "$RUNNER_TEMP/iface" "$GITHUB_WORKSPACE/out/iface_${{ matrix.shard }}.json" ${{ matrix.shard }} 6 4.2.1 2>run.log \
+            || { grep -v ' WARN ' run.log | tail -n 60; exit 1; }
+          grep -E 'QUERYPROOF_IFACE_(WRITE_FAILED|SPARK_WRITE)' run.log | head -n 20 || true
+          echo "QUERYPROOF_JOB_WALL_SECONDS $(( $(date +%s) - start ))"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iface-released-${{ matrix.shard }}
+          path: out/
+  master:
+    # Builds apache/spark master from source (about 40 minutes), then runs Spark only.
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_interface
+          path: qp
+      - name: Read the request
+        id: req
+        run: |
+          read TAG MASTER < qp/tools/queryproof_interface/IFACE_REQUEST
+          echo "master=$MASTER" >> "$GITHUB_OUTPUT"
+      - name: Free disk space
+        if: steps.req.outputs.master == 'yes'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/checkout@v4
+        if: steps.req.outputs.master == 'yes'
+        with:
+          repository: apache/spark
+          ref: master
+          path: upstream
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        if: steps.req.outputs.master == 'yes'
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        if: steps.req.outputs.master == 'yes'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build Spark master (package, no tests)
+        if: steps.req.outputs.master == 'yes'
+        working-directory: upstream
+        run: |
+          git log -1 --format='SPARK_MASTER_COMMIT %H %cI %s'
+          ./build/sbt -Phive -DskipTests package 2>&1 | tail -n 25
+      - name: Run Spark master over every shape
+        if: steps.req.outputs.master == 'yes'
+        working-directory: qp/tools/queryproof_interface
+        run: |
+          export SPARK_HOME="$GITHUB_WORKSPACE/upstream"
+          export PYTHONPATH="$SPARK_HOME/python:$(ls $SPARK_HOME/python/lib/py4j-*-src.zip)"
+          python -m pip install --disable-pip-version-check --no-cache-dir pyarrow==26.0.0 pandas numpy
+          start=$(date +%s)
+          python -B writers.py "$RUNNER_TEMP/iface" "$RUNNER_TEMP/iface/manifest.json"
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          python -B run_interface.py spark "$RUNNER_TEMP/iface" "$GITHUB_WORKSPACE/out/iface_master.json" 0 1 master 2>run.log \
+            || { grep -v ' WARN ' run.log | tail -n 60; exit 1; }
+          echo "QUERYPROOF_JOB_WALL_SECONDS $(( $(date +%s) - start ))"
+      - uses: actions/upload-artifact@v4
+        if: steps.req.outputs.master == 'yes'
+        with:
+          name: iface-master
+          path: out/
+  merge:
+    needs: [released, master]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: iface-*
+          merge-multiple: true
+          path: out
+      - name: Merge
+        run: |
+          python - <<'PY'
+          import json, glob
+          from collections import Counter
+          fs = [json.load(open(p)) for p in sorted(glob.glob("out/iface_*.json"))]
+          findings = [f for d in fs for f in d["findings"]]
+          totals, cpu = Counter(), Counter()
+          for d in fs:
+              for k, v in d["summary"].items():
+                  if isinstance(v, (int, float)):
+                      totals[k] += v
+              for k, v in d["summary"].get("cpu_seconds", {}).items():
+                  cpu[k] += v
+          by = Counter((f["engine"], k, f["shape"]) for f in findings for k, _ in f["kinds"])
+          print("QUERYPROOF_IFACE_ALL", json.dumps({**dict(totals), "cpu_seconds": dict(cpu)}, sort_keys=True))
+          for (e, k, s), n in sorted(by.items()):
+              print("QUERYPROOF_IFACE_GROUP", e, k, s, n)
+          json.dump({"summary": dict(totals), "cpu_seconds": dict(cpu), "findings": findings},
+                    open("iface.json", "w"), indent=1, default=str)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iface-merged
+          path: iface.json
