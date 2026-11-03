@@ -24,6 +24,12 @@ def read_cols(shape):
     return shape["read_as"] or shape["columns"]
 
 
+def partition_cols(shape):
+    """(name, type) of the hive partition columns, in directory order (pair four)."""
+    types = dict(shape["columns"])
+    return [(n, types[n]) for n in shape.get("partition", [])]
+
+
 # ------------------------------------------------------------------ Spark
 SPARK_OFF = {"spark.sql.parquet.filterPushdown": "false", "spark.sql.orc.filterPushdown": "false",
              "spark.sql.parquet.aggregatePushdown": "false", "spark.sql.orc.aggregatePushdown": "false"}
@@ -60,8 +66,11 @@ class Spark(Engine):
         for k, v in conf.items():
             sp.conf.set(k, v)
         try:
-            sp.read.format(fileset["format"]).schema(spark_ddl(read_cols(shape))).load(fileset["dir"]) \
-                .createOrReplaceTempView("t")
+            try:  # partition discovery can fail at load time (pair four: non-canonical directory names)
+                sp.read.format(fileset["format"]).schema(spark_ddl(read_cols(shape))).load(fileset["dir"]) \
+                    .createOrReplaceTempView("t")
+            except Exception as exc:  # noqa: BLE001 - recorded, not hidden
+                return [{"error": "load: " + str(exc).split("\n")[0][:280]}] * len(sqls)
             return [self._one(s) for s in sqls]
         finally:
             sp.catalog.dropTempView("t")
@@ -86,7 +95,10 @@ class Spark(Engine):
         for idx in shape["files"]:
             rows = [tuple(spark_value(v, t) for v, t in zip(shape["rows"][i], types)) for i in idx]
             df = self.spark.createDataFrame(rows, ddl).coalesce(1)
-            df.write.format(fmt).options(**opts).mode("append").save(d)
+            w = df.write.format(fmt).options(**opts).mode("append")
+            if shape.get("partition"):  # Spark's own directory naming (escaping, NULL and '' as default)
+                w = w.partitionBy(*shape["partition"])
+            w.save(d)
 
 
 def spark_value(v, t):
@@ -117,7 +129,12 @@ class DuckDB(Engine):
         con.execute(f"SET threads={self.cores}")
         for k, v in self.modes[mode].items():
             con.execute(f"SET {k}='{v}'" if not v.isdigit() else f"SET {k}={v}")
-        glob = os.path.join(fileset["dir"], "*.parquet").replace("\\", "/")
+        part = partition_cols(shape)
+        glob = os.path.join(fileset["dir"], "**/*.parquet" if part else "*.parquet").replace("\\", "/")
+        hive = ""
+        if part:
+            types = ", ".join(f"'{n}': '{sql_type(parse_type(ty), 'duckdb')}'" for n, ty in part)
+            hive = f", hive_partitioning = true, hive_types = {{{types}}}"
         have = dict(shape["columns"])
         sel = []
         for n, ty in read_cols(shape):
@@ -128,7 +145,7 @@ class DuckDB(Engine):
             else:
                 sel.append(n)
         try:
-            con.execute(f"CREATE VIEW t AS SELECT {', '.join(sel)} FROM read_parquet('{glob}')")
+            con.execute(f"CREATE VIEW t AS SELECT {', '.join(sel)} FROM read_parquet('{glob}'{hive})")
         except Exception as exc:  # noqa: BLE001 - e.g. no file in the directory (C2 E3)
             return [{"error": "view: " + str(exc).split("\n")[0][:280]}] * len(sqls)
         out = []
@@ -170,6 +187,9 @@ class DataFusion(Engine):
         conf = {"datafusion.execution.target_partitions": str(self.cores), **self.modes[mode]}
         ctx = self.df.SessionContext(self.df.SessionConfig(conf))
         kw = {}
+        part = partition_cols(shape)
+        if part:
+            kw["table_partition_cols"] = [(n, to_arrow(parse_type(ty))) for n, ty in part]
         if shape["read_as"]:
             kw["schema"] = pa.schema([(n, to_arrow(parse_type(ty))) for n, ty in shape["read_as"]])
         out = []
@@ -187,6 +207,9 @@ class DataFusion(Engine):
 
 
 # ------------------------------------------------------------------ Trino (Docker, Hive connector on the local file system)
+# Every session: the Hive connector's default MILLISECONDS precision rejects TIMESTAMP(6) tables
+# (pair three harness gap; added for pair four).
+TRINO_BASE = {"timestamp_precision": "MICROSECONDS"}
 TRINO_OFF = {"parquet_ignore_statistics": "true", "parquet_use_column_index": "false",
              "parquet_use_bloom_filter": "false", "orc_bloom_filters_enabled": "false"}
 
@@ -204,7 +227,7 @@ class Trino(Engine):
 
     def _conn(self, props):
         return self.trino.dbapi.connect(host="localhost", port=8080, user="qp", catalog="hive", schema="qp",
-                                        session_properties={f"hive.{k}": v for k, v in props.items()})
+                                        session_properties={f"hive.{k}": v for k, v in {**TRINO_BASE, **props}.items()})
 
     def _sql(self, sql, props):
         cur = self._conn(props).cursor()
@@ -218,8 +241,12 @@ class Trino(Engine):
         rel = os.path.relpath(os.path.abspath(fileset["dir"]), self.base).replace("\\", "/")
         cols = ", ".join(f'"{n}" {sql_type(parse_type(ty), "trino")}' for n, ty in read_cols(shape))
         fmt = fileset["format"].upper()
+        part = partition_cols(shape)
+        by = (", partitioned_by = ARRAY[" + ", ".join(f"'{n}'" for n, _ in part) + "]") if part else ""
         self._sql(f"CREATE TABLE {name} ({cols}) WITH (external_location = 'local://{self.mount}/{rel}', "
-                  f"format = '{fmt}')", {})
+                  f"format = '{fmt}'{by})", {})
+        if part:  # register the partition directories in the file metastore
+            self._sql(f"CALL system.sync_partition_metadata('qp', '{name}', 'FULL')", {})
         self.tables[fileset["dir"]] = name
         return name
 

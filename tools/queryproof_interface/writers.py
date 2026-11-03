@@ -12,7 +12,7 @@ import pyarrow as pa
 import pyarrow.orc as orc
 import pyarrow.parquet as pq
 
-from shapes import SHAPES, parse_type, to_arrow
+from shapes import SHAPES, data_columns, parse_type, to_arrow
 
 # Writer settings: each forces skipping structures onto a few rows.
 PA_PARQUET = {
@@ -57,14 +57,43 @@ def arrow_value(v, t):
 
 
 def arrow_table(shape, idx):
-    cols = shape["columns"]
+    """The rows `idx` with the data columns only (partition columns live in the directory names)."""
+    names = [n for n, _ in shape["columns"]]
+    cols = data_columns(shape)
     schema = pa.schema([(n, to_arrow(parse_type(ty))) for n, ty in cols])
-    data = {n: [shape["rows"][i][j] for i in idx] for j, (n, _) in enumerate(cols)}
+    data = {n: [shape["rows"][i][names.index(n)] for i in idx] for n, _ in cols}
     return pa.table(data, schema=schema)
 
 
+def partition_groups(shape, fi, idx):
+    """(subdirectory, row indexes) per partition directory of file `fi`, named the way pyarrow's
+    hive partitioning names them (URI-escaped values, NULL as __HIVE_DEFAULT_PARTITION__), or as
+    `dir_names` says. An unpartitioned shape has one group, the directory itself."""
+    part = shape.get("partition", [])
+    if not part:
+        return [("", idx)]
+    import pyarrow.compute as pc
+    import pyarrow.dataset as ds
+    names = [n for n, _ in shape["columns"]]
+    types = {n: to_arrow(parse_type(ty)) for n, ty in shape["columns"] if n in part}
+    fmt = ds.partitioning(pa.schema([(n, types[n]) for n in part]), flavor="hive")
+    groups = {}
+    for i in idx:
+        groups.setdefault(tuple(shape["rows"][i][names.index(n)] for n in part), []).append(i)
+    if not groups:
+        groups[tuple(None for _ in part)] = []
+    out = []
+    for vals, rows in groups.items():
+        expr = None
+        for n, v in zip(part, vals):
+            e = pc.field(n) == pa.scalar(v, types[n])
+            expr = e if expr is None else expr & e
+        out.append((shape["dir_names"].get(fi) or fmt.format(expr)[0], rows))
+    return out
+
+
 def bloom_columns(shape):
-    return [n for n, ty in shape["columns"] if parse_type(ty)[0] not in ("struct", "list", "map")]
+    return [n for n, ty in data_columns(shape) if parse_type(ty)[0] not in ("struct", "list", "map")]
 
 
 def write_pyarrow(base):
@@ -78,28 +107,32 @@ def write_pyarrow(base):
                 opts["bloom_filter_options"] = {c: {"ndv": 64, "fpp": 0.01} for c in bloom_columns(s)}
             d = os.path.join(base, s["id"], wname)
             os.makedirs(d, exist_ok=True)
-            for fi, idx in enumerate(s["files"]):
-                p = os.path.join(d, f"part-{fi:03d}.parquet")
-                if s.get("empty_row_group_first"):  # a 0-row row group, then the rows (C2 E2)
-                    t = arrow_table(s, idx)
-                    wopts = {k: v for k, v in opts.items() if k != "row_group_size"}
-                    with pq.ParquetWriter(p, t.schema, **wopts) as w:
-                        w.write_table(t.slice(0, 0))
-                        w.write_table(t, row_group_size=opts.get("row_group_size"))
-                else:
-                    pq.write_table(arrow_table(s, idx), p, **opts)
+            for fi, idx_all in enumerate(s["files"]):
+                for sub, idx in partition_groups(s, fi, idx_all):
+                    os.makedirs(os.path.join(d, sub), exist_ok=True)
+                    p = os.path.join(d, sub, f"part-{fi:03d}.parquet")
+                    if s.get("empty_row_group_first"):  # a 0-row row group, then the rows (C2 E2)
+                        t = arrow_table(s, idx)
+                        wopts = {k: v for k, v in opts.items() if k != "row_group_size"}
+                        with pq.ParquetWriter(p, t.schema, **wopts) as w:
+                            w.write_table(t.slice(0, 0))
+                            w.write_table(t, row_group_size=opts.get("row_group_size"))
+                    else:
+                        pq.write_table(arrow_table(s, idx), p, **opts)
             out.append(entry(s, wname, "parquet", "pyarrow", d))
         for wname, opts in PA_ORC.items():
             if "orc" not in s.get("formats", ("parquet", "orc")):
                 continue
             opts = dict(opts)
             if opts.pop("bloom", False):
-                opts["bloom_filter_columns"] = [i for i, (n, ty) in enumerate(s["columns"])
+                opts["bloom_filter_columns"] = [i for i, (n, ty) in enumerate(data_columns(s))
                                                 if n in bloom_columns(s)]
             d = os.path.join(base, s["id"], wname)
             os.makedirs(d, exist_ok=True)
-            for fi, idx in enumerate(s["files"]):
-                orc.write_table(arrow_table(s, idx), os.path.join(d, f"part-{fi:03d}.orc"), **opts)
+            for fi, idx_all in enumerate(s["files"]):
+                for sub, idx in partition_groups(s, fi, idx_all):
+                    os.makedirs(os.path.join(d, sub), exist_ok=True)
+                    orc.write_table(arrow_table(s, idx), os.path.join(d, sub, f"part-{fi:03d}.orc"), **opts)
             out.append(entry(s, wname, "orc", "pyarrow", d))
     return out
 
@@ -111,7 +144,8 @@ def entry(shape, wname, fmt, writer, d):
 
 def footer_summary(d, fmt):
     """Per file: row groups (or stripes), rows, and per leaf column null_count/min/max presence."""
-    files = sorted(f for f in os.listdir(d) if f.endswith("." + fmt))
+    files = sorted(os.path.relpath(os.path.join(r, f), d).replace("\\", "/")
+                   for r, _, fs in os.walk(d) for f in fs if f.endswith("." + fmt))
     out = []
     for f in files:
         p = os.path.join(d, f)

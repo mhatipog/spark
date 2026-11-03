@@ -400,6 +400,30 @@ def build_queries(shape, max_lits=12):
                 qs.append((f"{name}:card_eq:{n}", ("rows", ("cmp", "=", ("card", col), ("lit", n, "int32")))))
         if t[0] == "list":
             qs.append((f"{name}:contains", ("rows", ("contains", col, ("lit", 1, "int32")))))
+    # Pair four (C2 E4): predicates that mix a partition column with a data column, so that
+    # partition pruning and file skipping must agree under three-valued logic.
+    part = shape.get("partition", [])
+    data = [p for p in lt if p != ("k",) and p[0] not in part] or [("k",)]
+    for pname in part:
+        pcol, pty = ("col", (pname,)), lt[(pname,)]
+        P = lambda v: ("lit", v, pty)  # noqa: E731
+        c, cty = ("col", data[0]), lt[data[0]]
+        pvals = sorted({r[pname] for r in rows if r[pname] is not None}, key=repr)
+        for i, v in enumerate(pvals):
+            qs.append((f"{pname}:p_or_cnull:{i}", ("rows", ("or", ("cmp", "=", pcol, P(v)), ("isnull", c)))))
+            qs.append((f"{pname}:p_and_cnotnull:{i}", ("rows", ("and", ("cmp", "=", pcol, P(v)), ("notnull", c)))))
+            qs.append((f"{pname}:not_p_or_cnull:{i}", ("rows", ("or", ("not", ("cmp", "=", pcol, P(v))),
+                                                                    ("isnull", c)))))
+            qs.append((f"{pname}:in_with_null:{i}", ("rows", ("in", pcol, [P(v), P(None)]))))
+            qs.append((f"{pname}:not_in:{i}", ("rows", ("not", ("in", pcol, [P(v)])))))
+            qs.append((f"{pname}:agg_eq:{i}", ("agg", data[0], ("cmp", "=", pcol, P(v)))))
+            for other in part:
+                if other != pname:
+                    qs.append((f"{pname}:p_and_other_null:{i}:{other}",
+                               ("rows", ("and", ("cmp", "=", pcol, P(v)), ("isnull", ("col", (other,)))))))
+        qs.append((f"{pname}:agg_pnull", ("agg", data[0], ("isnull", pcol))))
+        if cty not in ("float32", "float64"):
+            qs.append((f"{pname}:grouped_c_by_p", ("grouped_col", (pname,), ("notnull", c))))
     qs.append(("k:grouped_none", ("grouped", ("cmp", "<", ("col", ("k",)), ("lit", -1000, "int32")))))
     qs.append(("k:grouped_all", ("grouped", ("cmp", ">", ("col", ("k",)), ("lit", -1000, "int32")))))
     return qs, lt

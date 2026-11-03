@@ -4,6 +4,9 @@ A shape is the rows of one table, its column types in a small neutral type langu
 the rows split into files (`files`: list of row-index lists; an empty list is a 0-row file).
 Writers then split each file further into row groups, pages and stripes (writers.py).
 `read_as` optionally declares a wider read schema (type widening, contract D2).
+`partition` names top-level atomic columns, last in `columns`, that are written as hive-style
+directories instead of into the files (pair four, contract C2 E4); `dir_names` overrides the
+directory of a file for the pyarrow writers (non-canonical names such as `p=01`).
 
 Type language: int8 int16 int32 int64 uint8 uint16 uint32 uint64 float32 float64 string date ts
                decimal(p,s)   (ts: microsecond timestamps adjusted to UTC; uintN: Parquet UINT_N,
@@ -125,15 +128,26 @@ def has_unsigned(columns):
     return any(re.search(r"uint(8|16|32|64)", ty) for _, ty in columns)
 
 
-def shape(sid, concept, columns, rows, files=None, read_as=None, note="", empty_row_group_first=False):
+def shape(sid, concept, columns, rows, files=None, read_as=None, note="", empty_row_group_first=False,
+          partition=(), dir_names=None):
     """`formats` and `spark_write` follow from the types: unsigned columns are Parquet-only and
     cannot be written by Spark. `empty_row_group_first` makes the pyarrow Parquet writers put a
-    0-row row group before the rows of each file (contract C2 E2)."""
+    0-row row group before the rows of each file (contract C2 E2). A 0-row file of a partitioned
+    shape goes to the directory where every partition value is NULL, unless `dir_names` names one."""
     files = files if files is not None else [list(range(len(rows)))]
     unsigned = has_unsigned(columns)
     return {"id": sid, "concept": concept, "columns": columns, "rows": rows, "files": files,
             "read_as": read_as, "note": note, "formats": ("parquet",) if unsigned else ("parquet", "orc"),
-            "spark_write": not unsigned, "empty_row_group_first": empty_row_group_first}
+            "spark_write": not unsigned, "empty_row_group_first": empty_row_group_first,
+            "partition": list(partition), "dir_names": dict(dir_names or {})}
+
+
+PARTITION_TYPES = ("int32", "int64", "string", "date", "ts", "decimal")
+
+
+def data_columns(shape):
+    """The columns stored in the files (all but the partition columns)."""
+    return [c for c in shape["columns"] if c[0] not in shape.get("partition", ())]
 
 
 ST = "struct<x:int32,y:string>"
@@ -232,6 +246,15 @@ def check_shapes():
             parse_type(c[1])
         for f in s["files"]:
             assert all(0 <= i < len(s["rows"]) for i in f), s["id"]
+        part = s.get("partition", [])
+        if part:
+            assert [n for n, _ in s["columns"][-len(part):]] == part, ("partition columns go last", s["id"])
+            assert all(parse_type(ty)[0] in PARTITION_TYPES for n, ty in s["columns"] if n in part), s["id"]
+            assert not s["read_as"], ("no widened read on a partitioned shape", s["id"])
+            pos = [[n for n, _ in s["columns"]].index(n) for n in part]
+            for fi, f in enumerate(s["files"]):
+                vals = {tuple(s["rows"][i][j] for j in pos) for i in f}
+                assert len(vals) <= 1 or fi not in s["dir_names"], ("one directory per renamed file", s["id"])
 
 
 def is_nan(v):
@@ -250,4 +273,7 @@ elif GEN == "spec2":  # the second contract shape set (pair two)
 elif GEN == "spec3":  # the third contract shape set (pair three)
     import spec3_shapes
     SHAPES = spec3_shapes.SHAPES3
+elif GEN == "spec4":  # the fourth contract shape set (pair four: partitioned layouts)
+    import spec4_shapes
+    SHAPES = spec4_shapes.SHAPES4
 check_shapes()

@@ -191,6 +191,58 @@ Templates:
 Templates: `x = v` and `x IN (…)` with v inside, outside and on each bloom or dictionary
 boundary value; the same under a widened read schema.
 
+## C2 addendum (2026-11-03, before pair four): partitioned layouts (E4)
+
+Added because E4 ("a partition filter that prunes every file") had no harness support in
+pairs one to three. Written before any partitioned run; the spec4 shapes derive from it.
+
+**W.**
+- **Hive-style layout:** one directory level `name=value` per partition column, files below the
+  last level. The value is the string form of the value in the declared type.
+- **Escaping differs by writer:**
+  - Hive and Spark escape a fixed set of characters (`/`, `=`, `%`, `:` and others) as `%XX`.
+  - Arrow URI-encodes everything outside the unreserved set, including spaces and non-ASCII
+    bytes.
+- **NULL** is the directory value `__HIVE_DEFAULT_PARTITION__`. Spark and Hive also write the
+  empty string there; Arrow writes `name=`.
+- **Names need not be canonical.** A hand-made or foreign layout can name the same value
+  differently (`p=01` and `p=1` for INT, `d=1.5` and `d=1.50` for DECIMAL(5,2)).
+- **A partition directory can hold only 0-row files.**
+
+**R.**
+- The reader decodes the escapes, then parses the string into the declared type. A value is
+  equal to another by type, not by string (`01` = `1`), and partition values order by the
+  type's order (for INT, 9 < 10).
+- Partition pruning evaluates the predicate on the parsed values under three-valued logic:
+  - `p <> v`, `NOT (p = v)` and `p NOT IN (…)` keep no row of the NULL partition;
+  - `p IS NULL` keeps all of them;
+  - `p IN (v, NULL)` is never false for `p = v`.
+- Pruning on partitions and skipping inside files must compose: `p = v OR x IS NULL` cannot
+  drop a file of another partition by its partition alone.
+- A metadata-only answer (COUNT, MIN/MAX of a partition column, GROUP BY a partition
+  column) must count NULL partitions, and must not invent a group for a directory whose
+  files hold no rows.
+
+**S.**
+- [P1] An INT partition with values whose string order differs from their numeric order, a
+  NULL partition, and a 0-row file.
+- [P2] STRING partition values that need escaping (`/`, `=`, space, `%`, a literal `%2F`,
+  non-ASCII, the string `null`), and the empty string on its own.
+- [P3] Non-canonical directory names for INT and DECIMAL.
+- [P4] DATE partitions in the calendar gap, before 1970, and at year 1 and year 9999.
+- [P5] Two partition levels with NULL at each level.
+- [P6] BIGINT and DECIMAL partitions at their limits and around zero.
+- [P7] TIMESTAMP partitions with microseconds, before and after 1970.
+- [P8] A partition directory that holds only an empty file.
+- [P9] Nested data columns with NULL parents under a partition column.
+- [P10] A partition column that is NULL in every row.
+
+Templates: every C1–C3 template applied to the partition columns. In addition:
+- mixed predicates: `p = v OR x IS NULL`, `p = v AND x IS NOT NULL`, `NOT (p = v) OR x IS NULL`;
+- `p IN (v, NULL)`, `NOT (p IN (v))`, and `p = v AND q IS NULL` for two levels;
+- `COUNT`, `MIN`, `MAX` and `SUM` of a data column under `p = v` and under `p IS NULL`;
+- `GROUP BY p` over a data predicate.
+
 ---
 
 ## Oracle

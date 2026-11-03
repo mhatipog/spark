@@ -25,6 +25,10 @@ FUZZ_CONSTANTS = {"int8": [0, -1, 1, 127, -128], "int16": [0, -1, 1, 32767, -327
                   "float64": [0.0, -1.0, 1.0], "float32": [0.0, -1.0, 1.0], "string": [""],
                   "date": [datetime.date(1970, 1, 1)], "decimal(9,2)": [Decimal("0.00"), Decimal("-1.00")]}
 NULL_P = 0.15
+# Pair four: hive partition columns, the same harness capability the spec4 shapes use. Values come
+# from value() like any other column (no escaping characters, no non-canonical directory names).
+PARTITION_TYPES = ["int32", "int64", "string", "date", "ts", "decimal(9,2)"]
+PARTITION_P = 0.5
 
 
 def value(rng, ty):
@@ -78,8 +82,16 @@ def make_shapes(seed, n=32):
         rng.shuffle(idx)
         cuts = sorted(rng.sample(range(nrows + 1), min(rng.randint(0, 3), nrows + 1)))
         files = [idx[a:b] for a, b in zip([0] + cuts, cuts + [nrows])]
+        part = []
+        if seed >= 5 and rng.random() < PARTITION_P:  # seeds 1-4 ran before partitions existed
+            for j in range(rng.randint(1, 2)):
+                ty = rng.choice(PARTITION_TYPES)
+                pool = [value(rng, ty) for _ in range(3)]
+                cols.append((f"p{j}", ty))
+                part.append(f"p{j}")
+                rows = [r + (rng.choice(pool),) for r in rows]
         out.append(shape(f"R{seed % 1000:03d}_{i:03d}", "random", cols, rows, files=files,
-                         note="random baseline"))
+                         note="random baseline", partition=part))
         out[-1]["random_seed"] = seed * 1000 + i
     return out
 
