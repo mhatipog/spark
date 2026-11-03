@@ -674,9 +674,9 @@ with the default, Spark's non-vectorized reader fails with filter pushdown on an
 Without `ParquetWriterOptions`, DataFusion writes `datafusion version 55.2.0`, which parses;
 the bare default appears only when options are passed. Low severity: a read failure in
 parquet-java based readers (Spark with the vectorized reader off, Hive, MapReduce), no
-wrong rows. The writer half of the minimal reproduction below was run locally; its Spark step
-is still to be run on CI (the round-C probe does it). Before filing, search datafusion-python
-again for "created_by".
+wrong rows. The minimal reproduction below ran end to end in probe run 41701059378: the
+default `created_by` fails in Spark 4.2.1's non-vectorized reader, the versioned control reads
+5 rows. Before filing, search datafusion-python again for "created_by".
 
 - **Repository:** apache/datafusion-python
 - **Title:** `ParquetWriterOptions default created_by "datafusion-python" has no version; parquet-java then refuses DELTA_BYTE_ARRAY columns (PARQUET-246 guard)`
@@ -704,6 +704,113 @@ spark.read.parquet("/tmp/y1.parquet").where("s IS NOT NULL").count()   # fails (
 **Suggested fix.** Default `created_by` to `f"datafusion-python version {__version__}"`, or to the core default the writer uses without options.
 
 Found by cross-engine testing of Parquet writers and readers (same data written by several writers, read by several engines).
+````
+
+---
+
+## 2m. JIRA: Z1 (Parquet pushdown on a TIMESTAMP_MILLIS column floors a sub-millisecond literal). Found by phase two (round C, transplanted trigger).
+
+Found in phase-two round C (run 41659954483, 129 findings on `pa_ts_millis` files: shapes T2
+and T4, `<` and `<>` with literals such as `.000001`). Wrong rows in every V1 mode with
+pushdown; correct with `spark.sql.parquet.filterPushdown=false`. Transplanted from
+iceberg#18173 (millisecond statistics against microsecond literals). The ORC analogue,
+SPARK-60326, was fixed by SPARK-60436; Parquet is not covered: `ParquetFilters.timestampToMillis`
+on upstream master (checked 2026-11-03) still floors with `DateTimeUtils.microsToMillis`.
+Medium severity: silent row loss with the default configuration on files with
+TIMESTAMP_MILLIS columns (Spark with `outputTimestampType=TIMESTAMP_MILLIS`, pyarrow
+`coerce_timestamps="ms"`, pandas, Hive, Impala). The Spark-only reproduction below ran in
+probe run 41701059378 (Spark 4.2.1, files written by Spark itself): `<` gave 0 rows instead of
+1 and `<>` 1 instead of 2, with the vectorized reader on and off, only with filter pushdown.
+Negative controls in the same run, all correct: pushdown off; the same rows written as
+TIMESTAMP_MICROS; literals on the millisecond grid. Before filing, search JIRA again for
+"TIMESTAMP_MILLIS" and run it on 3.5 and 4.0.
+
+- **Project:** Spark · **Issue type:** Bug · **Priority:** Major
+- **Labels:** correctness
+- **Component/s:** SQL
+- **Affects Version/s:** 4.2.1 (reproduced), master (code unchanged); check 3.5 and 4.0 before filing
+- **Summary:**
+  `Parquet filter pushdown on a TIMESTAMP_MILLIS column truncates a literal with sub-millisecond digits and skips matching rows`
+- **Description:**
+
+```
+When a TIMESTAMP literal has digits below the millisecond and the Parquet column is INT64 TIMESTAMP(MILLIS), ParquetFilters converts the literal with timestampToMillis, which floors it to whole milliseconds. For < and <> the floored literal prunes row groups that hold matching rows. This happens with the default configuration.
+
+h3. Reproduction (PySpark)
+{code:python}
+spark.conf.set("spark.sql.session.timeZone", "UTC")
+spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MILLIS")
+for t in ["1900-01-01 00:00:00", "2020-01-01 00:00:00"]:   # one file per value
+    spark.sql(f"SELECT TIMESTAMP'{t}' AS t").coalesce(1).write.mode("append").parquet("/tmp/z1")
+spark.read.parquet("/tmp/z1").where("t < TIMESTAMP'1900-01-01 00:00:00.000001'").count()
+# returns 0; expected 1. The pushed filter is lt(t, 1900-01-01 00:00:00.000).
+spark.read.parquet("/tmp/z1").where("t <> TIMESTAMP'2020-01-01 00:00:00.000001'").count()
+# returns 1; expected 2.
+{code}
+With spark.sql.parquet.filterPushdown=false both are correct. The same rows written as TIMESTAMP_MICROS, and literals on the millisecond grid (.001), are correct with pushdown.
+
+h3. Analysis
+* ParquetFilters.timestampToMillis floors the microsecond literal (DateTimeUtils.microsToMillis). For lt and notEq that changes the answer for a row group whose minimum (lt) or only value (notEq) equals the floored literal. eq, gt, gtEq and ltEq only get wider, and Spark re-evaluates the filter after the scan, so they are safe.
+* valueCanMakeFilterOn already refuses a sub-microsecond bound for micros and millis columns (for nanosecond reads); it does not refuse a sub-millisecond bound for a millis column.
+* The ORC analogue was SPARK-60326 (fixed by SPARK-60436).
+
+A fix is to refuse a literal that is not on the millisecond grid for ParquetTimestampMillisType in valueCanMakeFilterOn, or to round lt bounds up (lt(ceil)) and drop notEq for such literals.
+
+Found by cross-engine testing of storage interfaces: the same files and predicates with filter pushdown on and off.
+```
+
+---
+
+## 2n. Trino GitHub issue: C2 (a column index whose pages are all NULL, with `null_counts` omitted, fails as "Corrupted column index"). Found by phase two (writer matrix).
+
+Found in rounds A–C (3,362, 2,891 and 684 findings; every chDB file whose nested leaf has an
+all-NULL page). Cause chain from probe run 41701059378: `TupleDomainParquetPredicate.getDomain`
+(ColumnIndex) skips the null pages, passes an empty min/max list to the typed `getDomain`, and
+`SortedRangeSet.Builder.build` throws `IllegalArgumentException: cannot use empty rangeList`,
+which is wrapped as `ParquetCorruptionException`. When `null_counts` is present the earlier
+"all values are NULL" return avoids it, so pyarrow-written files of the same shapes read
+(negative control in the same run). `null_counts` is optional in parquet-format. The code is
+unchanged on master (checked 2026-11-03). trinodb#18985 (2023) reported the same exception and
+was closed without a file; this gives one. Low-medium severity: query failure with the default
+`parquet.use-column-index=true`, no wrong rows. The probe used the matrix's chDB files; the
+standalone chDB snippet below has not been run yet. Run it (and the `use-column-index=false`
+check) on CI before filing.
+
+- **Repository:** trinodb/trino
+- **Title:** `Parquet column index with only null pages and no null_counts fails with "Corrupted column index" (cannot use empty rangeList)`
+- **Body:**
+
+````
+**Version:** 484 (code unchanged on master).
+
+**What happens.** A Parquet column index where every page is a null page (`null_pages = [true]`) and the optional `null_counts` field is absent makes predicate pushdown fail:
+
+```
+Malformed Parquet file. Corrupted statistics for column "x". Corrupted column index: [Boundary order: UNORDERED ...]
+Caused by: java.lang.IllegalArgumentException: cannot use empty rangeList
+    at io.trino.spi.predicate.SortedRangeSet.of(SortedRangeSet.java:267)
+    at io.trino.spi.predicate.SortedRangeSet$Builder.build(SortedRangeSet.java:1468)
+    at io.trino.parquet.predicate.TupleDomainParquetPredicate.getDomain(TupleDomainParquetPredicate.java:379)
+    at io.trino.parquet.predicate.TupleDomainParquetPredicate.getDomain(TupleDomainParquetPredicate.java:614)
+```
+
+ClickHouse (26.9) writes such indexes for nested leaves (for example a `Tuple` child that is NULL on every row of a file). The file is valid: `null_counts` is optional in parquet-format, and parquet-java's `ColumnIndexBuilder` accepts it.
+
+**Reproduction:** a Hive table over a file written by chDB 4.4.0 / ClickHouse 26.9:
+```python
+import chdb
+chdb.query("SELECT 1 AS k, CAST(tuple(NULL), 'Tuple(x Nullable(Int32))') AS st "
+           "INTO OUTFILE '/data/t/part-0.parquet' FORMAT Parquet")
+```
+```sql
+CREATE TABLE hive.s.t (k integer, st row(x integer)) WITH (external_location = 'local:///data/t', format = 'PARQUET');
+SELECT k FROM hive.s.t WHERE st.x IS NULL;   -- fails; expected 1 row
+```
+With `parquet.use-column-index=false` the query returns the row. The same rows written by pyarrow (which writes `null_counts`) work.
+
+**Cause.** In `getDomain(ColumnDescriptor, Type, long, ColumnIndex, ...)`, when `null_counts` is absent `hasNullValue` stays true and the loop skips every null page, so the typed `getDomain` gets empty min/max lists and builds a `SortedRangeSet` with no ranges. A fix is to return `Domain.onlyNull(type)` (or `Domain.all(type)`) when every page is a null page, before the conversion.
+
+Found by cross-engine testing of Parquet writers and readers.
 ````
 
 ---

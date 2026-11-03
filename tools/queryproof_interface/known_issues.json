@@ -1,10 +1,25 @@
 [
 {
+"id": "C2 (ours, phase two): Trino rejects a column index whose pages are all NULL when the optional null_counts is omitted (SortedRangeSet of no ranges); chDB writes such indexes for nested leaves",
+"class": "new",
+"engine": "^trino",
+"writer": "^chdb",
+"error": "Corrupted column index"
+},
+{
 "id": "Z1 (ours, phase two): Spark Parquet pushdown floors a sub-millisecond TIMESTAMP literal to whole milliseconds on a TIMESTAMP_MILLIS column; < and <> prune matching row groups",
 "class": "new",
 "engine": "^spark",
 "writer": "^pa_ts_millis$",
 "kind": "skip_diff"
+},
+{
+"id": "datafusion#22142 (fixed on main by #22906, not in 55): CAST(ms_col AS finer) = literal is rewritten to ms_col = truncated literal; pre-1970 rounds toward zero",
+"class": "known",
+"engine": "^datafusion",
+"writer": "^pa_(ts_millis|int96_legacy_stats)$",
+"shape": "^T[24]_",
+"kind": "semantic_diff|skip_diff"
 },
 {
 "id": "arrow#51626 (open; fix PR #51627): dictionary strings under a NULL struct, null_count misses the NULL rows and unused dictionary values reach min/max",
