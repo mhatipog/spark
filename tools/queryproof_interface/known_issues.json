@@ -1,5 +1,64 @@
 [
 {
+"id": "Z1 (ours, phase two): Spark Parquet pushdown floors a sub-millisecond TIMESTAMP literal to whole milliseconds on a TIMESTAMP_MILLIS column; < and <> prune matching row groups",
+"class": "new",
+"engine": "^spark",
+"writer": "^pa_ts_millis$",
+"kind": "skip_diff"
+},
+{
+"id": "arrow#51626 (open; fix PR #51627): dictionary strings under a NULL struct, null_count misses the NULL rows and unused dictionary values reach min/max",
+"class": "known",
+"writer": "^pa_dict_input"
+},
+{
+"id": "datafusion#24951 (fixed on main, not in 55): a partitioned write puts a NULL key under p=0 or s=, so every reader sees 0 or ''",
+"class": "known",
+"writer": "^df_hive$",
+"kind": "semantic_diff|skip_diff"
+},
+{
+"id": "datafusion#26492: COPY ... PARTITIONED BY writes '=' unescaped (s=x=y); DuckDB and Polars cannot read the dataset",
+"class": "known",
+"writer": "^df_hive$",
+"error": "Hive partition mismatch|height of column"
+},
+{
+"id": "datafusion#17420 (fix #25212): a Hive dataset whose files also hold the partition column fails with a duplicate field",
+"class": "known",
+"engine": "^datafusion",
+"writer": "^polars_hive$",
+"error": "duplicate qualified field name"
+},
+{
+"id": "datafusion#18083: a NULL partition directory is read as the placeholder string, so IS NULL misses it",
+"class": "known",
+"engine": "^datafusion",
+"kind": "semantic_diff",
+"shape": "^(P|T1_)",
+"sql": "IS NULL|IS NOT DISTINCT FROM CAST\\(NULL"
+},
+{
+"id": "datafusion#18083: a NULL partition directory is read as the placeholder string (T1 holds one NULL partition)",
+"class": "known",
+"engine": "^datafusion",
+"kind": "semantic_diff",
+"shape": "^T1_"
+},
+{
+"id": "polars#22435 (open): lossy time-unit supertype; a microsecond literal against a millisecond column is truncated to milliseconds",
+"class": "known",
+"engine": "^polars",
+"writer": "^pa_ts_millis$",
+"kind": "semantic_diff|skip_diff"
+},
+{
+"id": "ORC-645 (open since 2020): a timestamp between -1 and 0 seconds from the epoch reads back one second late",
+"class": "known",
+"writer": "^orcj",
+"shape": "^T4_"
+},
+{
 "id": "datafusion#18083",
 "class": "known",
 "engine": "^datafusion",
@@ -82,7 +141,7 @@
 "id": "trinodb#31908/#27274/#30544 (UINT_32)",
 "class": "known",
 "engine": "^trino",
-"shape": "^(R001_002|R001_017|R001_018|R001_021|R001_029|R002_006|R002_007|R002_014|R002_022|R002_025|R002_028|R003_015|R003_019|R003_029|R004_013|R004_029|R005_002|R005_021|R005_027|R007_024)$"
+"shape": "^(R001_002|R001_017|R001_018|R001_021|R001_029|R002_006|R002_007|R002_014|R002_022|R002_025|R002_028|R003_015|R003_019|R003_029|R004_013|R004_029|R005_002|R005_021|R005_027|R007_024|R010_026|R011_030)$"
 },
 {
 "id": "trinodb#31908/#27274/#30544 (UINT_32)",
@@ -95,7 +154,7 @@
 "class": "known",
 "engine": "^trino",
 "kind": "skip_diff",
-"shape": "^(D2_|D6)"
+"shape": "^(T6_|D2_|D6)"
 },
 {
 "id": "duckdb#25521 (NaN under statistics)",
@@ -452,5 +511,32 @@
 "kind": "semantic_diff",
 "shape": "^(R007_031|R008_017)$",
 "sql": "AS (REAL|FLOAT)\\)|float32"
+},
+{
+"id": "harness (O4): pa_int96_legacy_stats fabricates INT96 statistics with min == max; Trino trusts min == max by design (PARQUET-1026)",
+"class": "harness",
+"engine": "^trino",
+"writer": "^pa_int96_legacy_stats$",
+"kind": "skip_diff"
+},
+{
+"id": "feature gap: BYTE_STREAM_SPLIT on INT32/INT64 (Trino) and FIXED_LEN_BYTE_ARRAY (DuckDB), added in parquet-format 2.11",
+"class": "by_design",
+"writer": "^pa_delta_bss$",
+"error": "BYTE_STREAM_SPLIT"
+},
+{
+"id": "harness: Spark SQL reads backslash escapes in string literals; the template does not double the backslash",
+"class": "harness",
+"engine": "^spark",
+"shape": "^T1_",
+"sql": "\\\\"
+},
+{
+"id": "interop (unconfirmed, Linux only): Polars leaves '?' and '#' unescaped in Hive directory names and DuckDB does not parse s=q?r",
+"class": "interop",
+"engine": "^duckdb",
+"writer": "^polars_hive$",
+"error": "Hive partition mismatch"
 }
 ]

@@ -60,7 +60,7 @@ def y1_min():
     t = pa.table({"k": pa.array(range(5), pa.int32()), "s": pa.array(["x" * 80 + str(i) for i in range(5)])})
     mini = {}
     for tag, cb in (("minimal default", None), ("minimal control", f"datafusion-python version {datafusion.__version__}")):
-        d = os.path.join(base, "_y1_" + tag.replace(" ", "_"))
+        d = os.path.join(base, "y1_" + tag.replace(" ", "_"))
         shutil.rmtree(d, ignore_errors=True)
         opts = dict(writer_version="2.0", dictionary_enabled=False, **({"created_by": cb} if cb else {}))
         datafusion.SessionContext().from_arrow(t).write_parquet(d, ParquetWriterOptions(**opts))
@@ -142,7 +142,43 @@ def c1_trino():
                 print("C1T", e["shape"], e["writer_set"], "error", str(exc)[:200])
 
 
-for name, fn in (("Y1", y1), ("Y1min", y1_min), ("C1", c1), ("C1T", c1_trino)):
+def z1():
+    """Z1: Spark's Parquet pushdown floors a sub-millisecond TIMESTAMP literal to whole milliseconds
+    for a TIMESTAMP_MILLIS column (ParquetFilters.timestampToMillis), so `<` and `<>` can prune a row
+    group that holds a matching row. Spark writes the files itself; controls: the same rows written
+    as TIMESTAMP_MICROS, and literals on the millisecond grid."""
+    import pyspark
+    from pyspark.sql import SparkSession
+    spark = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false")
+             .config("spark.sql.session.timeZone", "UTC").getOrCreate())
+    print("Z1 spark", pyspark.__version__)
+    df = spark.sql("SELECT * FROM VALUES (1, TIMESTAMP'1900-01-01 00:00:00'), (2, TIMESTAMP'2020-01-01 00:00:00') AS v(k, t)")
+    dirs = {}
+    for unit in ("TIMESTAMP_MILLIS", "TIMESTAMP_MICROS"):
+        d = os.path.join(base, "z1_" + unit.lower())
+        spark.conf.set("spark.sql.parquet.outputTimestampType", unit)
+        for i, k in enumerate((1, 2)):  # one row per file, so min == max
+            df.where(f"k = {k}").coalesce(1).write.mode("append" if i else "overwrite").parquet(d)
+        dirs[unit] = d
+    preds = [("<", "t < TIMESTAMP'1900-01-01 00:00:00.000001'", 1), ("<>", "t <> TIMESTAMP'2020-01-01 00:00:00.000001'", 2),
+             ("< ms grid", "t < TIMESTAMP'1900-01-01 00:00:00.001'", 1), ("<> ms grid", "t <> TIMESTAMP'2020-01-01 00:00:00.001'", 2)]
+    for unit, d in dirs.items():
+        for vec in ("true", "false"):
+            for push in ("true", "false"):
+                spark.conf.set("spark.sql.parquet.enableVectorizedReader", vec)
+                spark.conf.set("spark.sql.parquet.filterPushdown", push)
+                for tag, p, want in preds:
+                    try:
+                        n = spark.read.parquet(d).where(p).count()
+                        res = f"{n} rows (expected {want})" + ("" if n == want else " WRONG")
+                    except Exception as exc:  # noqa: BLE001
+                        res = "error: " + str(exc).split("\n")[0][:160]
+                    print(f"Z1 {unit} vectorized={vec} filterPushdown={push} {tag}: {res}")
+    spark.stop()
+
+
+for name, fn in (("Z1", z1), ("Y1min", y1_min), ("C1T", c1_trino)) if os.environ.get("QP_PROBE_ONLY") else \
+        (("Y1", y1), ("Y1min", y1_min), ("C1", c1), ("C1T", c1_trino), ("Z1", z1)):
     try:
         fn()
     except Exception as exc:  # noqa: BLE001

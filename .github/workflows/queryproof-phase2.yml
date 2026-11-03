@@ -88,10 +88,13 @@ jobs:
           grep -c QUERYPROOF_IFACE_WRITE_FAILED write.log || true
           mkdir -p "$GITHUB_WORKSPACE/out"
           status=0
-          python -B run_interface.py "$ENGINES" "$RUNNER_TEMP/iface" "$GITHUB_WORKSPACE/out/iface_${TAGG}_${SHARD}.json" "$SHARD" "$SHARDS" 4.2.1 2>run.log || status=$?
-          if [ "$status" != 0 ]; then grep -v ' WARN ' run.log | tail -n 60; fi
-          grep -E 'QUERYPROOF_IFACE_(WRITE_FAILED|SPARK_WRITE)' run.log write.log | head -n 40 || true
-          python -B parquet_audit.py --shard "$RUNNER_TEMP/iface" "$SHARD" "$SHARDS" "$GITHUB_WORKSPACE/out/audit_${TAGG}_${SHARD}.json"
+          # QP_PROBE_ONLY=1 (line 6): write the files and run the probe only, no matrix and no audit
+          if [ -z "${QP_PROBE_ONLY:-}" ]; then
+            python -B run_interface.py "$ENGINES" "$RUNNER_TEMP/iface" "$GITHUB_WORKSPACE/out/iface_${TAGG}_${SHARD}.json" "$SHARD" "$SHARDS" 4.2.1 2>run.log || status=$?
+            if [ "$status" != 0 ]; then grep -v ' WARN ' run.log | tail -n 60; fi
+            grep -E 'QUERYPROOF_IFACE_(WRITE_FAILED|SPARK_WRITE)' run.log write.log | head -n 40 || true
+            python -B parquet_audit.py --shard "$RUNNER_TEMP/iface" "$SHARD" "$SHARDS" "$GITHUB_WORKSPACE/out/audit_${TAGG}_${SHARD}.json"
+          fi
           # triage switches (line 6): QP_KEEP_DATA=<regex over shape/writer dirs> keeps those synthetic
           # files in the artifact; QP_PROBE=<script> runs a probe over the written files
           if [ -n "${QP_KEEP_DATA:-}" ] && [ "$SHARD" = 0 ]; then
