@@ -1,7 +1,7 @@
 # Interface hunt: results so far (2026-11-01, day 1 of about 21)
 
 Method: `2026-11-01-interface-plan.md`. Specs: `2026-11-01-storage-interface-contracts.md`.
-Drafts for filing: `UPSTREAM_FILING_GUIDE.md` §2d (G, with GT), §2e (S), §2f (T3), §2g (A1), §2h (TD).
+Drafts for filing: `UPSTREAM_FILING_GUIDE.md` §2d (G, with GT), §2e (S), §2f (T3), §2g (A1), §2h (TD), §2i (X1), §2j (X2).
 
 ## Runs
 
@@ -331,6 +331,116 @@ in a TINYINT column of a Spark v2 Parquet file. Nothing else new.
 - Spec-driven yield has fallen pair by pair: three new bugs, then one, then none.
 - Spec3's best region, Trino's unsigned reads, had already been reported by others. The
   shapes were good, but this ground had just been searched.
+
+## Pair four (2026-11-03): partitioned layouts
+
+**Design.**
+- The C2 addendum in the contracts document, written before any partitioned run, covers
+  E4 and items P1–P10:
+  - directory names and their escaping by writer;
+  - NULL and empty-string partitions;
+  - non-canonical names;
+  - three-valued pruning;
+  - metadata-only answers.
+- **Spec:** `spec4_shapes.py`, 12 shapes derived from it.
+- **Shared harness changes:**
+  - hive partition columns in `shapes.py` and `writers.py` (pyarrow's own directory naming for
+    the pyarrow writers, `partitionBy` for Spark's);
+  - each engine's partition reader;
+  - mixed partition/data templates for spec shapes;
+  - `timestamp_precision = MICROSECONDS` on every Trino session (the pair-three gap).
+- **Random:** seed 5, where half the shapes get 1–2 partition columns of random types,
+  with values drawn from `value()`: no escaping characters and no non-canonical names.
+  Local check counts match (97,280 against 98,320 on DuckDB and DataFusion, at 76
+  queries per shape).
+
+| Run | Method | Checks | Findings | Engine core-hours | Runner-hours |
+| --- | --- | --- | --- | --- | --- |
+| 41612496661 | spec4 | 456,930 | 22,228 | 4.22 | 1.96 |
+| 41612584490 | random seed 5 | 395,200 | 11,365 | 3.68 | 1.73 |
+
+**Result: one new bug each, both in DataFusion.** X1 came from spec4, X2 from random.
+
+**X1 (DataFusion 55, default settings; draft §2i).**
+- **Symptom:** an equality filter on a partition column lists only the directory whose name
+  equals the literal's display string. Other valid spellings of the same value are
+  skipped, while range predicates, `IN` and `p + 0 = v` find them.
+- **Triggers:**
+  - TIMESTAMP partitions written by pyarrow's own `write_dataset` (`t = TIMESTAMP '…'` returns
+    no rows);
+  - Hive-style decimal names (`d=1.5` for DECIMAL(5,2));
+  - `p=01` next to `p=1`.
+- **Cause:** `evaluate_partition_prefix`, unchanged on main. Its comment intends to avoid
+  exactly this, but it guards only against percent-encoded spellings (#23226).
+- **Found by:** spec shapes P3, P3b and P7.
+
+**X2 (DataFusion 55, default `collect_statistics = true`; draft §2j).**
+- **Symptom:** MIN/MAX of a partition column is answered from per-file statistics that set
+  min = max = the partition value even for a file with 0 rows. One row in `q=1` and an
+  empty file in `q=7` give `max(q) = 7`.
+- **Cause:** `PartitionedFile::with_statistics`, unchanged on main.
+- **Found by:** random shape R005_018. There the empty file sat in the NULL partition, so the
+  wrong value was the `__HIVE_DEFAULT_PARTITION__` string, and the open fix for #18083
+  would also have hidden that instance. The minimal case without a NULL partition was
+  reduced by hand.
+- **Credit:** random. The spec shape built for this item (P8) was masked, because its
+  `p=__HIVE_DEFAULT_PARTITION__` empty file makes every DataFusion query fail on #18083.
+
+**Spec4 triage** (22,228 findings, 22,467 finding kinds):
+
+| Class | Kinds | Status |
+| --- | --- | --- |
+| DataFusion reads `__HIVE_DEFAULT_PARTITION__` as a string: INT/DATE/DECIMAL/TIMESTAMP casts fail, and `IS NULL` misses it | 14,569 | known: apache/datafusion#18083, fix PR #26310 open |
+| **X1** equality prefix listing | 142 | **new** (DataFusion) |
+| Spark vectorized reader: decimal partition `d=1.5` read as 0.15, `d=-.5` as −0.05 (row reader correct) | 228 | known: SPARK-60797 (filed 2026-11-01, fixed on master 2026-11-02; 3.5.9–4.2.1 affected) |
+| Spark and Trino decode pyarrow's `%C3%A9` byte by byte (Hive `unescapePathName`), so `é` reads as `Ã©` | 182 | interop mismatch between Arrow's "hive" flavor and Hive's escaping; not counted |
+| Spark-written ORC nested `IS NULL` under a partition | 98 | N4 = SPARK-60362 |
+| Spark and Hive write `''` as the NULL partition; Spark rejects `s=` | 1,449 | by design |
+| Trino has no TIMESTAMP partition columns | 2,200 | by design |
+| SUM overflow at the BIGINT limits (Spark ANSI, Trino) | 123 | by design |
+| Trino: table name reused after a failed partition sync (`TABLE_ALREADY_EXISTS` cascade) | 3,476 | **harness gap**, see below |
+
+**Random seed 5 triage** (11,365 findings, 11,724 finding kinds):
+
+| Class | Kinds | Status |
+| --- | --- | --- |
+| DataFusion `__HIVE_DEFAULT_PARTITION__` | 5,211 | datafusion#18083 |
+| **X2** statistics MIN/MAX from a 0-row file's directory | 20 | **new** (DataFusion) |
+| Spark ORC `IN` with NULL, NPE | 321 | SPARK-59605 |
+| Spark aggregate pushdown COUNT over 0-row files | 27 | N5 = SPARK-60487 |
+| Trino DELTA_BINARY_PACKED "byte overflow" | 23 | TD (ours, found again) |
+| ORC nested `IS NULL` (Spark, Trino) | 81 | N4 / A1 |
+| Trino bloom filter on UINT_32 read as BIGINT | 4 | trinodb#30544 |
+| Spark rejects `p=`; `''` written as NULL | 998 | by design |
+| Trino: TIMESTAMP partitions, ORC timestamp instant as TIMESTAMP(6) | 1,260 | by design |
+| "Number of nulls not set" under aggregate pushdown | 60 | by design |
+| Trino table-name cascade | 3,719 | **harness gap** |
+
+**Harness gap, recorded and not rerun.**
+- When Trino's `sync_partition_metadata` rejected a directory (`s=`, an empty string), the
+  table had already been created but its name was not recorded. Every later table in that
+  shard then failed with `TABLE_ALREADY_EXISTS`.
+- Trino therefore lost the later shapes of the affected shards: in spec4 P9 and part of
+  P2b; in random seed 5 five shapes.
+- Both methods lost coverage, and both lost it because of an empty-string partition.
+- `engines.py` now takes a fresh name per attempt, for the next run.
+
+**Cumulative matched comparison (pairs one to four):**
+
+| Method | Engine core-hours | New bugs | Per core-hour | Outside Spark | Found only by this method |
+| --- | --- | --- | --- | --- | --- |
+| Spec-driven | 22.69 | 5 (G, S, T3, TD, X1) | 0.22 | 4 (S, T3, TD, X1) | 4 (G, S, T3, X1), plus GT |
+| Random, same harness | 22.04 | 3 (A1, TD, X2) | 0.14 | 3 (A1, TD, X2) | 2 (A1, X2) |
+
+**Reading for the stop rule:**
+- Spec-driven leads 5 to 3, by two bugs: more than a tie within one bug, though the
+  counts are small.
+- It finds bugs outside Spark (four of its five), so both conditions of the stop rule now
+  hold on the counts.
+- Per pair, the yields are spec 3, 1, 0, 1 against random 1, 1, 0, 1. Since pair one, the
+  two methods have been level, one bug each in pairs two and four. The whole lead comes
+  from pair one.
+- X1 and X2 are not yet confirmed by maintainers.
 
 ## Earlier cost estimate (superseded by the matched comparison above)
 

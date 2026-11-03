@@ -237,7 +237,10 @@ class Trino(Engine):
     def _table(self, fileset, shape):
         if fileset["dir"] in self.tables:
             return self.tables[fileset["dir"]]
-        name = f"t{len(self.tables)}"
+        # A fresh name per attempt (after pair four): a CREATE that succeeded before a failing
+        # partition sync left its name taken, and every later table of the shard collided with it.
+        self.attempts = getattr(self, "attempts", 0) + 1
+        name = f"t{self.attempts}"
         rel = os.path.relpath(os.path.abspath(fileset["dir"]), self.base).replace("\\", "/")
         cols = ", ".join(f'"{n}" {sql_type(parse_type(ty), "trino")}' for n, ty in read_cols(shape))
         fmt = fileset["format"].upper()

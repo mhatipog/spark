@@ -30,9 +30,11 @@ open PRs from them.
 3. S (§2e): ORC JIRA; a wrong result in Spark under default settings.
 4. T3 (§2f): Trino GitHub issue.
 5. TD (§2h): Trino GitHub issue; a query failure, not a wrong result.
-6. N1 (§1).
-7. N2 (§2).
-8. The two backport comments (§3, §3b), and optionally §3c.
+6. X1 (§2i): DataFusion GitHub issue; a wrong result under default settings with pyarrow-written TIMESTAMP partitions.
+7. X2 (§2j): DataFusion GitHub issue; a wrong MIN/MAX under default settings.
+8. N1 (§1).
+9. N2 (§2).
+10. The two backport comments (§3, §3b), and optionally §3c.
 
 Before filing each item, run the novelty search again. Several neighbouring bugs were
 filed in October 2026.
@@ -544,6 +546,86 @@ The same with `pa.int16()`, values `[-32768, 32767]` and a SMALLINT column fails
 **Cause.** `DeltaPackingUtils.unpackDelta(byte[] …)` calls `unpackEmpty(…, toByteExact(minDelta))` when a miniblock has bit width 0, and the `short[]` variant calls `toShortExact(minDelta)`. In DELTA_BINARY_PACKED the deltas of an INT32 column are int32 values: going from -128 to 127 is a delta of 255, and only the sum wraps back into the logical range. When a miniblock's deltas all equal the block's minimum delta (bit width 0), and that delta is outside the byte or short range, the exact cast throws. The bit-width > 0 path (`unpackByte`, `unpackShort`) has no exact cast, and uniform random data, which almost never produces a bit-width-0 miniblock, reads correctly. A fix is to narrow without the check, e.g. `(byte) minDelta` and `(short) minDelta`, as the other path effectively does.
 
 Found by spec-driven testing of storage interfaces: the same files and predicates across engines, with skipping on and off.
+````
+
+## 2i. DataFusion GitHub issue: X1 (equality on a partition column misses directories with another spelling of the value). Found by the interface hunt.
+
+Found in pair four by the spec4 shapes (run 41612496661). Reproduced with
+`datafusion==55.0.0`, the latest on PyPI. `evaluate_partition_prefix` on main (checked
+2026-11-03) still builds the prefix from the literal's display string. Before filing,
+search apache/datafusion again for "partition prefix" and "evaluate_partition_prefix",
+and check that PR #26310 has not changed it.
+
+- **Title:** `ListingTable: equality filter on a partition column returns no rows when the directory spells the value differently (prefix listing)`
+- **Body:**
+
+````
+**Version:** DataFusion 55.0.0 (Python bindings), default configuration. The code path is unchanged on main.
+
+**What happens.** A query with `partition_col = literal` returns rows only from the directory whose name equals the literal's display string. Directories that hold the same value in another valid spelling are skipped, although the same query with a range predicate, `IN`, or `partition_col + 0 = literal` returns them. Writers in common use produce such spellings:
+
+| Partition type | Directory written by | Directory name | `col = value` |
+|---|---|---|---|
+| TIMESTAMP | pyarrow `write_dataset(..., partitioning_flavor="hive")` | `t=2020-01-02%2003%3A04%3A05.000000Z` | no rows |
+| DECIMAL(5,2) | Hive-style name without trailing zeros | `d=1.5` | no rows |
+| INT | a name with a leading zero | `p=01` | no rows (only `p=1` is listed) |
+
+**Reproduction:**
+```python
+import datetime as dt, os, pyarrow as pa, pyarrow.dataset as ds, pyarrow.parquet as pq, datafusion
+t = pa.table({"k": pa.array([1, 2], pa.int32()),
+              "t": pa.array([dt.datetime(2020, 1, 2, 3, 4, 5, tzinfo=dt.timezone.utc)] * 2, pa.timestamp("us", tz="UTC"))})
+ds.write_dataset(t, "/tmp/x1/ts", format="parquet", partitioning=["t"], partitioning_flavor="hive")
+ctx = datafusion.SessionContext()
+ctx.register_parquet("t", "/tmp/x1/ts", table_partition_cols=[("t", pa.timestamp("us", tz="UTC"))], file_extension=".parquet")
+ctx.sql("SELECT k FROM t WHERE t = TIMESTAMP '2020-01-02 03:04:05+00:00'").show()   # no rows; expected 1 and 2
+ctx.sql("SELECT k FROM t WHERE t >= TIMESTAMP '2020-01-02 03:04:05+00:00'").show()  # 1 and 2
+```
+INT, with two spellings of 1:
+```python
+for d, k in (("p=01", 1), ("p=1", 2)):
+    os.makedirs(f"/tmp/x1/a/{d}"); pq.write_table(pa.table({"k": pa.array([k], pa.int32())}), f"/tmp/x1/a/{d}/f.parquet")
+ctx.register_parquet("a", "/tmp/x1/a", table_partition_cols=[("p", pa.int32())], file_extension=".parquet")
+ctx.sql("SELECT k FROM a WHERE p = 1").show()        # only 2; expected 1 and 2
+ctx.sql("SELECT k FROM a WHERE p IN (1, 5)").show()  # 1 and 2
+```
+
+**Cause.** `evaluate_partition_prefix` (catalog-listing `helpers.rs`) turns an equality filter into the listing prefix `{col}={value}`, where `value` is the literal's `ScalarValue::to_string()`. Only that one spelling is listed. Its own comment says prefix pruning must not list "only one spelling" and skip valid rows, but today it guards only against percent-encoded spellings (#23226). It does not guard against other spellings of the same typed value. A possible fix is to use the prefix only for string (and dictionary-string) partition columns, whose value is its spelling. For other types, the prefix could be skipped, or only kept when the value round-trips through the column's canonical form. The files would then be filtered after parsing, as range predicates already are.
+
+Found by spec-driven testing of storage interfaces: the same files and predicates across engines, with skipping on and off.
+````
+
+## 2j. DataFusion GitHub issue: X2 (MIN/MAX of a partition column counts directories that hold only 0-row files). Found by the random baseline.
+
+Found in pair four by the random baseline (run 41612584490, shape R005_018). There the
+0-row file sat in the NULL partition, so the value it contributed was
+`__HIVE_DEFAULT_PARTITION__` (#18083). The minimal case below has no NULL partition, so
+the fix PR for #18083 (#26310) does not cover it. Reproduced with `datafusion==55.0.0`.
+`PartitionedFile::with_statistics` on main (checked 2026-11-03) is unchanged. Before
+filing, search again for "with_statistics" and for "empty file" with "partition".
+
+- **Title:** `MIN/MAX of a partition column is answered from statistics that include files with 0 rows`
+- **Body:**
+
+````
+**Version:** DataFusion 55.0.0 (Python bindings), default configuration (`datafusion.execution.collect_statistics = true`). The code is unchanged on main.
+
+**What happens.** `SELECT max(q) FROM t` over a Hive-partitioned table returns the partition value of a directory whose only file has 0 rows. With `collect_statistics = false`, or with `GROUP BY q`, the answer is correct.
+
+**Reproduction:**
+```python
+import os, pyarrow as pa, pyarrow.parquet as pq, datafusion
+for d, rows in (("q=1", [1]), ("q=7", [])):
+    os.makedirs(f"/tmp/x2/{d}"); pq.write_table(pa.table({"k": pa.array(rows, pa.int32())}), f"/tmp/x2/{d}/f.parquet")
+ctx = datafusion.SessionContext()
+ctx.register_parquet("t", "/tmp/x2", table_partition_cols=[("q", pa.int32())], file_extension=".parquet")
+ctx.sql("SELECT count(*), min(q), max(q) FROM t").show()   # 1, 1, 7; expected 1, 1, 1
+ctx.sql("SELECT q, count(*) FROM t GROUP BY q").show()     # q=1 only (correct)
+```
+
+**Cause.** `PartitionedFile::with_statistics` (datasource `mod.rs`) appends exact column statistics for each partition column: `min = max = partition_value`, `null_count = 0` and `distinct_count = 1`, whatever the file's `num_rows`. For a file with `num_rows = Exact(0)`, the column has no value, so these should be Absent (or the file left out of the merge). The aggregate-statistics rule then answers MIN/MAX from the merged statistics, without reading any rows. Empty files are common in partitioned output: an empty task, a filtered write, or a compaction leftover.
+
+Found by testing storage interfaces across engines (a random baseline over the same harness), with skipping on and off.
 ````
 
 ---
