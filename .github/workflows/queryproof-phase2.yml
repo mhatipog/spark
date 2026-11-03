@@ -1,0 +1,98 @@
+name: "QueryProof phase two - every writer x every reader, plus the metadata auditor"
+on:
+  # The marker P2_REQUEST holds, one per line: TAG / GENS (space-separated GEN:Q, Q the random
+  # queries per shape) / ENGINES (comma list) / SHARDS / EXTRA_WRITERS (comma list or "all").
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_interface/P2_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-phase2
+  cancel-in-progress: false
+jobs:
+  plan:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_interface
+      - id: m
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          lines = open("tools/queryproof_interface/P2_REQUEST").read().splitlines()
+          gens, shards = lines[1].split(), int(lines[3])
+          inc = [{"gen": g, "shard": s} for g in gens for s in range(shards)]
+          print("matrix=" + json.dumps({"include": inc}))
+          PY
+  run:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools/queryproof_interface
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install engines and writers
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir pyspark==4.2.1 duckdb==2.0.0 datafusion==55.0.0 \
+            pyarrow==26.0.0 trino==0.340.0 polars==2.1.0 fastparquet==2026.9.0 thriftpy2==0.7.1 xxhash pandas
+          python -m pip install --disable-pip-version-check --no-cache-dir chdb==4.4.0 || echo "QUERYPROOF_CHDB_INSTALL_FAILED"
+          python -c "import polars, fastparquet; print('polars', polars.__version__)"
+          python -c "import chdb; print('chdb', chdb.__version__)" || true
+      - name: Start Trino 484 (Hive connector, file metastore, local file system mounted at /qpdata)
+        run: |
+          mkdir -p "$RUNNER_TEMP/iface" "$RUNNER_TEMP/trino-catalog"
+          printf '%s\n' connector.name=hive hive.metastore=file hive.metastore.catalog.dir=local:///tmp/qpmeta \
+            fs.native-local.enabled=true local.location=/ hive.orc.use-column-names=true > "$RUNNER_TEMP/trino-catalog/hive.properties"
+          docker run -d --name trino -p 8080:8080 -v "$RUNNER_TEMP/iface:/qpdata:ro" \
+            -v "$RUNNER_TEMP/trino-catalog/hive.properties:/etc/trino/catalog/hive.properties:ro" trinodb/trino:484
+          for i in $(seq 1 60); do curl -sf localhost:8080/v1/info | grep -q '"starting":false' && break; sleep 5; done
+          for i in $(seq 1 30); do docker exec trino trino --execute 'SELECT 1' >/dev/null 2>&1 && break; sleep 5; done
+          curl -s localhost:8080/v1/info || { docker logs trino 2>&1 | grep -v ' INFO ' | tail -n 60; exit 1; }
+          echo
+      - name: Write files, run every reader on this shard, audit this shard's files
+        working-directory: tools/queryproof_interface
+        env:
+          GENQ: ${{ matrix.gen }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          start=$(date +%s)
+          ENGINES=$(sed -n 3p P2_REQUEST); SHARDS=$(sed -n 4p P2_REQUEST); export QP_EXTRA_WRITERS=$(sed -n 5p P2_REQUEST)
+          case "$GENQ" in random:*:*) export QP_IFACE_GEN="${GENQ%:*}" QP_IFACE_RANDOM_Q="${GENQ##*:}";;
+                          *) export QP_IFACE_GEN="$GENQ";; esac
+          TAGG=$(echo "$GENQ" | tr ':' '_')
+          python -B writers.py "$RUNNER_TEMP/iface" "$RUNNER_TEMP/iface/manifest.json" 2>write.log | tail -n 1
+          grep -c QUERYPROOF_IFACE_WRITE_FAILED write.log || true
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          status=0
+          python -B run_interface.py "$ENGINES" "$RUNNER_TEMP/iface" "$GITHUB_WORKSPACE/out/iface_${TAGG}_${SHARD}.json" "$SHARD" "$SHARDS" 4.2.1 2>run.log || status=$?
+          if [ "$status" != 0 ]; then grep -v ' WARN ' run.log | tail -n 60; fi
+          grep -E 'QUERYPROOF_IFACE_(WRITE_FAILED|SPARK_WRITE)' run.log write.log | head -n 40 || true
+          python -B parquet_audit.py --shard "$RUNNER_TEMP/iface" "$SHARD" "$SHARDS" "$GITHUB_WORKSPACE/out/audit_${TAGG}_${SHARD}.json"
+          echo "QUERYPROOF_JOB_WALL_SECONDS $(( $(date +%s) - start ))"
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p2-${{ strategy.job-index }}
+          path: out/
