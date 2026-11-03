@@ -221,7 +221,21 @@
 "shape": "^D2[bd]_"
 },
 {
-"id": "by design: ClickHouse has no Nullable(Tuple/Map/Array); chDB writes NULL composites as empty",
+"id": "ClickHouse#119473 / PR #119570 (Nullable(Tuple) with nullable elements: a NULL struct is written as a present struct with NULL elements)",
+"class": "known",
+"writer": "^chdb",
+"kind": "semantic_diff|skip_diff",
+"shape": "^(N6|N9|E2c|E8|E9|P9)",
+"qid": "^o[:.]"
+},
+{
+"id": "ClickHouse#119473 / PR #119570 (Nullable(Tuple) with nullable elements: a NULL struct is written as a present struct with NULL elements)",
+"class": "known",
+"writer": "^chdb",
+"claim": "size_stats.def_histogram"
+},
+{
+"id": "by design: ClickHouse has no Nullable(Array) or Nullable(Map); chDB writes NULL lists and maps as empty",
 "class": "by_design",
 "writer": "^chdb",
 "kind": "semantic_diff|skip_diff",
@@ -263,7 +277,7 @@
 "class": "by_design",
 "kind": "skip_diff",
 "qid": "^a:|agg",
-"sql": "sum\\("
+"float_only": true
 },
 {
 "id": "ORC-2226",
