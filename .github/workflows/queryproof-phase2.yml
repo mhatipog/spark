@@ -84,7 +84,7 @@ jobs:
           case "$GENQ" in random:*:*) export QP_IFACE_GEN="${GENQ%:*}" QP_IFACE_RANDOM_Q="${GENQ##*:}";;
                           *) export QP_IFACE_GEN="$GENQ";; esac
           TAGG=$(echo "$GENQ" | tr ':' '_')
-          python -B writers.py "$RUNNER_TEMP/iface" "$RUNNER_TEMP/iface/manifest.json" 2>write.log | tail -n 1
+          timeout 1800 python -B writers.py "$RUNNER_TEMP/iface" "$RUNNER_TEMP/iface/manifest.json" 2>write.log | tail -n 1
           grep -c QUERYPROOF_IFACE_WRITE_FAILED write.log || true
           mkdir -p "$GITHUB_WORKSPACE/out"
           status=0
@@ -92,6 +92,14 @@ jobs:
           if [ "$status" != 0 ]; then grep -v ' WARN ' run.log | tail -n 60; fi
           grep -E 'QUERYPROOF_IFACE_(WRITE_FAILED|SPARK_WRITE)' run.log write.log | head -n 40 || true
           python -B parquet_audit.py --shard "$RUNNER_TEMP/iface" "$SHARD" "$SHARDS" "$GITHUB_WORKSPACE/out/audit_${TAGG}_${SHARD}.json"
+          # triage switches (line 6): QP_KEEP_DATA=<regex over shape/writer dirs> keeps those synthetic
+          # files in the artifact; QP_PROBE=<script> runs a probe over the written files
+          if [ -n "${QP_KEEP_DATA:-}" ] && [ "$SHARD" = 0 ]; then
+            (cd "$RUNNER_TEMP/iface" && find . -mindepth 2 -maxdepth 2 -type d | grep -E "$QP_KEEP_DATA" | tar cf "$GITHUB_WORKSPACE/out/data_${TAGG}.tar" -T - ) || true
+          fi
+          if [ -n "${QP_PROBE:-}" ] && [ "$SHARD" = 0 ]; then
+            python -B "$QP_PROBE" "$RUNNER_TEMP/iface" > "$GITHUB_WORKSPACE/out/probe_${TAGG}.txt" 2>&1 || echo "QUERYPROOF_PROBE_FAILED"
+          fi
           echo "QUERYPROOF_JOB_WALL_SECONDS $(( $(date +%s) - start ))"
           exit $status
       - uses: actions/upload-artifact@v4

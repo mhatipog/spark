@@ -278,4 +278,7 @@ elif GEN == "spec3":  # the third contract shape set (pair three)
 elif GEN == "spec4":  # the fourth contract shape set (pair four: partitioned layouts)
     import spec4_shapes
     SHAPES = spec4_shapes.SHAPES4
+elif GEN == "spec5":  # phase two, round C: transplanted triggers of recent bugs
+    import spec5_shapes
+    SHAPES = spec5_shapes.SHAPES5
 check_shapes()

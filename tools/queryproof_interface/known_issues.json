@@ -1,0 +1,416 @@
+[
+{
+"id": "datafusion#18083",
+"class": "known",
+"engine": "^datafusion",
+"error": "HIVE_DEFAULT_PARTITION"
+},
+{
+"id": "datafusion#18083",
+"class": "known",
+"engine": "^datafusion",
+"kind": "semantic_diff|skip_diff",
+"shape": "^(P[0-9]|R0)",
+"qid": "isnull|not_notnull|nseq_null|coalesce|agg_pnull|other_null|agg_isnull|^r:|^a:"
+},
+{
+"id": "duckdb#27454/#27778 (INT32 DELTA min delta beyond 32 bits)",
+"class": "known",
+"writer": "^duckdb_rg2_v2",
+"error": "InitBlock EOF|InitHeader EOF|min_delta' too large|min_delta"
+},
+{
+"id": "duckdb#27454/#27778 (INT32 DELTA min delta beyond 32 bits)",
+"class": "known",
+"writer": "^duckdb_rg2_v2",
+"claim": "audit.error"
+},
+{
+"id": "arrow-rs#11963 (null_pages on nested pages)",
+"class": "known",
+"writer": "^df_",
+"claim": "column_index.null_pages"
+},
+{
+"id": "W1 (ours, phase two): arrow-rs 59+ rejects fastparquet empty lists (regression of #8826 by #9924)",
+"class": "new",
+"engine": "^datafusion",
+"error": "Expected list element type of Struct but got Byte"
+},
+{
+"id": "SPARK-59605 (ORC IN with NULL)",
+"class": "known",
+"engine": "^spark",
+"error": "NullPointerException"
+},
+{
+"id": "SPARK-60598 (aggregate pushdown reads the wrong column's statistics after a nested column)",
+"class": "known",
+"engine": "^spark",
+"error": "ClassCastException: class org.apache.parquet.io.api.Binary|No min/max found"
+},
+{
+"id": "Y1 (ours, phase two): datafusion-python default created_by has no version, so parquet-java's PARQUET-246 guard rejects DELTA_BYTE_ARRAY pages",
+"class": "new",
+"engine": "^spark",
+"writer": "^df_",
+"error": "PARQUET-246"
+},
+{
+"id": "INT96 read as nanoseconds overflows outside 1677-2262 (datafusion coerce_int96; polars)",
+"class": "known",
+"engine": "^(datafusion|polars)",
+"writer": "^mr_",
+"shape": "^O7",
+"kind": "semantic_diff"
+},
+{
+"id": "by design: pyarrow integer SUM wraps",
+"class": "by_design",
+"engine": "^pyarrow",
+"kind": "semantic_diff",
+"qid": "^a:|agg"
+},
+{
+"id": "harness: Polars SQL parses unpadded year-1 timestamp literals as no match",
+"class": "harness",
+"engine": "^polars",
+"shape": "^O7",
+"sql": "'1-01-01"
+},
+{
+"id": "trinodb#31908/#27274/#30544 (UINT_32)",
+"class": "known",
+"engine": "^trino",
+"shape": "^(R001_002|R001_017|R001_018|R001_021|R001_029|R002_006|R002_007|R002_014|R002_022|R002_025|R002_028|R003_015|R003_019|R003_029|R004_013|R004_029|R005_002|R005_021|R005_027)$"
+},
+{
+"id": "trinodb#31908/#27274/#30544 (UINT_32)",
+"class": "known",
+"engine": "^trino",
+"error": "INTEGER\\(32,false\\)"
+},
+{
+"id": "trinodb#30544 (widened column pruning)",
+"class": "known",
+"engine": "^trino",
+"kind": "skip_diff",
+"shape": "^(D2_|D6)"
+},
+{
+"id": "duckdb#25521 (NaN under statistics)",
+"class": "known",
+"engine": "^duckdb",
+"kind": "skip_diff",
+"shape": "^(O3|D3)"
+},
+{
+"id": "datafusion#18083",
+"class": "known",
+"engine": "^datafusion",
+"kind": "semantic_diff|skip_diff",
+"shape": "^(P2_|P2b_)"
+},
+{
+"id": "by design: ORC proleptic vs hybrid calendar before 1582 (SPARK-31423)",
+"class": "by_design",
+"writer": "^(orcj|mr_orc)",
+"shape": "^(O5|O7)"
+},
+{
+"id": "harness: Python cannot hold year 0 / year 1 shifted results",
+"class": "harness",
+"error": "year [0-9]+ is out of range|Could not convert"
+},
+{
+"id": "by design: decimal(38) SUM overflow",
+"class": "by_design",
+"error": "NUMERIC_VALUE_OUT_OF_RANGE"
+},
+{
+"id": "by design: timestamp outside the nanosecond range",
+"class": "by_design",
+"error": "Cannot cast Timestamp"
+},
+{
+"id": "arrow-rs#11018 (skip of 256-value miniblocks; fixed on main by #11021, not in DataFusion 55)",
+"class": "known",
+"engine": "^datafusion",
+"error": "cannot skip miniblock"
+},
+{
+"id": "duckdb#27454/#27778 (INT32 DELTA min delta beyond 32 bits)",
+"class": "known",
+"writer": "^duckdb_rg2_v2",
+"error": "first value too large|Index [0-9]+ out of bounds"
+},
+{
+"id": "datafusion#26490/#26491/#26138/#15812 (NaN and -0.0: constant columns, bloom, IN, pruning)",
+"class": "known",
+"engine": "^datafusion",
+"kind": "skip_diff|semantic_diff",
+"shape": "^(O3|D3)"
+},
+{
+"id": "datafusion#26490/#26491/#26138/#15812 (NaN and -0.0: constant columns, bloom, IN, pruning)",
+"class": "known",
+"engine": "^datafusion",
+"kind": "skip_diff",
+"shape": "^R",
+"sql": "DOUBLE|FLOAT|REAL"
+},
+{
+"id": "SPARK-60322 family (signed zero and NaN under statistics, bloom and dictionary filters)",
+"class": "known",
+"engine": "^spark",
+"kind": "skip_diff",
+"shape": "^(O3|D3)"
+},
+{
+"id": "SPARK-60322 family (signed zero and NaN under statistics, bloom and dictionary filters)",
+"class": "known",
+"engine": "^spark",
+"kind": "skip_diff",
+"shape": "^R",
+"sql": "DOUBLE|FLOAT"
+},
+{
+"id": "trinodb#31905 family (signed zero and NaN)",
+"class": "known",
+"engine": "^trino",
+"kind": "skip_diff",
+"shape": "^(O3|D3)"
+},
+{
+"id": "arrow#51491 family (pyarrow NaN and -0.0 under statistics)",
+"class": "known",
+"engine": "^pyarrow",
+"kind": "skip_diff",
+"shape": "^(O3|D3)"
+},
+{
+"id": "polars NaN/-0.0 under statistics (unverified family)",
+"class": "known",
+"engine": "^polars",
+"kind": "skip_diff",
+"shape": "^(O3|D3)"
+},
+{
+"id": "PARQUET-1222 (parquet-java writes NaN into float min/max)",
+"class": "known",
+"writer": "^mr_",
+"claim": "stats.(min|max)_is_nan"
+},
+{
+"id": "G/GT (ours: 1582 gap literal pushed as 1582-10-15)",
+"class": "known",
+"engine": "^spark",
+"kind": "skip_diff",
+"sql": "1582-10-(0[5-9]|1[0-4])"
+},
+{
+"id": "feature gap: Spark vectorized reader has no BYTE_STREAM_SPLIT",
+"class": "by_design",
+"engine": "^spark",
+"error": "Unsupported encoding: BYTE_STREAM_SPLIT"
+},
+{
+"id": "feature gap: Trino Parquet int/float to double coercion (errors, no wrong rows)",
+"class": "by_design",
+"engine": "^trino",
+"shape": "^D2[bd]_"
+},
+{
+"id": "by design: ClickHouse has no Nullable(Tuple/Map/Array); chDB writes NULL composites as empty",
+"class": "by_design",
+"writer": "^chdb",
+"kind": "semantic_diff|skip_diff",
+"qid": "c_isnull|c_notnull|card_eq|isnull|notnull|^r:|^a:"
+},
+{
+"id": "by design: Spark writes '' as NULL partition (Trino)",
+"class": "by_design",
+"engine": "^trino",
+"shape": "^P2b|^R0",
+"writer": "^(mr_|orcj)"
+},
+{
+"id": "by design: timestamp outside the nanosecond range",
+"class": "by_design",
+"error": "simplify_expressions|out of range for nanosecond|would lose data|nanos > |CAST_INVALID_INPUT|INVALID_CAST_ARGUMENT|conversion from `str` to `datetime"
+},
+{
+"id": "harness: Polars ns vs tz-aware timestamp literals",
+"class": "harness",
+"engine": "^polars",
+"error": "Datetime\\('n|supertype of datetime\\[ns\\]"
+},
+{
+"id": "by design: Polars needs a file to infer a schema",
+"class": "by_design",
+"engine": "^polars",
+"error": "expanded paths were empty"
+},
+{
+"id": "by design: Polars integer SUM wraps",
+"class": "by_design",
+"engine": "^polars",
+"kind": "semantic_diff",
+"qid": "^a:|agg"
+},
+{
+"id": "by design: float SUM depends on summation order",
+"class": "by_design",
+"kind": "skip_diff",
+"qid": "^a:|agg",
+"sql": "sum\\("
+},
+{
+"id": "ORC-2226",
+"class": "known",
+"error": "Seek in column"
+},
+{
+"id": "N4 = SPARK-60362",
+"class": "known",
+"engine": "^spark",
+"format": "orc",
+"kind": "skip_diff"
+},
+{
+"id": "A1 (pyarrow ORC struct<struct>)",
+"class": "known",
+"writer": "^pa_orc",
+"kind": "semantic_diff|skip_diff"
+},
+{
+"id": "SPARK-60797 (decimal partition scale)",
+"class": "known",
+"engine": "^spark",
+"shape": "^P3b"
+},
+{
+"id": "trinodb#31908/#27274/#30544 (UINT_32)",
+"class": "known",
+"engine": "^trino",
+"shape": "uint32|O11|D9|E5c|O11e"
+},
+{
+"id": "trinodb#30544 (bloom on widened column)",
+"class": "known",
+"engine": "^trino",
+"kind": "skip_diff",
+"sql": "u|c0"
+},
+{
+"id": "TD (ours, trino byte overflow)",
+"class": "known",
+"engine": "^trino",
+"error": "byte overflow|short overflow"
+},
+{
+"id": "N5 = SPARK-60487",
+"class": "known",
+"engine": "^spark",
+"kind": "skip_diff",
+"qid": "^a:|agg",
+"results_mode": "v2_agg"
+},
+{
+"id": "arrow#51491 (NaN with != under statistics)",
+"class": "known",
+"engine": "^pyarrow",
+"kind": "skip_diff",
+"shape": "nan|O3|D3"
+},
+{
+"id": "X1 (ours, DataFusion partition prefix)",
+"class": "known",
+"engine": "^datafusion",
+"shape": "^P3|^P7"
+},
+{
+"id": "SPARK-60797/escaping interop (pyarrow URI vs Hive)",
+"class": "interop",
+"engine": "^(spark|trino)",
+"shape": "^P2_"
+},
+{
+"id": "by design: aggregate pushdown needs statistics",
+"class": "by_design",
+"error": "Number of nulls not set|No min/max found"
+},
+{
+"id": "by design: empty partition value",
+"class": "by_design",
+"error": "EMPTY_PARTITION_COLUMN_VALUE|unexpected partition name"
+},
+{
+"id": "by design: Spark writes '' as NULL partition",
+"class": "by_design",
+"engine": "^(spark|duckdb|polars|pyarrow|datafusion)",
+"shape": "^P2b|^R0",
+"writer": "^(mr_|orcj)"
+},
+{
+"id": "by design: Trino has no TIMESTAMP partitions",
+"class": "by_design",
+"error": "Unsupported type \\[timestamp"
+},
+{
+"id": "by design: Trino ORC timestamp instant",
+"class": "by_design",
+"error": "Cannot read SQL type 'times"
+},
+{
+"id": "by design: Trino has no UINT_64 decimal reader",
+"class": "by_design",
+"error": "Unsupported Trino column type \\(decimal"
+},
+{
+"id": "by design: no-file directory needs a schema",
+"class": "by_design",
+"error": "No files found"
+},
+{
+"id": "by design: SUM overflow",
+"class": "by_design",
+"error": "overflow|Overflow in SUM|ARITHMETIC_OVERFLOW"
+},
+{
+"id": "by design: Polars integer SUM wraps",
+"class": "by_design",
+"engine": "^polars",
+"kind": "semantic_diff",
+"qid": "agg"
+},
+{
+"id": "feature gap: Polars has no MAP",
+"class": "by_design",
+"engine": "^polars",
+"error": "Map\\(|List data type"
+},
+{
+"id": "feature gap: Polars FLBA DeltaByteArray",
+"class": "by_design",
+"engine": "^polars",
+"error": "Not yet supported"
+},
+{
+"id": "feature gap: pyarrow decimal partition keys",
+"class": "by_design",
+"engine": "^pyarrow",
+"error": "unboxed values"
+},
+{
+"id": "feature gap: pyarrow struct_field on map",
+"class": "by_design",
+"engine": "^pyarrow",
+"error": "struct_field"
+},
+{
+"id": "harness: Trino table name after failed sync (fixed after pair four)",
+"class": "harness",
+"error": "TABLE_ALREADY_EXISTS"
+}
+]
