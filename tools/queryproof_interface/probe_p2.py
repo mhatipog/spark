@@ -116,6 +116,7 @@ def c1_trino():
     by_id = {s["id"]: s for s in SHAPES}
     entries = json.load(open(os.path.join(base, "manifest.json")))
     tr = Trino(base)
+    tr.attempts = 90000  # the matrix already holds t1, t2, ... in schema qp
     queries = {"N1_struct_null_whole_file": "SELECT k FROM t WHERE (st.y IS NULL)",
                "N6_two_levels": "SELECT k FROM t WHERE (o.i.c IS NULL)"}
     for e in entries:

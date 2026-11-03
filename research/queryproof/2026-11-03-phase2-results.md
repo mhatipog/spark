@@ -11,7 +11,7 @@ names the report or the documented behaviour it stands for.
 | --- | --- | --- | --- | --- |
 | 41625465111 | Round A: O1 auditor and O2 writer × reader matrix over spec1–4 and random seeds 1–5 (phase-one budgets) | 9,637,793 | 76.46 (audit 0.006) | completed, 36/36 jobs |
 | 41645440275 | Triage probe: chDB nested metadata, Y1 negative control (DuckDB reader only) | – | – | completed |
-| 41659652665 | Round B: O3 cast templates over spec1–4 and random seeds 6–9; probe adds Trino's cause chain | | | queued |
+| 41659652665 | Round B: O3 cast templates over spec1–4 and random seeds 6–9; probe adds Trino's cause chain | 9,848,315 | 75.13 (audit 0.005) | completed, 33/33 jobs; Trino probe failed on a table-name clash (fixed) |
 | 41659954483 | Round C: O4 transplants (spec5, spec4 with engine-written layouts and round-C writer settings; random seeds 10–11 with the same writers) | | | queued |
 
 Engines and writers in round A: Spark 4.2.1, DuckDB 2.0.0, DataFusion 55.0.0, Trino 484,
@@ -60,6 +60,31 @@ it now requires the results to differ only in floating-point rounding (`float_on
 **Open:** Trino rejects chDB's column index on nested columns ("Corrupted column index",
 3314 findings, 19 shapes) although the index passes Trino's structural checks; chDB omits
 the optional `null_counts` there. Round B's probe prints Trino's cause chain.
+
+## Round B: what the findings were
+
+No new item. Every finding fell to an existing signature or to one of four new non-bug
+classes, all from the O3 cast templates:
+
+- harness: the template names a cast the engine rejects at analysis (Spark ANSI cast rules,
+  Trino `TYPE_MISMATCH`, DataFusion unsupported casts): 2,417 findings.
+- by design: a cast that fails on some row errors in one mode and is skipped in another
+  (pruning, pushdown or evaluation order); no mode returns wrong rows: 1,420.
+- by design: pyarrow compute refuses a lossy implicit int-to-float cast: 692.
+- harness: the reference model compares a REAL column with a float64 literal; every engine
+  rounds the literal to REAL and they all agree: 97.
+
+Signatures widened rather than added: duckdb#27454 (pyarrow's "delta bit width larger than
+integer bit width" on DuckDB files), datafusion#18083 (lower-case partition marker in cast
+errors), the nanosecond-range limit (DataFusion `Date32` to `Timestamp`), and the Trino
+UINT_32 shape list (R007_024, a `uint32` column). The Y1 negative control held again
+(non-vectorized Spark fails only with the default `created_by`).
+
+The Trino × chDB column-index group came back (2,890 findings, 14 shapes). The column indexes
+Trino rejects are spec-legal as far as the probe shows: one page per chunk, matching list
+sizes, `null_counts` omitted, all-NULL pages with empty bounds. Trino's
+`TupleDomainParquetPredicate.getDomain` passes its size check on these, so the exception
+comes from inside the conversion block; the cause chain is still to be read.
 
 ## Reading so far
 

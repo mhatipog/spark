@@ -3,7 +3,7 @@
 "id": "datafusion#18083",
 "class": "known",
 "engine": "^datafusion",
-"error": "HIVE_DEFAULT_PARTITION"
+"error": "(?i)hive_default_partition"
 },
 {
 "id": "datafusion#18083",
@@ -17,7 +17,7 @@
 "id": "duckdb#27454/#27778 (INT32 DELTA min delta beyond 32 bits)",
 "class": "known",
 "writer": "^duckdb_rg2_v2",
-"error": "InitBlock EOF|InitHeader EOF|min_delta' too large|min_delta"
+"error": "InitBlock EOF|InitHeader EOF|min_delta' too large|min_delta|delta bit width larger than integer bit width"
 },
 {
 "id": "duckdb#27454/#27778 (INT32 DELTA min delta beyond 32 bits)",
@@ -82,7 +82,7 @@
 "id": "trinodb#31908/#27274/#30544 (UINT_32)",
 "class": "known",
 "engine": "^trino",
-"shape": "^(R001_002|R001_017|R001_018|R001_021|R001_029|R002_006|R002_007|R002_014|R002_022|R002_025|R002_028|R003_015|R003_019|R003_029|R004_013|R004_029|R005_002|R005_021|R005_027)$"
+"shape": "^(R001_002|R001_017|R001_018|R001_021|R001_029|R002_006|R002_007|R002_014|R002_022|R002_025|R002_028|R003_015|R003_019|R003_029|R004_013|R004_029|R005_002|R005_021|R005_027|R007_024)$"
 },
 {
 "id": "trinodb#31908/#27274/#30544 (UINT_32)",
@@ -130,7 +130,7 @@
 {
 "id": "by design: timestamp outside the nanosecond range",
 "class": "by_design",
-"error": "Cannot cast Timestamp"
+"error": "Cannot cast Timestamp|Cannot cast Date32 value -?[0-9]+ to Timestamp"
 },
 {
 "id": "arrow-rs#11018 (skip of 256-value miniblocks; fixed on main by #11021, not in DataFusion 55)",
@@ -142,7 +142,7 @@
 "id": "duckdb#27454/#27778 (INT32 DELTA min delta beyond 32 bits)",
 "class": "known",
 "writer": "^duckdb_rg2_v2",
-"error": "first value too large|Index [0-9]+ out of bounds"
+"error": "first value too large|Index [0-9]+ out of bounds|delta bit width larger than integer bit width"
 },
 {
 "id": "datafusion#26490/#26491/#26138/#15812 (NaN and -0.0: constant columns, bloom, IN, pruning)",
@@ -426,5 +426,31 @@
 "id": "harness: Trino table name after failed sync (fixed after pair four)",
 "class": "harness",
 "error": "TABLE_ALREADY_EXISTS"
+},
+{
+"id": "harness (O3): the cast template names a cast the engine rejects at analysis (Spark ANSI cast rules, Trino and DataFusion unsupported casts)",
+"class": "harness",
+"kind": "all_error",
+"error": "DATATYPE_MISMATCH\\.CAST_WITH|TYPE_MISMATCH|not implemented: Unsupported (TRY_)?CAST|Unimplemented type for cast|casting from .* not supported"
+},
+{
+"id": "by design: pyarrow compute refuses a lossy implicit int-to-float cast for a float literal",
+"class": "by_design",
+"engine": "^pyarrow",
+"kind": "all_error",
+"error": "Integer value \\d+ not in range"
+},
+{
+"id": "by design (O3): a cast that fails on some row errors in one mode and is skipped in another (pruning, pushdown, evaluation order); no mode returns wrong rows",
+"class": "by_design",
+"kind": "^(off_error|mode_error)$",
+"error": "[Cc]ast|[Cc]onversion|Compute error"
+},
+{
+"id": "harness (O3): the reference model compares a REAL column with a float64 literal; engines round the literal to REAL first and all agree",
+"class": "harness",
+"kind": "semantic_diff",
+"shape": "^(R007_031|R008_017)$",
+"sql": "AS (REAL|FLOAT)\\)|float32"
 }
 ]
