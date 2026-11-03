@@ -630,6 +630,41 @@ Found by testing storage interfaces across engines (a random baseline over the s
 
 ---
 
+## 2k. arrow-rs GitHub issue: W1 (0-row files from fastparquet no longer open: regression of #8826). Found by phase two (writer matrix).
+
+Found in phase-two round A (run 41625465111, 2980 findings, every 0-row fastparquet file).
+Reproduced locally: DataFusion 53.0.0 and 54.0.0 read the file, 55.0.0 (arrow-rs 59.2) fails;
+arrow-rs main was unchanged when checked on 2026-11-03. A one-row file from the same writer
+reads fine (negative control). Polars had the same regression and fixed it in
+pola-rs/polars#27749. Before filing, search arrow-rs again for "Expected list element type"
+and "fastparquet".
+
+- **Repository:** apache/arrow-rs
+- **Title:** `Regression: Parquet footers with an empty list written as a 0x00 header (fastparquet) fail with "Expected list element type of Struct but got Byte"`
+- **Body:**
+
+````
+**Version:** parquet 59.0.0 to 60.1.0 (and main as of 2026-11-03). Worked in 57/58, e.g. through DataFusion 54.
+
+**What happens.** A Parquet file with 0 rows written by fastparquet 2026.9.0 fails to open:
+`Parquet error: Expected list element type of Struct but got Byte`. Files with rows from the same writer open fine.
+
+**Reproduction** (through the DataFusion Python bindings; any arrow-rs reader of the footer fails the same way):
+```python
+import pandas as pd, fastparquet, datafusion
+fastparquet.write("/tmp/w1.parquet", pd.DataFrame({"k": pd.array([], dtype="Int32")}))
+ctx = datafusion.SessionContext()
+ctx.register_parquet("t", "/tmp/w1.parquet")   # 55.0.0: error; 54.0.0: works
+ctx.sql("SELECT count(*) FROM t").show()       # expected 0
+```
+
+**Cause.** fastparquet writes the empty `row_groups` list of `FileMetaData` with the one-byte compact header `0x00` (size 0, element type 0). #8826 reported exactly this and #8827 accepted it by mapping that header to element type Byte. The Thrift list validation added later (#9924, "Validate encoded Thrift lists match the schema") checks the element type even when the list is empty, so the `0x00` header is rejected again. An empty list carries no elements, so its element type could be skipped when the size is 0.
+
+Found by cross-engine testing of Parquet writers and readers (same data written by several writers, read by several engines).
+````
+
+---
+
 ## 3c. Optional comment on SPARK-59607 (affected versions)
 
 SPARK-59607 lists only 5.0.0 and says "Parquet". Our probe (`partcount_probe.py`, run
