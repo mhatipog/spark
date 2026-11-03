@@ -50,6 +50,32 @@ def y1():
     spark.stop()
 
 
+def y1_min():
+    """The filing guide's minimal Y1 reproduction (2l), default created_by vs versioned."""
+    import datafusion
+    from pyspark.sql import SparkSession
+    # the filing guide's minimal reproduction (2l), with and without the versioned created_by
+    import pyarrow as pa
+    from datafusion import ParquetWriterOptions
+    t = pa.table({"k": pa.array(range(5), pa.int32()), "s": pa.array(["x" * 80 + str(i) for i in range(5)])})
+    mini = {}
+    for tag, cb in (("minimal default", None), ("minimal control", f"datafusion-python version {datafusion.__version__}")):
+        d = os.path.join(base, "_y1_" + tag.replace(" ", "_"))
+        shutil.rmtree(d, ignore_errors=True)
+        opts = dict(writer_version="2.0", dictionary_enabled=False, **({"created_by": cb} if cb else {}))
+        datafusion.SessionContext().from_arrow(t).write_parquet(d, ParquetWriterOptions(**opts))
+        mini[tag] = d
+    spark = (SparkSession.builder.master("local[2]").config("spark.ui.enabled", "false")
+             .config("spark.sql.session.timeZone", "UTC").getOrCreate())
+    spark.conf.set("spark.sql.parquet.enableVectorizedReader", "false")
+    for tag, d in mini.items():
+        try:
+            res = f"ok, {spark.read.parquet(d).where('s IS NOT NULL').count()} rows"
+        except Exception as exc:  # noqa: BLE001
+            res = "error: " + str(exc).split("\n")[0][:200]
+        print(f"Y1 {tag}: {res}")
+
+
 def c1():
     import parquet_audit as A
     from audit_selftest import footer
@@ -115,7 +141,7 @@ def c1_trino():
                 print("C1T", e["shape"], e["writer_set"], "error", str(exc)[:200])
 
 
-for name, fn in (("Y1", y1), ("C1", c1), ("C1T", c1_trino)):
+for name, fn in (("Y1", y1), ("Y1min", y1_min), ("C1", c1), ("C1T", c1_trino)):
     try:
         fn()
     except Exception as exc:  # noqa: BLE001

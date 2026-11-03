@@ -665,6 +665,49 @@ Found by cross-engine testing of Parquet writers and readers (same data written 
 
 ---
 
+## 2l. datafusion-python GitHub issue: Y1 (the `ParquetWriterOptions` default `created_by` has no version, so parquet-java readers reject DELTA_BYTE_ARRAY pages). Found by phase two (writer matrix).
+
+Found in phase-two round A (run 41625465111, 1228 findings: Spark row-based reader on
+`df_rg2_pages1_bloom` files). Negative control in probe run 41645440275: the same files
+with only `created_by` rewritten to `datafusion-python version 55.0.0` read in every Spark mode;
+with the default, Spark's non-vectorized reader fails with filter pushdown on and off.
+Without `ParquetWriterOptions`, DataFusion writes `datafusion version 55.2.0`, which parses;
+the bare default appears only when options are passed. Low severity: a read failure in
+parquet-java based readers (Spark with the vectorized reader off, Hive, MapReduce), no
+wrong rows. The writer half of the minimal reproduction below was run locally; its Spark step
+is still to be run on CI (the round-C probe does it). Before filing, search datafusion-python
+again for "created_by".
+
+- **Repository:** apache/datafusion-python
+- **Title:** `ParquetWriterOptions default created_by "datafusion-python" has no version; parquet-java then refuses DELTA_BYTE_ARRAY columns (PARQUET-246 guard)`
+- **Body:**
+
+````
+**Version:** datafusion 55.0.0 (Python). `ParquetWriterOptions(created_by="datafusion-python")` is the default in `python/datafusion/dataframe.py`.
+
+**What happens.** Files written with `ParquetWriterOptions` carry `created_by = "datafusion-python"`. The Parquet format asks for `<application> version <version> (build <hash>)`. parquet-java's `CorruptDeltaByteArrays.requiresSequentialReads` cannot parse the bare string and then treats every DELTA_BYTE_ARRAY column as possibly written by a writer with PARQUET-246. Readers built on parquet-java fail on such columns; in Spark with `spark.sql.parquet.enableVectorizedReader=false` the query fails with `ParquetDecodingException: Cannot read data due to PARQUET-246: to read safely, set parquet.split.files to false`. The same bytes with `created_by` set to `datafusion-python version 55.0.0` read correctly. Writing without `ParquetWriterOptions` gives `datafusion version 55.2.0`, which parses.
+
+**Reproduction:**
+```python
+import datafusion, pyarrow as pa
+from datafusion import ParquetWriterOptions
+t = pa.table({"k": pa.array(range(5), pa.int32()), "s": pa.array(["x" * 80 + str(i) for i in range(5)])})
+datafusion.SessionContext().from_arrow(t).write_parquet(
+    "/tmp/y1.parquet", ParquetWriterOptions(writer_version="2.0", dictionary_enabled=False))
+# created_by: 'datafusion-python'; column s: DELTA_BYTE_ARRAY
+
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.config("spark.sql.parquet.enableVectorizedReader", "false").getOrCreate()
+spark.read.parquet("/tmp/y1.parquet").where("s IS NOT NULL").count()   # fails (PARQUET-246 guard)
+```
+
+**Suggested fix.** Default `created_by` to `f"datafusion-python version {__version__}"`, or to the core default the writer uses without options.
+
+Found by cross-engine testing of Parquet writers and readers (same data written by several writers, read by several engines).
+````
+
+---
+
 ## 3c. Optional comment on SPARK-59607 (affected versions)
 
 SPARK-59607 lists only 5.0.0 and says "Parquet". Our probe (`partcount_probe.py`, run

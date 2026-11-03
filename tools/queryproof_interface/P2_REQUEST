@@ -1,6 +1,6 @@
-p2-roundB-1
-spec spec2 spec3 spec4 random:6:114 random:7:114 random:8:114 random:9:57
+p2-roundC-1
+spec5 spec4 random:10:57 random:11:57
 spark,duckdb,datafusion,trino,polars,pyarrow
 4
 all
-QP_O3=1 QP_PROBE=probe_p2.py
+QP_LAYOUT_WRITERS=1 QP_ROUND_C=1 QP_PROBE=probe_p2.py
