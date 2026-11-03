@@ -81,7 +81,41 @@ def c1():
                 print("C1   audit", [(x["claim"], x.get("col"), x["detail"][:80]) for x in v][:12])
 
 
-for name, fn in (("Y1", y1), ("C1", c1)):
+def c1_trino():
+    """The exception behind Trino's "Corrupted column index" on chDB nested columns: the cause
+    chain and top frames from the query's failure info; pyarrow-written sets as the control."""
+    import json
+    from engines import Trino
+    from shapes import SHAPES
+    by_id = {s["id"]: s for s in SHAPES}
+    entries = json.load(open(os.path.join(base, "manifest.json")))
+    tr = Trino(base)
+    queries = {"N1_struct_null_whole_file": "SELECT k FROM t WHERE (st.y IS NULL)",
+               "N6_two_levels": "SELECT k FROM t WHERE (o.i.c IS NULL)"}
+    for e in entries:
+        if e["shape"] not in queries or e["format"] != "parquet":
+            continue
+        if not (e["writer_set"].startswith("chdb") or e["writer_set"] in ("pa_rg2_plain_v2", "pa_pages1_dictfallback_bloom")):
+            continue
+        name = tr._table(e, by_id[e["shape"]])
+        cur = tr._conn({}).cursor()
+        try:
+            cur.execute(queries[e["shape"]].replace(" FROM t", f" FROM {name}"))
+            print("C1T", e["shape"], e["writer_set"], "ok", len(cur.fetchall()), "rows")
+        except Exception as exc:  # noqa: BLE001
+            fi = getattr(exc, "failure_info", None) or {}
+            depth = 0
+            while fi and depth < 6:
+                print("C1T", e["shape"], e["writer_set"], "cause", depth, fi.get("type"), str(fi.get("message"))[:160].replace("\n", " | "))
+                for fr in (fi.get("stack") or [])[:6]:
+                    print("C1T       at", fr[:160])
+                fi = fi.get("cause") or {}
+                depth += 1
+            if depth == 0:
+                print("C1T", e["shape"], e["writer_set"], "error", str(exc)[:200])
+
+
+for name, fn in (("Y1", y1), ("C1", c1), ("C1T", c1_trino)):
     try:
         fn()
     except Exception as exc:  # noqa: BLE001
