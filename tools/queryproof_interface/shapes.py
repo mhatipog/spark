@@ -36,7 +36,7 @@ def parse_type(ty):
             assert parse_type(inner[0]) == ("string",)
             return ("map", parse_type(inner[1]))
     assert ty in ("int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float32", "float64",
-                  "string", "date", "ts"), ty
+                  "string", "date", "ts", "bool"), ty  # bool: only as a cast target (phase two, O3)
     return (ty,)
 
 
@@ -66,7 +66,7 @@ def to_arrow(t):
         return pa.map_(pa.string(), to_arrow(t[1]))
     return {"int8": pa.int8(), "int16": pa.int16(), "int32": pa.int32(), "int64": pa.int64(),
             "uint8": pa.uint8(), "uint16": pa.uint16(), "uint32": pa.uint32(), "uint64": pa.uint64(),
-            "float32": pa.float32(), "float64": pa.float64(), "string": pa.string(), "date": pa.date32(),
+            "float32": pa.float32(), "float64": pa.float64(), "string": pa.string(), "date": pa.date32(), "bool": pa.bool_(),
             "ts": pa.timestamp("us", tz="UTC")}[k]
 
 
@@ -83,10 +83,10 @@ UNSIGNED = {
 }
 UNSIGNED["polars"] = UNSIGNED["duckdb"]  # phase two: Polars SQL takes DuckDB's type names
 SQL_ATOMIC = {
-    "spark": {"int32": "INT", "int64": "BIGINT", "float32": "FLOAT", "float64": "DOUBLE", "string": "STRING", "date": "DATE"},
-    "duckdb": {"int32": "INTEGER", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE"},
-    "datafusion": {"int32": "INT", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE"},
-    "trino": {"int32": "INTEGER", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE"},
+    "spark": {"int32": "INT", "int64": "BIGINT", "float32": "FLOAT", "float64": "DOUBLE", "string": "STRING", "date": "DATE", "bool": "BOOLEAN"},
+    "duckdb": {"int32": "INTEGER", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE", "bool": "BOOLEAN"},
+    "datafusion": {"int32": "INT", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE", "bool": "BOOLEAN"},
+    "trino": {"int32": "INTEGER", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE", "bool": "BOOLEAN"},
 }
 SQL_ATOMIC["polars"] = SQL_ATOMIC["duckdb"]
 

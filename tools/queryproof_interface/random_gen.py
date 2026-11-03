@@ -107,9 +107,18 @@ def random_queries(shape, leaf_types, n=None):
     def lit(path):
         return ("lit", value(random.Random(rng.random()), leaf_types[path]), leaf_types[path])
 
+    o3 = bool(os.environ.get("QP_O3"))  # phase two, round B: a generic cast atom (a query feature)
+
     def atom():
         path = rng.choice(paths)
         col = ("col", path)
+        if o3 and rng.random() < 0.15:
+            target = rng.choice(["float64", "int32", "string", "date", "bool", "int8"])
+            cast = ("cast", col, target, rng.random() < 0.5)
+            if target == "bool":
+                return ("truth", cast)
+            return ("cmp", rng.choice(["=", "<>", "<", "<=", ">", ">="]), cast,
+                    ("lit", value(random.Random(rng.random()), target), target))
         r = rng.random()
         if r < 0.55:
             return ("cmp", rng.choice(["=", "<>", "<", "<=", ">", ">="]), col, lit(path))

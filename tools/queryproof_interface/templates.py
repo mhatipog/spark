@@ -97,6 +97,11 @@ def expr_sql(e, d):
         return f"{fn}({expr_sql(e[1], d)}, {expr_sql(e[2], d)})"
     if k == "lcase_eq":
         return f"({expr_sql(e[1], d)} COLLATE UTF8_LCASE = {expr_sql(e[2], d)})"
+    if k == "cast":  # ("cast", expr, target type, try): phase two, O3
+        fn = ("try_cast" if d in ("spark", "trino") else "TRY_CAST") if e[3] else "CAST"
+        return f"{fn}({expr_sql(e[1], d)} AS {sql_type(parse_type(e[2]), d)})"
+    if k == "truth":  # a boolean expression used as the whole predicate
+        return expr_sql(e[1], d)
     raise ValueError(k)
 
 
@@ -159,6 +164,13 @@ def _cmp(op, a, b):
         return None
     if is_nan(a) or is_nan(b):
         raise NoExpected
+    # a DATE against a TIMESTAMP compares as midnight UTC (every engine runs with a UTC session)
+    if isinstance(a, datetime.date) and not isinstance(a, datetime.datetime) and isinstance(b, datetime.datetime):
+        a = datetime.datetime(a.year, a.month, a.day, tzinfo=datetime.timezone.utc)
+    if isinstance(b, datetime.date) and not isinstance(b, datetime.datetime) and isinstance(a, datetime.datetime):
+        b = datetime.datetime(b.year, b.month, b.day, tzinfo=datetime.timezone.utc)
+    if isinstance(a, bool) != isinstance(b, bool):
+        raise NoExpected
     return {"=": a == b, "<>": a != b, "<": a < b, "<=": a <= b, ">": a > b, ">=": a >= b}[op]
 
 
@@ -206,7 +218,82 @@ def ev(e, row):
     if k == "card":
         v = ev(e[1], row)
         return None if v is None else len(v)
+    if k == "cast":
+        return cast_value(ev(e[1], row), e[1], e[2], e[3])
+    if k == "truth":
+        return ev(e[1], row)
     raise NoExpected  # contains, lcase_eq: engine-specific by design
+
+
+STRICT_INT = __import__("re").compile(r"-?[0-9]{1,18}")
+STRICT_DATE = __import__("re").compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+
+
+def cast_value(v, src, target, try_):
+    """The standard SQL result of a cast, or NoExpected where engines legitimately differ
+    (loose string formats, float-to-int rounding, decimal-to-int rounding, plain narrowing)."""
+    if v is None:
+        return None
+    if isinstance(v, float) and is_nan(v):
+        raise NoExpected
+    t = parse_type(target)[0]
+    if t == "float64":
+        if isinstance(v, (int, Decimal)) and not isinstance(v, bool):
+            return float(v)
+        if isinstance(v, float):
+            return v
+        raise NoExpected
+    if t == "bool":
+        if isinstance(v, int) and not isinstance(v, bool):
+            return v != 0
+        raise NoExpected
+    if t in INT_BITS:
+        bits = INT_BITS[t]
+        lo, hi = (0, 2 ** bits - 1) if t.startswith("uint") else (-2 ** (bits - 1), 2 ** (bits - 1) - 1)
+        if isinstance(v, int) and not isinstance(v, bool):
+            if lo <= v <= hi:
+                return v
+            if try_:
+                return None
+            raise NoExpected  # a plain narrowing cast: error or wrap, by engine
+        if isinstance(v, str):
+            if STRICT_INT.fullmatch(v):
+                n = int(v)
+                return n if lo <= n <= hi else (None if try_ else _no())
+            if not any(ch.isdigit() for ch in v) and try_:
+                return None
+        raise NoExpected
+    if t == "string":
+        if isinstance(v, int) and not isinstance(v, bool):
+            return str(v)
+        if isinstance(v, str):
+            return v
+        raise NoExpected
+    if t == "date":
+        if isinstance(v, datetime.datetime):
+            return v.astimezone(datetime.timezone.utc).date()
+        if isinstance(v, datetime.date):
+            return v
+        if isinstance(v, str):
+            if STRICT_DATE.fullmatch(v):
+                try:
+                    return datetime.date.fromisoformat(v)
+                except ValueError:
+                    pass
+            elif not any(ch.isdigit() for ch in v) and try_:
+                return None
+        raise NoExpected
+    if t == "ts":
+        if isinstance(v, datetime.datetime):
+            return v
+        if isinstance(v, datetime.date):
+            return datetime.datetime(v.year, v.month, v.day, tzinfo=datetime.timezone.utc)
+        raise NoExpected
+    raise NoExpected
+
+
+def _no():
+    raise NoExpected
 
 
 def expected(q, rows, leaf_types):
@@ -410,6 +497,8 @@ def build_queries(shape, max_lits=12):
                 qs.append((f"{name}:card_eq:{n}", ("rows", ("cmp", "=", ("card", col), ("lit", n, "int32")))))
         if t[0] == "list":
             qs.append((f"{name}:contains", ("rows", ("contains", col, ("lit", 1, "int32")))))
+    if __import__("os").environ.get("QP_O3"):  # phase two, round B: cast and mixed-type predicates
+        qs += cast_templates(lt, rows)
     # Pair four (C2 E4): predicates that mix a partition column with a data column, so that
     # partition pruning and file skipping must agree under three-valued logic.
     part = shape.get("partition", [])
@@ -437,6 +526,78 @@ def build_queries(shape, max_lits=12):
     qs.append(("k:grouped_none", ("grouped", ("cmp", "<", ("col", ("k",)), ("lit", -1000, "int32")))))
     qs.append(("k:grouped_all", ("grouped", ("cmp", ">", ("col", ("k",)), ("lit", -1000, "int32")))))
     return qs, lt
+
+
+def cast_templates(lt, rows, per_col=4):
+    """O3 (research/queryproof/2026-11-03-approach-v2.md): predicates that make an engine unwrap or
+    move a cast to prune, from the cast/mixed-type class of the bug study."""
+    U = datetime.timezone.utc
+    qs = []
+    for path, ty in lt.items():
+        if path == ("k",) or any(isinstance(p, tuple) for p in path):
+            continue
+        t = parse_type(ty)
+        col, name = ("col", path), ".".join(path)
+        vals = sorted({get_path(r, path) for r in rows} - {None}, key=repr)
+        vals = [v for v in vals if not is_nan(v)][:per_col]
+        L = lambda v, tt: ("lit", v, tt)  # noqa: E731
+        Q = lambda tag, pred: qs.append((f"{name}:o3:{tag}", ("rows", pred)))  # noqa: E731
+        if t[0] in INT_BITS:
+            for i, v in enumerate(vals):
+                Q(f"as_double_eq:{i}", ("cmp", "=", ("cast", col, "float64", False), L(float(v), "float64")))
+                Q(f"as_string_eq:{i}", ("cmp", "=", ("cast", col, "string", False), L(str(v), "string")))
+                if abs(v) < 2 ** 52:
+                    Q(f"eq_half:{i}", ("cmp", "=", col, L(v + 0.5, "float64")))
+                    Q(f"lt_half:{i}", ("cmp", "<", col, L(v + 0.5, "float64")))
+                    Q(f"ge_half:{i}", ("cmp", ">=", col, L(v - 0.5, "float64")))
+                    Q(f"in_mixed:{i}", ("in", col, [L(float(v), "float64"), L(v + 0.5, "float64")]))
+                    qs.append((f"{name}:o3:agg_lt_half:{i}", ("agg", path, ("cmp", "<", col, L(v + 0.5, "float64")))))
+            Q("as_bool", ("truth", ("cast", col, "bool", False)))
+            Q("not_as_bool", ("not", ("cast", col, "bool", False)))
+            if INT_BITS[t[0]] > 8:
+                Q("try_narrow_null", ("isnull", ("cast", col, "int8", True)))
+                Q("try_narrow_eq", ("cmp", "=", ("cast", col, "int8", True), L(1, "int8")))
+        elif t[0] == "date":
+            for i, v in enumerate(vals):
+                mid = datetime.datetime(v.year, v.month, v.day, tzinfo=U)
+                Q(f"eq_ts:{i}", ("cmp", "=", col, L(mid, "ts")))
+                try:
+                    Q(f"lt_ts_noon:{i}", ("cmp", "<", col, L(mid + datetime.timedelta(hours=12), "ts")))
+                    Q(f"gt_ts_noon:{i}", ("cmp", ">", col, L(mid + datetime.timedelta(hours=12), "ts")))
+                except OverflowError:
+                    pass
+                Q(f"as_ts_ge:{i}", ("cmp", ">=", ("cast", col, "ts", False), L(mid, "ts")))
+        elif t[0] == "ts":
+            for i, v in enumerate(vals):
+                d0 = v.astimezone(U).date()
+                Q(f"as_date_eq:{i}", ("cmp", "=", ("cast", col, "date", False), L(d0, "date")))
+                Q(f"as_date_lt:{i}", ("cmp", "<", ("cast", col, "date", False), L(d0, "date")))
+                Q(f"as_date_le:{i}", ("cmp", "<=", ("cast", col, "date", False), L(d0, "date")))
+                Q(f"ge_date:{i}", ("cmp", ">=", col, L(d0, "date")))
+                Q(f"lt_date:{i}", ("cmp", "<", col, L(d0, "date")))
+                qs.append((f"{name}:o3:agg_as_date_eq:{i}",
+                           ("agg", path, ("cmp", "=", ("cast", col, "date", False), L(d0, "date")))))
+        elif t[0] == "decimal" and t[1] < 38:
+            wider = f"decimal({t[1] + 1},{t[2] + 1})"
+            half = Decimal(5).scaleb(-(t[2] + 1))
+            for i, v in enumerate(vals):
+                Q(f"eq_wider_scale:{i}", ("cmp", "=", col, L(v, wider)))
+                Q(f"eq_half_ulp:{i}", ("cmp", "=", col, L(v + half, wider)))
+                Q(f"lt_half_ulp:{i}", ("cmp", "<", col, L(v + half, wider)))
+                Q(f"gt_half_ulp:{i}", ("cmp", ">", col, L(v - half, wider)))
+        elif t[0] == "string":
+            Q("try_int_null", ("isnull", ("cast", col, "int32", True)))
+            for i, v in enumerate(vals):
+                if STRICT_INT.fullmatch(v):
+                    Q(f"try_int_eq:{i}", ("cmp", "=", ("cast", col, "int32", True), L(int(v), "int32")))
+            Q("try_date_lt", ("cmp", "<", ("cast", col, "date", True), L(datetime.date(2000, 1, 1), "date")))
+        elif t[0] in ("float32", "float64"):
+            for i, v in enumerate(vals):
+                if math.isfinite(v) and v == int(v) and abs(v) < 2 ** 31:
+                    Q(f"eq_int:{i}", ("cmp", "=", col, L(int(v), "int32")))
+                    Q(f"lt_int:{i}", ("cmp", "<", col, L(int(v), "int32")))
+            Q("as_int_eq0", ("cmp", "=", ("cast", col, "int32", False), L(0, "int32")))  # rounding: on/off only
+    return qs
 
 
 def shape_rows(shape):

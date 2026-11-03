@@ -1,7 +1,8 @@
 name: "QueryProof phase two - every writer x every reader, plus the metadata auditor"
 on:
   # The marker P2_REQUEST holds, one per line: TAG / GENS (space-separated GEN:Q, Q the random
-  # queries per shape) / ENGINES (comma list) / SHARDS / EXTRA_WRITERS (comma list or "all").
+  # queries per shape) / ENGINES (comma list) / SHARDS / EXTRA_WRITERS (comma list or "all") /
+  # optional KEY=VALUE switches.
   push:
     branches:
       - research/queryproof-phase-local-independent-20261020
@@ -78,6 +79,8 @@ jobs:
         run: |
           start=$(date +%s)
           ENGINES=$(sed -n 3p P2_REQUEST); SHARDS=$(sed -n 4p P2_REQUEST); export QP_EXTRA_WRITERS=$(sed -n 5p P2_REQUEST)
+          # optional line 6: KEY=VALUE switches, e.g. QP_O3=1 for the cast templates (round B)
+          for kv in $(sed -n 6p P2_REQUEST); do export "$kv"; done
           case "$GENQ" in random:*:*) export QP_IFACE_GEN="${GENQ%:*}" QP_IFACE_RANDOM_Q="${GENQ##*:}";;
                           *) export QP_IFACE_GEN="$GENQ";; esac
           TAGG=$(echo "$GENQ" | tr ':' '_')
