@@ -49,7 +49,7 @@ def lit_sql(v, ty, dialect):
         return "'" + v.replace("'", "''") + "'"
     if t[0] == "ts":  # an aware UTC datetime
         text = v.astimezone(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")
-        return f"CAST('{text}{'+00' if dialect == 'duckdb' else ''}' AS {sql_type(t, dialect)})"
+        return f"CAST('{text}{'+00' if dialect in ('duckdb', 'polars') else ''}' AS {sql_type(t, dialect)})"
     return f"CAST('{v}' AS {sql_type(t, dialect)})"
 
 
@@ -90,10 +90,10 @@ def expr_sql(e, d):
     if k == "coalesce":
         return f"(coalesce({expr_sql(e[1], d)}, {expr_sql(e[2], d)}) = {expr_sql(e[2], d)})"
     if k == "card":
-        return f"cardinality({expr_sql(e[1], d)})"
+        return f"{'array_length' if d == 'polars' else 'cardinality'}({expr_sql(e[1], d)})"
     if k == "contains":
         fn = {"spark": "array_contains", "duckdb": "list_contains", "datafusion": "array_has",
-              "trino": "contains"}[d]
+              "trino": "contains", "polars": "array_contains"}[d]
         return f"{fn}({expr_sql(e[1], d)}, {expr_sql(e[2], d)})"
     if k == "lcase_eq":
         return f"({expr_sql(e[1], d)} COLLATE UTF8_LCASE = {expr_sql(e[2], d)})"
@@ -119,10 +119,20 @@ def query_sql(q, d, leaf_types):
 
 
 def supported(q, d):
-    """lcase_eq is Spark-only; everything else renders everywhere."""
+    """lcase_eq is Spark-only; Polars has no MAP type (a map reads as a list of structs), and
+    pyarrow.dataset takes only what pa_expr() translates."""
+    if d == "pyarrow":
+        try:
+            pa_query(q)
+            return True
+        except NoExpected:
+            return False
+
     def walk(e):
         if isinstance(e, tuple):
             if e and e[0] == "lcase_eq" and d != "spark":
+                return False
+            if d == "polars" and e and e[0] == "col" and any(isinstance(p, tuple) for p in e[1]):
                 return False
             return all(walk(x) for x in e[1:] if isinstance(x, (tuple, list)))
         if isinstance(e, list):
@@ -454,3 +464,62 @@ def shape_rows(shape):
                 import struct
                 r[name] = struct.unpack("f", struct.pack("f", r[name]))[0]
     return out
+
+
+# ---------------------------------------------------------------- pyarrow.dataset (phase two)
+def pa_expr(e):
+    """A templates.py predicate as a pyarrow compute expression with SQL WHERE semantics
+    (a NULL result drops the row, as in SQL). Raises NoExpected for what does not translate."""
+    import pyarrow as pa
+    import pyarrow.compute as pc
+    from shapes import to_arrow
+    k = e[0]
+    if k == "col":
+        if any(isinstance(p, tuple) for p in e[1]):
+            raise NoExpected  # map lookups
+        return pc.field(*e[1])
+    if k == "lit":
+        if e[1] is None:
+            return pa.scalar(None, to_arrow(parse_type(e[2])))
+        return pa.scalar(e[1], to_arrow(parse_type(e[2])))
+    if k == "isnull":
+        return pa_expr(e[1]).is_null()
+    if k == "notnull":
+        return pa_expr(e[1]).is_valid()
+    if k == "not":
+        return ~pa_expr(e[1])
+    if k == "and":
+        return pa_expr(e[1]) & pa_expr(e[2])
+    if k == "or":
+        return pa_expr(e[1]) | pa_expr(e[2])
+    if k == "cmp":
+        a, b = pa_expr(e[2]), pa_expr(e[3])
+        return {"=": a == b, "<>": a != b, "<": a < b, "<=": a <= b, ">": a > b, ">=": a >= b}[e[1]]
+    if k == "nseq":
+        a = pa_expr(e[1])
+        if e[2][1] is None:
+            return a.is_null()
+        return pc.coalesce(a == pa_expr(e[2]), pa.scalar(False))
+    if k == "between":
+        return (pa_expr(e[1]) >= pa_expr(e[2])) & (pa_expr(e[1]) <= pa_expr(e[3]))
+    if k == "in":
+        vals = [x[1] for x in e[2]]
+        if any(v is None for v in vals):
+            raise NoExpected  # SQL IN with NULL has no direct isin() form
+        out = None
+        for x in e[2]:
+            t = pa_expr(e[1]) == pa_expr(x)
+            out = t if out is None else out | t
+        return out
+    if k == "coalesce":
+        return pc.coalesce(pa_expr(e[1]), pa_expr(e[2])) == pa_expr(e[2])
+    raise NoExpected
+
+
+def pa_query(q):
+    """(kind, filter expression or None, leaf path) for the queries pyarrow.dataset can answer."""
+    if q[0] == "rows":
+        return ("rows", pa_expr(q[1]), None)
+    if q[0] == "agg":
+        return ("agg", pa_expr(q[2]) if q[2] is not None else None, q[1])
+    raise NoExpected

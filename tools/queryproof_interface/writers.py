@@ -176,6 +176,10 @@ def footer_summary(d, fmt):
 
 def main(base, manifest):
     entries = write_pyarrow(base)
+    extra = os.environ.get("QP_EXTRA_WRITERS")  # phase two: Polars, DuckDB, DataFusion, fastparquet, chDB
+    if extra:
+        import extra_writers
+        entries += extra_writers.write_extra(base, extra.split(","))
     with open(manifest, "w", newline="\n") as fh:
         json.dump(entries, fh, indent=1, default=str)
     print("QUERYPROOF_IFACE_WRITE", len(entries), "file sets")

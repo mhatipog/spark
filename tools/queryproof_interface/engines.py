@@ -206,6 +206,113 @@ class DataFusion(Engine):
         return out
 
 
+# ------------------------------------------------------------------ Polars (phase two)
+class Polars(Engine):
+    """scan_parquet over the file set, queried with Polars SQL. "off" turns predicate pushdown and
+    row-group statistics off; the other modes are the default engine and the streaming engine."""
+    name, dialect, cores = "polars", "polars", 2
+    modes = {"off": {"stats": False, "pushdown": False, "engine": "in-memory"},
+             "default": {"stats": True, "pushdown": True, "engine": "in-memory"},
+             "streaming": {"stats": True, "pushdown": True, "engine": "streaming"}}
+
+    def __init__(self):
+        import polars as pl
+        self.pl = pl
+        self.name = "polars-" + pl.__version__
+
+    def _dtype(self, ty):
+        import pyarrow as pa
+        return self.pl.from_arrow(pa.array([], type=to_arrow(parse_type(ty)))).dtype
+
+    def run(self, mode, fileset, shape, sqls):
+        pl, m = self.pl, self.modes[mode]
+        part = partition_cols(shape)
+        glob = os.path.join(fileset["dir"], "**/*.parquet" if part else "*.parquet").replace("\\", "/")
+        try:
+            kw = {"use_statistics": m["stats"]}
+            if part:
+                kw.update(hive_partitioning=True, hive_schema={n: self._dtype(ty) for n, ty in part})
+            lf = pl.scan_parquet(glob, **kw)
+            have = dict(shape["columns"])
+            cols = []
+            for n, ty in read_cols(shape):
+                if n not in have:
+                    cols.append(pl.lit(None, dtype=self._dtype(ty)).alias(n))
+                elif have[n] != ty:
+                    cols.append(pl.col(n).cast(self._dtype(ty)))
+                else:
+                    cols.append(pl.col(n))
+            lf = lf.select(cols)
+        except Exception as exc:  # noqa: BLE001
+            return [{"error": "scan: " + str(exc).split("\n")[0][:280]}] * len(sqls)
+        ctx = pl.SQLContext({"t": lf})
+        opt = pl.QueryOptFlags(predicate_pushdown=m["pushdown"])
+        out = []
+        for s in sqls:
+            try:
+                df = ctx.execute(s).collect(engine=m["engine"], optimizations=opt)
+                out.append({"rows": [list(r) for r in df.rows()]})
+            except Exception as exc:  # noqa: BLE001
+                out.append({"error": str(exc).split("\n")[0][:300]})
+        return out
+
+
+# ------------------------------------------------------------------ pyarrow.dataset (phase two)
+class PyArrowDataset(Engine):
+    """pyarrow.dataset over the file set. "off" reads every row and filters in memory; "scan" hands
+    the filter to the scanner, which prunes row groups by their statistics."""
+    name, dialect, formats, cores = "pyarrow", "pyarrow", ("parquet", "orc"), 2
+    modes = {"off": {"push": False}, "scan": {"push": True}}
+
+    def __init__(self):
+        import pyarrow
+        self.name = "pyarrow-" + pyarrow.__version__
+
+    def run(self, mode, fileset, shape, sqls):
+        import pyarrow as pa
+        import pyarrow.compute as pc
+        import pyarrow.dataset as ds
+        from templates import pa_query
+        part = partition_cols(shape)
+        cols = read_cols(shape)
+        try:
+            schema = pa.schema([(n, to_arrow(parse_type(ty))) for n, ty in cols])
+            kw = {"partitioning": ds.partitioning(pa.schema([(n, to_arrow(parse_type(ty))) for n, ty in part]),
+                                                 flavor="hive")} if part else {}
+            dset = ds.dataset(fileset["dir"], format=fileset["format"], schema=schema, **kw)
+            full = None if self.modes[mode]["push"] else dset.to_table()
+        except Exception as exc:  # noqa: BLE001
+            return [{"error": "dataset: " + str(exc).split("\n")[0][:280]}] * len(sqls)
+        out = []
+        for q in sqls:
+            try:
+                kind, flt, path = pa_query(q)
+                if full is None:
+                    tbl = dset.to_table(filter=flt) if flt is not None else dset.to_table()
+                else:
+                    tbl = full.filter(flt) if flt is not None else full
+                if kind == "rows":
+                    out.append({"rows": [[x] for x in tbl.column("k").to_pylist()]})
+                    continue
+                arr = tbl.column(path[0])
+                for p in path[1:]:
+                    arr = pc.struct_field(arr, p)
+                ty = parse_type(dict(leaves_of(cols))[path])
+                row = [tbl.num_rows, pc.count(arr).as_py(), pc.min(arr).as_py(), pc.max(arr).as_py()]
+                if ty[0] in ("int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "float32", "float64",
+                             "decimal"):
+                    row.append(pc.sum(arr).as_py())
+                out.append({"rows": [row]})
+            except Exception as exc:  # noqa: BLE001
+                out.append({"error": str(exc).split("\n")[0][:300]})
+        return out
+
+
+def leaves_of(cols):
+    from templates import leaves
+    return leaves(cols).items()
+
+
 # ------------------------------------------------------------------ Trino (Docker, Hive connector on the local file system)
 # Every session: the Hive connector's default MILLISECONDS precision rejects TIMESTAMP(6) tables
 # (pair three harness gap; added for pair four).

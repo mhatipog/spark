@@ -31,7 +31,7 @@ def main(engine_list, base, out_path, shard=0, count=1, spark_tag="4.2.1"):
     engines = []
     for n in names:
         engines.append({"spark": lambda: E.Spark(spark_tag), "duckdb": E.DuckDB, "datafusion": E.DataFusion,
-                        "trino": lambda: E.Trino(base)}[n]())
+                        "trino": lambda: E.Trino(base), "polars": E.Polars, "pyarrow": E.PyArrowDataset}[n]())
     spark = next((e for e in engines if isinstance(e, E.Spark)), None)
     if spark is not None:  # Spark's own writers add file sets that every engine reads
         t0 = time.time()
@@ -55,7 +55,8 @@ def main(engine_list, base, out_path, shard=0, count=1, spark_tag="4.2.1"):
         sets = [m for m in manifest if m["shape"] == s["id"]]
         for eng in engines:
             todo = [(qid, q) for qid, q in qs if supported(q, eng.dialect)]
-            sqls = [query_sql(q, eng.dialect, leaf_types) for _, q in todo]
+            # pyarrow.dataset takes the query itself (templates.pa_query), every other engine SQL
+            sqls = [q if eng.dialect == "pyarrow" else query_sql(q, eng.dialect, leaf_types) for _, q in todo]
             for fs in sets:
                 if fs["format"] not in eng.formats:
                     continue
@@ -89,7 +90,7 @@ def main(engine_list, base, out_path, shard=0, count=1, spark_tag="4.2.1"):
                         findings.append({
                             "engine": eng.name, "shape": s["id"], "concept": s["concept"],
                             "writer_set": fs["writer_set"], "writer": fs["writer"], "format": fs["format"],
-                            "qid": qid, "sql": sqls[i], "kinds": kinds, "expected": e,
+                            "qid": qid, "sql": str(sqls[i]), "kinds": kinds, "expected": e,
                             "results": {m: res[m][i] for m in ["off"] + sorted({m for _, m in kinds} - {"off"})}})
     for n, sec in cpu.items():
         print("QUERYPROOF_CPU interface", n, round(sec, 1))

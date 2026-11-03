@@ -81,12 +81,14 @@ UNSIGNED = {
     "datafusion": {"uint8": "TINYINT UNSIGNED", "uint16": "SMALLINT UNSIGNED", "uint32": "INT UNSIGNED",
                    "uint64": "BIGINT UNSIGNED"},
 }
+UNSIGNED["polars"] = UNSIGNED["duckdb"]  # phase two: Polars SQL takes DuckDB's type names
 SQL_ATOMIC = {
     "spark": {"int32": "INT", "int64": "BIGINT", "float32": "FLOAT", "float64": "DOUBLE", "string": "STRING", "date": "DATE"},
     "duckdb": {"int32": "INTEGER", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE"},
     "datafusion": {"int32": "INT", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE"},
     "trino": {"int32": "INTEGER", "int64": "BIGINT", "float32": "REAL", "float64": "DOUBLE", "string": "VARCHAR", "date": "DATE"},
 }
+SQL_ATOMIC["polars"] = SQL_ATOMIC["duckdb"]
 
 
 def sql_type(t, dialect):
@@ -111,7 +113,7 @@ def sql_type(t, dialect):
         return UNSIGNED[dialect][k]
     if k == "ts":
         return {"spark": "TIMESTAMP", "duckdb": "TIMESTAMPTZ", "datafusion": "TIMESTAMP",
-                "trino": "TIMESTAMP(6)"}[dialect]
+                "trino": "TIMESTAMP(6)", "polars": "TIMESTAMPTZ"}[dialect]
     assert k in SQL_ATOMIC[dialect], (dialect, t)
     return SQL_ATOMIC[dialect][k]
 
