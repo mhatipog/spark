@@ -442,8 +442,9 @@ def neighbours(vals, ty):
     return uniq
 
 
-def build_queries(shape, max_lits=12):
-    """Every query for one shape, as (qid, query) pairs; qids are stable across runs."""
+def build_queries(shape, max_lits=12, extra_lits=None):
+    """Every query for one shape, as (qid, query) pairs; qids are stable across runs.
+    `extra_lits` ({leaf path: values}, O5) adds comparisons at the stored statistics bounds."""
     cols = shape["read_as"] or shape["columns"]
     lt = leaves(cols)
     if "random_seed" in shape:  # the matched random baseline (random_gen.py)
@@ -474,6 +475,15 @@ def build_queries(shape, max_lits=12):
             qs.append((f"{name}:agg_lt:{i}", ("agg", path, ("cmp", "<", col, L(v)))))
             if ty == "string":
                 qs.append((f"{name}:lcase:{i}", ("rows", ("lcase_eq", col, L(v)))))
+        if extra_lits and path in extra_lits:  # O5: the stored bounds and their neighbours
+            import hashlib
+            have = {repr(v) for v in lits}
+            grid = [v for v in neighbours(extra_lits[path], ty) if repr(v) not in have][:24]
+            for v in grid:
+                h = hashlib.md5(repr(v).encode()).hexdigest()[:8]
+                for op in ("=", "<>", "<", "<=", ">", ">="):
+                    qs.append((f"{name}:o5:{op}:{h}", ("rows", ("cmp", op, col, L(v)))))
+                qs.append((f"{name}:o5:agg_lt:{h}", ("agg", path, ("cmp", "<", col, L(v)))))
         if lits:
             qs.append((f"{name}:in", ("rows", ("in", col, [L(v) for v in lits[::2]]))))
             qs.append((f"{name}:between", ("rows", ("between", col, L(lits[0]), L(lits[len(lits) // 2])))))

@@ -49,10 +49,13 @@ def main(engine_list, base, out_path, shard=0, count=1, spark_tag="4.2.1"):
         print("QUERYPROOF_IFACE_SPARK_WRITE_SECONDS", round(time.time() - t0, 1), file=sys.stderr)
     findings, counts, cpu = [], Counter(), Counter()
     for s in mine:
+        sets = [m for m in manifest if m["shape"] == s["id"]]
         qs, leaf_types = build_queries(s)
+        if os.environ.get("QP_O5"):  # phase two, round D: literals at the stored bounds
+            import storage_grid
+            qs, leaf_types = build_queries(s, extra_lits=storage_grid.stats_literals(s, sets, leaf_types))
         rows = shape_rows(s)
         exp = {qid: expected(q, rows, leaf_types) for qid, q in qs}
-        sets = [m for m in manifest if m["shape"] == s["id"]]
         for eng in engines:
             todo = [(qid, q) for qid, q in qs if supported(q, eng.dialect)]
             # pyarrow.dataset takes the query itself (templates.pa_query), every other engine SQL

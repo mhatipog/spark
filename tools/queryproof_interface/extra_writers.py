@@ -164,9 +164,20 @@ ROUND_C = {
 }
 
 
-def write_round_c(base):
+def polars_ts_millis(table, path):
+    """O5: the TIMESTAMP columns stored as Polars Datetime('ms') (the values are whole ms)."""
+    import polars as pl
+    df = pl.from_arrow(table)
+    df = df.with_columns([pl.col(c).dt.cast_time_unit("ms") for c, t in df.schema.items() if isinstance(t, pl.Datetime)])
+    df.write_parquet(path, statistics="full", row_group_size=2, data_page_size=1)
+
+
+O5_WRITERS = {"pa_ts_millis": (ROUND_C["pa_ts_millis"][0], ms_exact), "polars_ts_millis": (polars_ts_millis, ms_exact)}
+
+
+def write_round_c(base, writers=None):
     out = []
-    for wname, (fn, ok) in ROUND_C.items():
+    for wname, (fn, ok) in (writers or ROUND_C).items():
         for s in SHAPES:
             if ok is not None and not ok(s):
                 continue
@@ -177,7 +188,7 @@ def write_round_c(base):
                     for sub, idx in partition_groups(s, fi, idx_all):
                         os.makedirs(os.path.join(d, sub), exist_ok=True)
                         fn(arrow_table(s, idx), os.path.join(d, sub, f"part-{fi:03d}.parquet"))
-                out.append(entry(s, wname, "parquet", "pyarrow", d))
+                out.append(entry(s, wname, "parquet", wname.split("_")[0].replace("pa", "pyarrow"), d))
             except Exception as exc:  # noqa: BLE001 - recorded, not hidden
                 print("QUERYPROOF_IFACE_WRITE_FAILED", s["id"], wname, str(exc).split("\n")[0][:200], file=sys.stderr)
     return out
@@ -265,4 +276,8 @@ def write_extra(base, names):
         out += write_layouts(base, names)
     if os.environ.get("QP_ROUND_C"):
         out += write_round_c(base)
+    if os.environ.get("QP_O5"):  # round D: the millisecond writers on every whole-ms TIMESTAMP shape
+        o5 = {k: v for k, v in O5_WRITERS.items() if not (os.environ.get("QP_ROUND_C") and k in ROUND_C)}
+        o5 = {k: (fn, lambda s, ok=ok: ok(s) and any("ts" in ty for _, ty in s["columns"])) for k, (fn, ok) in o5.items()}
+        out += write_round_c(base, o5)
     return out

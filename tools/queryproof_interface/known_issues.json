@@ -3,8 +3,14 @@
 "id": "C2 (ours, phase two): Trino rejects a column index whose pages are all NULL when the optional null_counts is omitted (SortedRangeSet of no ranges); chDB writes such indexes for nested leaves",
 "class": "new",
 "engine": "^trino",
-"writer": "^chdb",
+"writer": "^(chdb|m_nonullcounts__)",
 "error": "Corrupted column index"
+},
+{
+"id": "datafusion#25239 (fix #25242 on main, not in 55.0): a missing Parquet null_count is read as zero, so IS NULL pruning drops NULL rows (file statistics prune even with pruning off)",
+"class": "known",
+"engine": "^datafusion",
+"writer": "^m_nonullcount__"
 },
 {
 "id": "Z1 (ours, phase two): Spark Parquet pushdown floors a sub-millisecond TIMESTAMP literal to whole milliseconds on a TIMESTAMP_MILLIS column; < and <> prune matching row groups",

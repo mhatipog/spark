@@ -180,6 +180,9 @@ def main(base, manifest):
     if extra:
         import extra_writers
         entries += extra_writers.write_extra(base, extra.split(","))
+    if os.environ.get("QP_O6"):  # phase two, round D: spec-legal metadata variants of base sets
+        import metadata_variants
+        entries += metadata_variants.write_variants(base, entries)
     with open(manifest, "w", newline="\n") as fh:
         json.dump(entries, fh, indent=1, default=str)
     print("QUERYPROOF_IFACE_WRITE", len(entries), "file sets")

@@ -281,4 +281,7 @@ elif GEN == "spec4":  # the fourth contract shape set (pair four: partitioned la
 elif GEN == "spec5":  # phase two, round C: transplanted triggers of recent bugs
     import spec5_shapes
     SHAPES = spec5_shapes.SHAPES5
+if os.environ.get("QP_O5"):  # phase two, round D: millisecond copies of TIMESTAMP shapes
+    import storage_grid
+    SHAPES = SHAPES + storage_grid.ms_variants(SHAPES)
 check_shapes()
