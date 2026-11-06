@@ -160,3 +160,13 @@ read failures. The O4 hits show a second use of the method: a report filed again
 engine is checked against all the others (arrow#51626 drops rows in Spark, DuckDB and Trino;
 datafusion#24951 is wrong in all six readers; the Polars and DataFusion literal truncation
 is the same bug as Z1 in two other engines).
+
+## Pre-filing checks (2026-11-06)
+
+| Run | What | Result |
+| --- | --- | --- |
+| 42253276382, 42254351284 | Z1 on Spark 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master b2fc1bef1b (`z1_probe.py` in the versions workflow; the master job needs Java 21 since early November, the first run failed on that) | Wrong on all five for `<`, `<>` and `NOT IN`, V1 and V2 sources, vectorized on and off, only with pushdown. Controls correct on all five: `<=` and `>`, TIMESTAMP_MICROS files, millisecond-grid literals. |
+| 42253277602, 42253746193 | C2 standalone chDB reproduction (`c2_min`) | The first form (a non-nullable `Tuple` with a NULL child) gets `null_counts` and reads; it was the wrong snippet in the draft. `Nullable(Tuple)` that is NULL on every row gets no `null_counts` and fails in Trino 484; `parquet_use_column_index=false` reads both rows; pyarrow control reads. |
+
+Trackers searched again on 2026-11-06 for W1, Y1, Z1 and C2: no new reports. Drafts §2k–§2n
+are updated and ready; nothing is filed.
