@@ -1,6 +1,6 @@
-p2-c2-min-2
-spec
-trino
-1
+p2-roundD-1
+spec spec2 spec3 spec4 spec5 random:12:57 random:13:57
+spark,duckdb,datafusion,trino,polars,pyarrow
+6
 all
-QP_PROBE_ONLY=c2 QP_PROBE=probe_p2.py
+QP_O5=1 QP_O6=1
