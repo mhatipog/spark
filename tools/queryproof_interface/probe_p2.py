@@ -177,8 +177,12 @@ def z1():
     spark.stop()
 
 
-C2_SQL = ("SELECT toInt32(number) AS k, CAST(tuple(NULL), 'Tuple(x Nullable(Int32))') AS st "
-          "FROM numbers(2)")
+C2_SQLS = {
+    "tuple_child_null": "SELECT toInt32(number) AS k, CAST(tuple(NULL), 'Tuple(x Nullable(Int32))') AS st FROM numbers(2)",
+    "nullable_tuple_null": "SELECT toInt32(number) AS k, CAST(NULL, 'Nullable(Tuple(x Nullable(Int32)))') AS st FROM numbers(2)",
+    "nullable_tuple_mixed": "SELECT toInt32(number) AS k, if(number = 0, NULL, CAST(tuple(NULL), 'Tuple(x Nullable(Int32))'))"
+                            "::Nullable(Tuple(x Nullable(Int32))) AS st FROM numbers(2)",
+}
 
 
 def c2_min():
@@ -191,10 +195,16 @@ def c2_min():
     import parquet_audit as A
     from audit_selftest import footer
     from engines import Trino
-    print("C2 chdb", chdb.__version__, "sql:", C2_SQL)
-    sets = {"chdb": chdb.query(C2_SQL, "Parquet").bytes()}
+    print("C2 chdb", chdb.__version__)
+    sets = {}
+    for tag, sql in C2_SQLS.items():
+        try:
+            sets["chdb_" + tag] = chdb.query(sql, "Parquet").bytes()
+            print("C2 sql", tag, sql)
+        except Exception as exc:  # noqa: BLE001
+            print("C2 sql", tag, "failed:", str(exc)[:200])
     t = pa.table({"k": pa.array([0, 1], pa.int32()),
-                  "st": pa.array([{"x": None}, {"x": None}], pa.struct([("x", pa.int32())]))})
+                  "st": pa.array([None, None], pa.struct([("x", pa.int32())]))})
     sink = pa.BufferOutputStream()
     pq.write_table(t, sink, write_page_index=True)
     sets["pyarrow control"] = sink.getvalue().to_pybytes()
