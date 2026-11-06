@@ -177,7 +177,52 @@ def z1():
     spark.stop()
 
 
-for name, fn in (("Z1", z1), ("Y1min", y1_min), ("C1T", c1_trino)) if os.environ.get("QP_PROBE_ONLY") else \
+C2_SQL = ("SELECT toInt32(number) AS k, CAST(tuple(NULL), 'Tuple(x Nullable(Int32))') AS st "
+          "FROM numbers(2)")
+
+
+def c2_min():
+    """C2, the filing guide's standalone reproduction (2n): a file chDB writes from one SQL line
+    (struct child NULL on every row), read by Trino with and without the column index; control:
+    the same rows written by pyarrow."""
+    import chdb
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    import parquet_audit as A
+    from audit_selftest import footer
+    from engines import Trino
+    print("C2 chdb", chdb.__version__, "sql:", C2_SQL)
+    sets = {"chdb": chdb.query(C2_SQL, "Parquet").bytes()}
+    t = pa.table({"k": pa.array([0, 1], pa.int32()),
+                  "st": pa.array([{"x": None}, {"x": None}], pa.struct([("x", pa.int32())]))})
+    sink = pa.BufferOutputStream()
+    pq.write_table(t, sink, write_page_index=True)
+    sets["pyarrow control"] = sink.getvalue().to_pybytes()
+    tr = Trino(base)
+    for i, (tag, buf) in enumerate(sets.items()):
+        d = os.path.join(base, "c2min", tag.split()[0])
+        os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, "part-0.parquet"), "wb").write(buf)
+        fm, _ = footer(buf)
+        for cc in fm.row_groups[0].columns:
+            ci = A.read_struct(A.PT.ColumnIndex, buf, cc.column_index_offset)[0] if cc.column_index_offset else None
+            print("C2", tag, ".".join(cc.meta_data.path_in_schema), "column_index",
+                  None if ci is None else {"null_pages": ci.null_pages, "null_counts": ci.null_counts})
+        name = f"c2min_{i}"
+        tr._sql(f"DROP TABLE IF EXISTS {name}", {})
+        tr._sql(f"CREATE TABLE {name} (k integer, st row(x integer)) WITH (external_location = "
+                f"'local://{tr.mount}/c2min/{tag.split()[0]}', format = 'PARQUET')", {})
+        for props in ({}, {"parquet_use_column_index": "false"}):
+            try:
+                rows = tr._sql(f"SELECT k FROM {name} WHERE st.x IS NULL", props)
+                res = f"ok, {len(rows)} rows (expected 2)"
+            except Exception as exc:  # noqa: BLE001
+                res = "error: " + str(getattr(exc, "message", exc))[:160].replace("\n", " | ")
+            print(f"C2 {tag} {props or 'default'}: {res}")
+
+
+for name, fn in (("C2min", c2_min),) if os.environ.get("QP_PROBE_ONLY") == "c2" else \
+        (("Z1", z1), ("Y1min", y1_min), ("C1T", c1_trino)) if os.environ.get("QP_PROBE_ONLY") else \
         (("Y1", y1), ("Y1min", y1_min), ("C1", c1), ("C1T", c1_trino), ("Z1", z1)):
     try:
         fn()
