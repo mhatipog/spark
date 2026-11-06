@@ -2,3 +2,4 @@ run 11 (baseline lead bisect: exact shape R002_026 and variants)
 # pair two: GT gap TIMESTAMP literals on Parquet
 # GT rerun with pyarrow installed before iface_probe (run 41308537516 skipped GT on released lines)
 # GT rerun 2 (41309307410 cancelled: workflow edit had not applied)
+# phase two pre-filing: Z1 (TIMESTAMP_MILLIS pushdown) on 3.5, 4.0, 4.1, 4.2.1 and master

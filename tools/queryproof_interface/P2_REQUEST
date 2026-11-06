@@ -1,6 +1,6 @@
-p2-probe-3
+p2-c2-min
 spec
 trino
 1
 all
-QP_PROBE_ONLY=1 QP_PROBE=probe_p2.py
+QP_PROBE_ONLY=c2 QP_PROBE=probe_p2.py
