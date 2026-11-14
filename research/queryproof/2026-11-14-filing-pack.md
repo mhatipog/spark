@@ -20,7 +20,7 @@ Impact is a judgement of how likely real users hit the bug, not only how bad it 
 
 | Order | Id | Project | What | Severity | Real-world exposure | Code still wrong on main |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | A1 | Arrow C++ (pyarrow ORC writer) | struct-in-struct with a null inner struct shifts child values | **silent corruption on write** | medium (nested data, nulls only at the inner level) | yes (26.0.1) |
+| 1 | A1 | Arrow C++ (pyarrow ORC writer) | any struct with nulls below a struct without nulls (also through list/map, e.g. struct<list<struct>>) shifts child values | **silent corruption on write** | medium-high (the usual shape of nested JSON-like data) | yes (26.0.1) |
 | 2 | Z1 | Spark | Parquet pushdown floors a sub-ms literal on TIMESTAMP_MILLIS; `<`, `<>`, `NOT IN` drop rows | wrong rows, default config | low-medium | yes (`timestampToMillis`) |
 | 3 | T3 | Trino | ORC `a.b.c IS NULL` skips rows where the middle ROW is NULL | wrong rows, default config | medium | yes |
 | 4 | X1 | DataFusion | `part_col = v` lists one directory spelling; pyarrow TIMESTAMP partitions return nothing | wrong rows, default config | medium-high | yes (`evaluate_partition_prefix`) |
@@ -128,11 +128,22 @@ orc.read_table("/tmp/a.orc").to_pylist()
 # [{'o': {'i': {'c': 1}}}, {'o': {'i': None}}, {'o': {'i': {'c': 0}}}]   expected c = 3
 ```
 
-The ORC Java reader (Spark) returns the same wrong values, so the file itself is wrong. It does not happen when the outer struct has a null anywhere in the batch, for a single-level struct, or for list<struct>.
+The ORC Java reader (Spark) returns the same wrong values, so the file itself is wrong.
+
+The same happens wherever a struct with nulls sits below another struct that has no nulls in the batch, also through a list or a map:
+
+```python
+S = pa.struct([("c", pa.int32())])
+pa.array([{"l": [None, {"c": 1}, {"c": 2}]}], pa.struct([("l", pa.list_(S))]))   # reads back [None, {c: 0}, {c: 1}]
+pa.array([{"m": [(1, None), (2, {"c": 2})]}], pa.struct([("m", pa.map_(pa.int32(), S))]))   # reads back (2, {c: 0})
+pa.array([[{"i": {"c": 1}}, {"i": None}, {"i": {"c": 3}}]], pa.list_(pa.struct([("i", S)])))   # reads back c = 0
+```
+
+Not affected: a top-level list<struct> or map<k, struct> with null elements, list<list<…>> and struct<list<int>> with null lists, and any case where the outer struct also has a null in the batch. A round trip over a few thousand random nested schemas outside that shape found no other differences.
 
 Seen on pyarrow 12.0.1 through 26.0.1 (Linux and Windows).
 
-It looks like the inner struct's null mask is not applied to its children when the outer struct reports no nulls, so the child gets an extra value for the null row. The writer side is WriteStructBatch in cpp/src/arrow/adapters/orc/util.cc.
+It looks like a struct's null mask is not passed on to its children when the enclosing struct reports no nulls, so the child gets an extra value for each null row. The writer side is WriteStructBatch in cpp/src/arrow/adapters/orc/util.cc.
 
 Found with a differential test harness (the same rows read back by several engines).
 ````
