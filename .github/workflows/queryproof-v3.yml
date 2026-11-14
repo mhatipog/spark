@@ -1,0 +1,53 @@
+name: "QueryProof v3 - table formats written by Spark, read by every engine"
+on:
+  # The marker RUN_REQUEST holds a tag on its first line; optional KEY=VALUE lines become
+  # environment variables (QP_ICEBERG_PKG, QP_DELTA_PKG, QP_PYSPARK).
+  push:
+    branches:
+      - research/queryproof-phase-local-independent-20261020
+    paths:
+      - tools/queryproof_v3/RUN_REQUEST
+permissions:
+  contents: read
+concurrency:
+  group: queryproof-v3
+  cancel-in-progress: false
+jobs:
+  hunt:
+    # Public fork: GitHub-hosted only (never the self-hosted VM).
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/queryproof_v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Read the request
+        run: |
+          tail -n +2 tools/queryproof_v3/RUN_REQUEST | grep -E '^[A-Z_]+=' >> "$GITHUB_ENV" || true
+          head -1 tools/queryproof_v3/RUN_REQUEST
+      - name: Install engines
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir "pyspark==${QP_PYSPARK:-4.0.1}" \
+            polars==2.1.0 duckdb==2.0.0 "pyiceberg[pyiceberg-core]==0.12.0" deltalake==1.6.6 pyarrow==26.0.0 pandas
+      - name: Hunt
+        env:
+          QP_OUT: qpv3_out
+        run: |
+          status=0
+          python tools/queryproof_v3/hunt_spark_tables.py 2>&1 | tee qpv3_out.log || status=$?
+          mkdir -p qpv3_out && cp qpv3_out.log qpv3_out/
+          grep -E '^(spark|polars|table|SUMMARY)' qpv3_out.log || true
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qpv3-${{ github.run_id }}
+          path: qpv3_out
+          retention-days: 14
