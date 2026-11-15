@@ -15,7 +15,7 @@ Status as of 2026-11-15. Update the status column when a ticket moves.
 | G | wrong rows | Spark | [SPARK-61739](https://issues.apache.org/jira/browse/SPARK-61739) | 2026-11-15 | [apache/spark#60523](https://github.com/apache/spark/pull/60523) | open |
 | X1 | wrong rows | DataFusion | [apache/datafusion#27455](https://github.com/apache/datafusion/issues/27455) | 2026-11-15 | — | open |
 | T3 | wrong rows | Trino | [trinodb/trino#32154](https://github.com/trinodb/trino/issues/32154) | 2026-11-15 | — | open |
-| W1 | read failure (regression) | arrow-rs | [apache/arrow-rs#12265](https://github.com/apache/arrow-rs/issues/12265) | 2026-11-15 | — | open |
+| W1 | read failure (regression) | arrow-rs | [apache/arrow-rs#12265](https://github.com/apache/arrow-rs/issues/12265) | 2026-11-15 | — (fix by another contributor: [apache/arrow-rs#12266](https://github.com/apache/arrow-rs/pull/12266)) | open, PR available |
 | C2 | read failure | Trino | [trinodb/trino#32155](https://github.com/trinodb/trino/issues/32155) | 2026-11-15 | — | open |
 | X2 | wrong rows | DataFusion | [apache/datafusion#27456](https://github.com/apache/datafusion/issues/27456) | 2026-11-15 | — | open |
 | S | wrong rows | ORC Java | [ORC-2237](https://issues.apache.org/jira/browse/ORC-2237) | 2026-11-15 | — | open |
@@ -29,14 +29,14 @@ Status as of 2026-11-15. Update the status column when a ticket moves.
 | iceberg-rust | ask for a 0.10.x backport of the day-transform fix (#3323) for pyiceberg | [comment on apache/iceberg-rust#3315](https://github.com/apache/iceberg-rust/issues/3315#issuecomment-6891131197) | 2026-11-15 | no reply yet |
 | Y1 | default Parquet `created_by` without a version | [apache/datafusion-python#1835](https://github.com/apache/datafusion-python/pull/1835) | 2026-11-15 | open |
 | SPARK-59607 | add affected versions 3.5–4.2.1 and ORC | [comment](https://issues.apache.org/jira/browse/SPARK-59607?focusedCommentId=18145189) | 2026-11-15 | no reply yet |
-| W1 follow-up | bharadwaj-pendyala offered to fix W1; we said go ahead and offered to test | [comment on arrow-rs#12265](https://github.com/apache/arrow-rs/issues/12265#issuecomment-6896079067) | 2026-11-15 | fix by them |
+| W1 follow-up | bharadwaj-pendyala offered to fix W1; we said go ahead and offered to test | [comment on arrow-rs#12265](https://github.com/apache/arrow-rs/issues/12265#issuecomment-6896079067) | 2026-11-15 | fix PR apache/arrow-rs#12266 opened 14:50Z, CI green, no review yet |
 
 ## Totals
 
 - 13 reports in 7 projects (12 filed 2026-11-15, plus SPARK-60319 from October).
 - 8 wrong-result bugs: A1 corrupts data at write time; SPARK-60319, Z1, G, X1, X2, T3 and S return wrong rows.
 - 5 failures on valid input: TD, W1, C2, N1, N2.
-- Fix PRs by us: SPARK-60319, G, N1, N2, Y1. Z1 is being fixed by another contributor.
+- Fix PRs by us: SPARK-60319, G, N1, N2, Y1. Z1 and W1 are being fixed by other contributors.
 
 ## Not filed (optional, low value)
 
