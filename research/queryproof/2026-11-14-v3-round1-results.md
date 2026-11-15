@@ -57,3 +57,26 @@ branches, the code behind Z1, N2, G, TD, C2, X1 and X2 is unchanged.
 M1 gate status (≥ 4 new wrong-result bugs in ≥ 3 projects by 11-24): 0 so far from v3. The
 backlog from earlier rounds already holds 6 unfiled wrong-result bugs in 5 projects (A1, Z1,
 T3, X1, X2, G).
+
+## Round 2 (2026-11-14/15): the Java side
+
+Fork push triggers stopped firing after 11-06 (reruns still work), so these ran on the runner
+pool from `mhatipog/web-operations` branch `research/qp-v3-hunts-20261114`
+(`research/qp-v3/`, workflow `qp-v3-hunt.yml`). Spark 4.0.1, Iceberg 1.10.0, Delta 4.0.0.
+
+| Hunt | What | Result | Verdict |
+| --- | --- | --- | --- |
+| HE | Spark writes Iceberg v2 merge-on-read (position deletes), v3 deletion vectors, type promotion and rename, and Delta with deletion vectors and column mapping. Read by pyiceberg, Polars (metadata statistics and fast deletion counts on and off), DuckDB, deltalake | Iceberg: no differences in any reader. Delta: DuckDB `delta_scan` returns 0 rows for `g = 1` on column-mapped partitioned tables | known: duckdb-delta#343, fixed by #408 (10-20). Polars and deltalake correctly refuse column mapping |
+| HG | pyiceberg and delta-rs tables read by Iceberg Java and Delta Spark, against the same data files read with pushdown off | string/binary: 0 wrong over 13 tables × 591 predicates (truncated bounds handled). float/double: `-0.0` vs `0.0` and NaN vs `> Infinity` | ±0 and NaN: SPARK-60322 (10-17), lost. dec38 on Delta: D1 (fixed on delta-rs main) |
+| HG | dates and timestamps in the 1582 gap | Delta tables lose rows for `=`, `>=`, `>` on gap dates | **our G.** Probe: depends only on `spark.sql.parquet.filterPushdown`, not on Delta's stats skipping. It extends G: equality fails too when the file holds a gap value (verified with a pyarrow-written file) |
+| HH | Spark datetime pushdown with JVM zone ≠ session zone (JVM America/Los_Angeles; session UTC/LA/Kolkata; java8 API on/off; CORRECTED/LEGACY; Parquet MICROS/MILLIS, ORC) | 401 differences, all explained: G (1582 gap; with a non-UTC JVM the window shifts, as G's fix already allows for), Z1 (MILLIS, found again independently), ORC sub-millisecond stored values | ORC: SPARK-60326/60436 (fixed in 4.2.2/4.3.1/4.4.0, present in 4.0.1); probe shows no JVM-zone dependence. No new root cause |
+| HI | pyarrow ORC round trip over random nested schemas (about 9,500) | only A1 | **A1 scope widened:** any struct with nulls below a struct without nulls, also through list/map. Outside that shape, 0 differences in about 7,000 schemas |
+| HJ | DuckDB 2.0 shredded VARIANT in Parquet, filters on shredded paths | no pruning differences. Decimal VARIANTs with \|x\| < 1 read back as `DECIMAL(s, s)` and print `.5` instead of `0.5`, so `v::VARCHAR` changes after a round trip | low; follows duckdb#26180. Optional report |
+
+**Competition.** Since October, at least three reporters have filed Spark pushdown
+correctness tickets with essentially our method, on one file per value with pushdown on and
+off: SPARK-60152, 60322, 60326, 60380, 61366, 61463, among others. Z1 (Parquet MILLIS) and G
+(Parquet DATE/TIMESTAMP gap) were still unreported on 2026-11-15, but they are the next cells
+of that sweep.
+
+**Cumulative v3: 0 new root causes; 2 existing reports strengthened (A1, G).**

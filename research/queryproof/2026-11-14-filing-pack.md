@@ -40,6 +40,12 @@ Impact is a judgement of how likely real users hit the bug, not only how bad it 
 | --- | --- |
 | Y1 (datafusion-python `created_by` has no version) | A one-line default change. An issue for it is noise; a 3-line PR with a test is welcome. |
 
+### Optional, low severity
+
+| Id | What |
+| --- | --- |
+| HJ (duckdb/duckdb) | VARIANT decimals with \|x\| < 1 read from Parquet get width = scale and print `.5`; `v::VARCHAR = '0.5'` stops matching after a round trip. Suggest width = scale + 1 as for literals. File only if you have room after the main list. |
+
 ### Optional comments (only if they add information the ticket lacks)
 
 | Ticket | Value |
@@ -60,6 +66,9 @@ Impact is a judgement of how likely real users hit the bug, not only how bad it 
 | D1 delta-rs decimal statistics written through f64 (`-1.000000000000000001` → `-1.0`, wrong rows in delta-rs, Polars, DuckDB) | fixed on main 11-01 (a3b0ccf1cd, d0c31d5d71), unreleased | |
 | D2 NaN left out of Parquet/Delta max, engines that sort NaN last skip it | datafusion#15812, duckdb#25521 | |
 | NaN read back as the statistics constant | datafusion#26490, delta-rs#5007 | |
+| Spark Parquet/ORC pushdown with ±0 and NaN (also via Iceberg Java and Delta) | SPARK-60322 (10-17) | |
+| DuckDB `delta_scan` returns NULL partition values with column mapping | duckdb-delta#343, fixed by #408 | |
+| Spark ORC pushdown on stored sub-millisecond timestamps | SPARK-60326 / SPARK-60436 (fixed 4.2.2+) | |
 
 ### Not worth filing (borderline spam)
 
@@ -93,6 +102,8 @@ in one evening would look like a sweep, however good each report is.
   for N1, N2 and G. Plain writing is the goal, not hiding how the bug was found.
 - **Do not open PRs** for N4/N5, or from the `*-test-only-control` branches.
 - Squash the three G commits before the PR. Rename `[SPARK-XXXXX]` once the JIRA exists.
+
+**Update 2026-11-15:** several reporters are filing Spark pushdown tickets with the same method this month (SPARK-60152/60322/60326/60380/61366/61463). File Z1 and G first, ideally today, ahead of the rest of the calendar.
 
 Suggested calendar (move it freely, but keep the one-per-project-per-day rule):
 
@@ -279,7 +290,15 @@ df.where("d > DATE'1582-10-10'").count()    # 1, expected 2
 df.where("d <> DATE'1582-10-10'").count()   # 2, expected 3
 {code}
 
-PushedFilters shows GreaterThan(d,1582-10-15). ORC behaves the same, also with spark.sql.datetime.java8API.enabled=true (OrcFilters converts LocalDate back to java.sql.Date). TIMESTAMP_MICROS Parquet columns are affected as well, including for equality, because the stored value is the gap value itself.
+PushedFilters shows GreaterThan(d,1582-10-15). ORC behaves the same, also with spark.sql.datetime.java8API.enabled=true (OrcFilters converts LocalDate back to java.sql.Date). TIMESTAMP_MICROS Parquet columns are affected as well.
+
+When the file itself holds a gap value (any writer using the proleptic calendar: Spark in CORRECTED mode, pyarrow, delta-rs), equality fails too:
+{code:python}
+import datetime, pyarrow as pa, pyarrow.parquet as pq
+pq.write_table(pa.table({"d": pa.array([datetime.date(1582, 10, 10)], pa.date32())}), "/tmp/gap2/a.parquet")
+spark.read.parquet("/tmp/gap2").where("d = DATE'1582-10-10'").count()   # 0, expected 1
+{code}
+The same happens through Delta tables (spark.read.format("delta")), because the scan uses the same Parquet pushdown; it does not depend on Delta's data skipping.
 
 Reproduced on 3.5.9, 4.0.5, 4.1.4, 4.2.1 and master. I have a patch that skips pushdown for literals in the gap, with tests, and can open a PR.
 
