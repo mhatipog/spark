@@ -44,5 +44,9 @@ Status as of 2026-11-15. Update the status column when a ticket moves.
 
 ## Notes
 
-- Spark fix PRs 60523–60525 were rebased on master cbfd79f17c1 (2026-11-15). N1 needed a manual merge with SPARK-30628's change to `CleanupDynamicPruningFilters`. They have not been compiled on that base yet: the fork's `Build` workflow did not start on push (no push has triggered Actions in `mhatipog/spark` since 2026-11-06).
+- Spark fix PRs 60523–60525 were rebased on master cbfd79f17c1 (2026-11-15). N1 needed a manual merge with SPARK-30628's change to `CleanupDynamicPruningFilters`. The fork's `Build` workflow did not start on push (no push has triggered Actions in `mhatipog/spark` since 2026-11-06), so the suites were run on the Oracle VM (Java 21, aarch64) and the results posted on each PR on 2026-11-15:
+  - G: FileBasedDataSourceSuite + Parquet/ORC V1/V2 filter suites, 261 passed, 0 failed. Control (master + new tests only): 2/2 new tests fail.
+  - N1: all 8 DynamicPartitionPruning suites, 352 passed, 0 failed, 11 ignored (pre-existing AQE-on ignores). Control: new test fails in 6/8 suites with "IN dynamicpruning#N has not finished"; the two V2CatalystFilter suites pass either way.
+  - N2: FilterEstimationSuite, 90 passed, 0 failed. Control: 2/2 new tests fail.
+  - Logs on the VM: `~/qp-verify-logs/` (script `~/qp_verify.sh`).
 - All Spark fix PRs answer the generative-AI question with `Generated-by: Claude Code (Claude Opus 5.5)`.
