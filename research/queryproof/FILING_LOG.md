@@ -28,6 +28,8 @@ Status as of 2026-11-15. Update the status column when a ticket moves.
 | --- | --- | --- | --- | --- |
 | iceberg-rust | ask for a 0.10.x backport of the day-transform fix (#3323) for pyiceberg | [comment on apache/iceberg-rust#3315](https://github.com/apache/iceberg-rust/issues/3315#issuecomment-6891131197) | 2026-11-15 | no reply yet |
 | Y1 | default Parquet `created_by` without a version | [apache/datafusion-python#1835](https://github.com/apache/datafusion-python/pull/1835) | 2026-11-15 | open |
+| SPARK-59607 | add affected versions 3.5–4.2.1 and ORC | [comment](https://issues.apache.org/jira/browse/SPARK-59607?focusedCommentId=18145189) | 2026-11-15 | no reply yet |
+| W1 follow-up | bharadwaj-pendyala offered to fix W1; we said go ahead and offered to test | [comment on arrow-rs#12265](https://github.com/apache/arrow-rs/issues/12265#issuecomment-6896079067) | 2026-11-15 | fix by them |
 
 ## Totals
 
@@ -38,7 +40,8 @@ Status as of 2026-11-15. Update the status column when a ticket moves.
 
 ## Not filed (optional, low value)
 
-- SPARK-59607 versions comment (3.5–4.2.1 and ORC).
+- TD and C2 fix PRs (Trino): blocked until the Trino CLA is signed.
+- X2 fix PR (DataFusion): possible, needs a machine that can build DataFusion.
 - SPARK-57499 comment (recheck branch-4.2 first).
 - DuckDB VARIANT decimals print `.5` after a Parquet round trip.
 
