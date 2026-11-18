@@ -2,7 +2,7 @@
 
 Every report and PR filed upstream from QueryProof findings. Only the items judged worth filing are listed here; the lost and skipped findings are in `2026-11-14-filing-pack.md`.
 
-Status as of 2026-11-15. Update the status column when a ticket moves.
+Status as of 2026-11-18. Update the status column when a ticket moves.
 
 ## Reports
 
@@ -21,6 +21,9 @@ Status as of 2026-11-15. Update the status column when a ticket moves.
 | S | wrong rows | ORC Java | [ORC-2237](https://issues.apache.org/jira/browse/ORC-2237) | 2026-11-15 | — | open |
 | N1 | query failure | Spark | [SPARK-61740](https://issues.apache.org/jira/browse/SPARK-61740) | 2026-11-15 | [apache/spark#60524](https://github.com/apache/spark/pull/60524) | open |
 | N2 | planning failure (CBO) | Spark | [SPARK-61741](https://issues.apache.org/jira/browse/SPARK-61741) | 2026-11-15 | [apache/spark#60525](https://github.com/apache/spark/pull/60525) | open |
+| DN | wrong rows (delta-rs NaN-excluding float stats; Delta Spark skipping drops NaN rows) | delta-rs | [delta-io/delta-rs#5074](https://github.com/delta-io/delta-rs/issues/5074) | 2026-11-16 | — | open |
+| DZ | wrong rows (float partition filters use total order, -0.0 vs 0.0) | delta-rs | [delta-io/delta-rs#5078](https://github.com/delta-io/delta-rs/issues/5078) | 2026-11-16 | — | open |
+| TM | wrong rows (truncate(W) wraps near INT_MIN/LONG_MIN; Spark, pyiceberg, Trino drop rows) | Iceberg Java (+ pyiceberg) | [apache/iceberg#19023](https://github.com/apache/iceberg/issues/19023) | 2026-11-18 | — | open |
 
 ## Comments and standalone PRs
 
@@ -29,12 +32,15 @@ Status as of 2026-11-15. Update the status column when a ticket moves.
 | iceberg-rust | ask for a 0.10.x backport of the day-transform fix (#3323) for pyiceberg | [comment on apache/iceberg-rust#3315](https://github.com/apache/iceberg-rust/issues/3315#issuecomment-6891131197) | 2026-11-15 | no reply yet |
 | Y1 | default Parquet `created_by` without a version | [apache/datafusion-python#1835](https://github.com/apache/datafusion-python/pull/1835) | 2026-11-15 | open |
 | SPARK-59607 | add affected versions 3.5–4.2.1 and ORC | [comment](https://issues.apache.org/jira/browse/SPARK-59607?focusedCommentId=18145189) | 2026-11-15 | no reply yet |
+| iceberg ±0 | signed-zero evidence from the skip model | [comment on apache/iceberg#18723](https://github.com/apache/iceberg/issues/18723#issuecomment-6916031458) | 2026-11-16 | open |
+| iceberg NaN | NaN under Spark order still wrong on 1.12.0 | [comment on apache/iceberg#9130](https://github.com/apache/iceberg/issues/9130#issuecomment-6916032118) | 2026-11-16 | closed stale |
+| X1 floats | float partition spellings | [comment on apache/datafusion#27455](https://github.com/apache/datafusion/issues/27455#issuecomment-6921404161) | 2026-11-16 | open |
 | W1 follow-up | bharadwaj-pendyala offered to fix W1; we said go ahead and offered to test | [comment on arrow-rs#12265](https://github.com/apache/arrow-rs/issues/12265#issuecomment-6896079067) | 2026-11-15 | fix PR apache/arrow-rs#12266 opened 14:50Z, CI green; we tested it on real fastparquet 2026.9.0 files ([comment](https://github.com/apache/arrow-rs/pull/12266#issuecomment-6901877877)): fixed, control unchanged |
 
 ## Totals
 
-- 13 reports in 7 projects (12 filed 2026-11-15, plus SPARK-60319 from October).
-- 8 wrong-result bugs: A1 corrupts data at write time; SPARK-60319, Z1, G, X1, X2, T3 and S return wrong rows.
+- 16 reports in 9 projects (12 filed 2026-11-15, 2 on 2026-11-16, 1 on 2026-11-18, plus SPARK-60319 from October).
+- 11 wrong-result bugs: A1 corrupts data at write time; SPARK-60319, Z1, G, X1, X2, T3, S, DN, DZ and TM return wrong rows.
 - 5 failures on valid input: TD, W1, C2, N1, N2.
 - Fix PRs by us: SPARK-60319, G, N1, N2, Y1. Z1 and W1 are being fixed by other contributors.
 
