@@ -25,6 +25,7 @@ Status as of 2026-11-18. Update the status column when a ticket moves.
 | DZ | wrong rows (float partition filters use total order, -0.0 vs 0.0) | delta-rs | [delta-io/delta-rs#5078](https://github.com/delta-io/delta-rs/issues/5078) | 2026-11-16 | — | open |
 | TM | wrong rows (truncate(W) wraps near INT_MIN/LONG_MIN; Spark, pyiceberg, Trino drop rows) | Iceberg Java (+ pyiceberg) | [apache/iceberg#19023](https://github.com/apache/iceberg/issues/19023) | 2026-11-18 | — | open |
 | IN | wrong rows (ORC: IS NULL on a struct field misses rows whose parent struct is NULL; OrcMetrics null count 0 + SearchArgument isNull; SELECT and DELETE, Spark and Trino) | Iceberg Java | [apache/iceberg#19064](https://github.com/apache/iceberg/issues/19064) | 2026-11-20 | [#19065](https://github.com/apache/iceberg/pull/19065) | open; fix verified (web-operations run 44757359913) |
+| ON | wrong rows (ORC Java SearchArgument IS_NULL on a field nested in a struct skips row groups where the struct is NULL; 1.9.8, 2.1.4, 2.3.1) | Apache ORC (Java) | [ORC-2238](https://issues.apache.org/jira/browse/ORC-2238) | 2026-11-20 | [apache/orc#2742](https://github.com/apache/orc/pull/2742) | open; fix verified (web-operations run 44764383984: 311 tests pass, control fails) |
 
 ## Comments and standalone PRs
 
@@ -41,7 +42,7 @@ Status as of 2026-11-18. Update the status column when a ticket moves.
 ## Totals
 
 - 16 reports in 9 projects (12 filed 2026-11-15, 2 on 2026-11-16, 1 on 2026-11-18, plus SPARK-60319 from October).
-- 11 wrong-result bugs (IN added 2026-11-20): A1 corrupts data at write time; SPARK-60319, Z1, G, X1, X2, S, DN, DZ and TM return wrong rows. (T3 retracted 2026-11-20: caused by A1.)
+- 12 wrong-result bugs (IN and ON added 2026-11-20): A1 corrupts data at write time; SPARK-60319, Z1, G, X1, X2, S, DN, DZ and TM return wrong rows. (T3 retracted 2026-11-20: caused by A1.)
 - 5 failures on valid input: TD, W1, C2, N1, N2.
 - Fix PRs by us: SPARK-60319, G, N1, N2, Y1. Z1 and W1 are being fixed by other contributors.
 
