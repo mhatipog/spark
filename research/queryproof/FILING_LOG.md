@@ -14,7 +14,7 @@ Status as of 2026-11-18. Update the status column when a ticket moves.
 | Z1 | wrong rows | Spark | [SPARK-61738](https://issues.apache.org/jira/browse/SPARK-61738) | 2026-11-15 | — (fix by another contributor: [apache/spark#60522](https://github.com/apache/spark/pull/60522)) | open, PR available |
 | G | wrong rows | Spark | [SPARK-61739](https://issues.apache.org/jira/browse/SPARK-61739) | 2026-11-15 | [apache/spark#60523](https://github.com/apache/spark/pull/60523) | open |
 | X1 | wrong rows | DataFusion | [apache/datafusion#27455](https://github.com/apache/datafusion/issues/27455) | 2026-11-15 | — | open |
-| T3 | wrong rows | Trino | [trinodb/trino#32154](https://github.com/trinodb/trino/issues/32154) | 2026-11-15 | — | open |
+| T3 | wrong rows | Trino | [trinodb/trino#32154](https://github.com/trinodb/trino/issues/32154) | 2026-11-15 | — | **retracted 2026-11-20**: closed by us as not a Trino bug; the PyArrow fixture was corrupted by A1 (child stats count == rows). Spark/Trino-written files correct on 484. Evidence: web-operations branch research/qp-trino-hive-verified-orc-20261120 |
 | W1 | read failure (regression) | arrow-rs | [apache/arrow-rs#12265](https://github.com/apache/arrow-rs/issues/12265) | 2026-11-15 | — (fix by another contributor: [apache/arrow-rs#12266](https://github.com/apache/arrow-rs/pull/12266)) | open, PR available |
 | C2 | read failure | Trino | [trinodb/trino#32155](https://github.com/trinodb/trino/issues/32155) | 2026-11-15 | — | open |
 | X2 | wrong rows | DataFusion | [apache/datafusion#27456](https://github.com/apache/datafusion/issues/27456) | 2026-11-15 | — | open |
@@ -40,7 +40,7 @@ Status as of 2026-11-18. Update the status column when a ticket moves.
 ## Totals
 
 - 16 reports in 9 projects (12 filed 2026-11-15, 2 on 2026-11-16, 1 on 2026-11-18, plus SPARK-60319 from October).
-- 11 wrong-result bugs: A1 corrupts data at write time; SPARK-60319, Z1, G, X1, X2, T3, S, DN, DZ and TM return wrong rows.
+- 10 wrong-result bugs: A1 corrupts data at write time; SPARK-60319, Z1, G, X1, X2, S, DN, DZ and TM return wrong rows. (T3 retracted 2026-11-20: caused by A1.)
 - 5 failures on valid input: TD, W1, C2, N1, N2.
 - Fix PRs by us: SPARK-60319, G, N1, N2, Y1. Z1 and W1 are being fixed by other contributors.
 
