@@ -26,6 +26,7 @@ Status as of 2026-11-18. Update the status column when a ticket moves.
 | TM | wrong rows (truncate(W) wraps near INT_MIN/LONG_MIN; Spark, pyiceberg, Trino drop rows) | Iceberg Java (+ pyiceberg) | [apache/iceberg#19023](https://github.com/apache/iceberg/issues/19023) | 2026-11-18 | — | open |
 | IN | wrong rows (ORC: IS NULL on a struct field misses rows whose parent struct is NULL; OrcMetrics null count 0 + SearchArgument isNull; SELECT and DELETE, Spark and Trino) | Iceberg Java | [apache/iceberg#19064](https://github.com/apache/iceberg/issues/19064) | 2026-11-20 | [#19065](https://github.com/apache/iceberg/pull/19065) | open; fix verified (web-operations run 44757359913) |
 | ON | wrong rows (ORC Java SearchArgument IS_NULL on a field nested in a struct skips row groups where the struct is NULL; 1.9.8, 2.1.4, 2.3.1) | Apache ORC (Java) | [ORC-2238](https://issues.apache.org/jira/browse/ORC-2238) | 2026-11-20 | [apache/orc#2742](https://github.com/apache/orc/pull/2742) | open; fix verified (web-operations run 44764383984: 311 tests pass, control fails) |
+| NP | wrong rows (Spark SELECT/count return NULL-partition rows for `<>` under OR/NOT on identity partition columns; fully pushed filter is two-valued; Spark 3.5/4.0/4.1, Iceberg 1.10.1/1.12.0, main) | Iceberg Java (Spark) | [apache/iceberg#19110](https://github.com/apache/iceberg/issues/19110) | 2026-11-23 | [#19111](https://github.com/apache/iceberg/pull/19111) | open; fix verified (web-operations run 45210928223: tests pass, control fails, e2e Spark 4.2.1) |
 
 ## Comments and standalone PRs
 
@@ -44,7 +45,8 @@ Status as of 2026-11-18. Update the status column when a ticket moves.
 - 16 reports in 9 projects (12 filed 2026-11-15, 2 on 2026-11-16, 1 on 2026-11-18, plus SPARK-60319 from October).
 - 12 wrong-result bugs (IN and ON added 2026-11-20): A1 corrupts data at write time; SPARK-60319, Z1, G, X1, X2, S, DN, DZ and TM return wrong rows. (T3 retracted 2026-11-20: caused by A1.)
 - 5 failures on valid input: TD, W1, C2, N1, N2.
-- Fix PRs by us: SPARK-60319, G, N1, N2, Y1. Z1 and W1 are being fixed by other contributors.
+- 2026-11-23: NP added (wrong rows, fix PR by us). DELETE variant of it is apache/iceberg#18605 (not ours).
+- Fix PRs by us: SPARK-60319, G, N1, N2, Y1, IN, ON, NP. Z1 and W1 are being fixed by other contributors.
 
 ## Not filed (optional, low value)
 
