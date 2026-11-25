@@ -1,0 +1,46 @@
+name: Ordered projection experiment
+on:
+  push:
+    branches: [research/spark-60319-ordered-projection]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: ${{ matrix.variant }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: guard-only
+            ref: aad16abccd5e9d4d3f2e7b43127b5cf810e80ed2
+          - variant: candidate
+            ref: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Test ordered projection cases
+        run: |
+          set -o pipefail
+          build/sbt "sql/testOnly org.apache.spark.sql.DataFrameSubquerySuite -- -z \"ordered row boundaries with projected subqueries\"" 2>&1 | tee /tmp/ordered-projection.log
+      - name: Test Catalyst rule
+        if: matrix.variant == 'candidate' && always()
+        run: |
+          set -o pipefail
+          build/sbt "catalyst/testOnly org.apache.spark.sql.catalyst.optimizer.PushProjectionThroughLimitAndOffsetSuite" 2>&1 | tee /tmp/ordered-catalyst.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ordered-projection-${{ matrix.variant }}
+          path: /tmp/ordered-*.log
+          retention-days: 3
