@@ -15,24 +15,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - variant: guard-only
-            ref: aad16abccd5e9d4d3f2e7b43127b5cf810e80ed2
-          - variant: candidate
-            ref: ${{ github.sha }}
+        variant: [guard-only, candidate]
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ matrix.ref }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+      - name: Restore the original guard for the control
+        if: matrix.variant == 'guard-only'
+        run: |
+          git fetch --depth=1 origin 27c65ec372dc9afb75392c134bda45cb8394d0a5
+          git checkout FETCH_HEAD -- sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/PushProjectionThroughLimitAndOffset.scala
       - name: Test ordered projection cases
         run: |
           set -o pipefail
-          build/sbt "sql/testOnly org.apache.spark.sql.DataFrameSubquerySuite -- -z \"ordered row boundaries with projected subqueries\"" 2>&1 | tee /tmp/ordered-projection.log
+          build/sbt "sql/testOnly org.apache.spark.sql.DataFrameSubquerySuite -- -z \"ordered row boundaries:\"" 2>&1 | tee /tmp/ordered-projection.log
       - name: Test Catalyst rule
         if: matrix.variant == 'candidate' && always()
         run: |
