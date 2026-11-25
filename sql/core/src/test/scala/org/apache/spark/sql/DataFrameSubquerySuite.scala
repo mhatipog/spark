@@ -56,51 +56,57 @@ class DataFrameSubquerySuite extends SharedSparkSession {
     t.createOrReplaceTempView("t")
   }
 
-  test("ordered row boundaries with projected subqueries") {
-    val p = spark.range(6).selectExpr(
-      "id + 1 AS id",
-      "element_at(array('a', 'b', 'c', 'd', 'e', 'f'), cast(id + 1 as int)) AS name",
-      "element_at(array(30, 20, 40, 60, 10, 50), cast(id + 1 as int)) AS age")
-    val k = Seq((1L, 2), (1L, 3), (1L, 5), (2L, 3)).toDF("a", "b")
-    val ordered = p.orderBy($"age".desc)
-    val projections = Seq[(String, Column, Map[String, Any])](
-      ("scalar", k.where($"a" === $"id".outer()).select(count(lit(1))).scalar(),
-        Map("a" -> 3L, "b" -> 1L)),
-      ("exists", k.where($"a" === $"id".outer()).exists(),
-        Map("a" -> true, "b" -> true)),
-      ("in", $"id".isin(k.select($"a")), Map("a" -> true, "b" -> true)))
-    val slices = Seq[(String, DataFrame => DataFrame, Seq[String])](
-      ("limit", _.limit(3), Seq("d", "f", "c")),
-      ("offset", _.offset(3), Seq("a", "b", "e")),
-      ("offset-limit", _.offset(1).limit(3), Seq("f", "c", "a")),
-      ("limit-offset", _.limit(4).offset(1), Seq("f", "c", "a")))
-
-    for {
-      broadcast <- Seq("-1", "10485760")
-      adaptive <- Seq("false", "true")
-    } {
+  for {
+    kind <- Seq("scalar", "exists", "in")
+    boundary <- Seq("limit", "offset", "offset-limit", "limit-offset")
+    broadcast <- Seq("-1", "10485760")
+    adaptive <- Seq("false", "true")
+    projectFirst <- Seq(false, true)
+  } {
+    test(s"ordered row boundaries: $kind $boundary projectFirst=$projectFirst " +
+        s"broadcast=$broadcast adaptive=$adaptive") {
       withSQLConf(
           "spark.sql.autoBroadcastJoinThreshold" -> broadcast,
           "spark.sql.adaptive.enabled" -> adaptive,
           "spark.sql.shuffle.partitions" -> "3") {
-        for {
-          (kind, expression, hits) <- projections
-          (boundary, slice, names) <- slices
-          projectFirst <- Seq(false, true)
-        } {
-          val query = if (projectFirst) {
-            slice(ordered.select($"name", expression.as("value")))
+        val p = spark.range(6).selectExpr(
+          "id + 1 AS id",
+          "element_at(array('a', 'b', 'c', 'd', 'e', 'f'), cast(id + 1 as int)) AS name",
+          "element_at(array(30, 20, 40, 60, 10, 50), cast(id + 1 as int)) AS age")
+        val k = Seq((1L, 2), (1L, 3), (1L, 5), (2L, 3)).toDF("a", "b")
+        val ordered = p.orderBy($"age".desc)
+        val expression = kind match {
+          case "scalar" => k.where($"a" === $"id".outer()).select(count(lit(1))).scalar()
+          case "exists" => k.where($"a" === $"id".outer()).exists()
+          case "in" => $"id".isin(k.select($"a"))
+        }
+        def slice(df: DataFrame): DataFrame = boundary match {
+          case "limit" => df.limit(3)
+          case "offset" => df.offset(3)
+          case "offset-limit" => df.offset(1).limit(3)
+          case "limit-offset" => df.limit(4).offset(1)
+        }
+        val names = boundary match {
+          case "limit" => Seq("d", "f", "c")
+          case "offset" => Seq("a", "b", "e")
+          case _ => Seq("f", "c", "a")
+        }
+        val expected = names.map { name =>
+          val value: Any = if (kind == "scalar") {
+            Map("a" -> 3L, "b" -> 1L).getOrElse(name, 0L)
           } else {
-            slice(ordered).select($"name", expression.as("value"))
+            name == "a" || name == "b"
           }
-          val defaultValue: Any = if (kind == "scalar") 0L else false
-          val expected = names.map(n => Row(n, hits.getOrElse(n, defaultValue))).sortBy(
-            _.getString(0))
-          withClue(s"$kind $boundary projectFirst=$projectFirst " +
-              s"broadcast=$broadcast adaptive=$adaptive\n" +
-              query.queryExecution.toString + "\n") {
-            assert(query.collect().toSeq.sortBy(_.getString(0)) == expected)
-          }
+          Row(name, value)
+        }.sortBy(_.getString(0))
+        val query = if (projectFirst) {
+          slice(ordered.select($"name", expression.as("value")))
+        } else {
+          slice(ordered).select($"name", expression.as("value"))
+        }
+        val actual = query.collect().toSeq.sortBy(_.getString(0))
+        withClue(query.queryExecution.toString + "\n") {
+          assert(actual == expected)
         }
       }
     }
