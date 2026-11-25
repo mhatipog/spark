@@ -20,9 +20,9 @@ package org.apache.spark.sql.catalyst.optimizer
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.dsl.expressions._
 import org.apache.spark.sql.catalyst.dsl.plans._
-import org.apache.spark.sql.catalyst.expressions.{Add, Alias, Exists, InSubquery, ListQuery, Literal, OuterReference, ScalarSubquery}
+import org.apache.spark.sql.catalyst.expressions.{Add, Alias, Ascending, Exists, InSubquery, ListQuery, Literal, OuterReference, Rand, ScalarSubquery, SortOrder}
 import org.apache.spark.sql.catalyst.plans.PlanTest
-import org.apache.spark.sql.catalyst.plans.logical.{GlobalLimit, LocalLimit, LocalRelation, LogicalPlan, Offset, Project}
+import org.apache.spark.sql.catalyst.plans.logical.{GlobalLimit, LocalLimit, LocalRelation, LogicalPlan, Offset, Project, Sort}
 import org.apache.spark.sql.catalyst.rules.RuleExecutor
 
 class PushProjectionThroughLimitAndOffsetSuite extends PlanTest {
@@ -195,6 +195,58 @@ class PushProjectionThroughLimitAndOffsetSuite extends PlanTest {
         }
         comparePlans(PushProjectionThroughLimitAndOffset(project), expected)
       }
+    }
+  }
+
+  test("lift join-producing projections above the full ordered slice") {
+    val input = LocalRelation(Seq("a".attr.int))
+    val subquery = LocalRelation(Seq("b".attr.int))
+    val a = input.output.head
+    val sorted = Sort(Seq(SortOrder(a, Ascending)), true, input)
+    val projections = Seq(
+      Alias(ScalarSubquery(subquery, outerAttrs = Seq(OuterReference(a))), "value")(),
+      Alias(Exists(subquery, outerAttrs = Seq(OuterReference(a))), "value")(),
+      Alias(InSubquery(Seq(a), ListQuery(subquery, numCols = 1)), "value")())
+
+    val boundaries = Seq[LogicalPlan => LogicalPlan](
+      child => LocalLimit(Literal(3), child),
+      child => GlobalLimit(Literal(3), LocalLimit(Literal(3), child)),
+      child => Offset(Literal(1), child),
+      child => Offset(Literal(1), GlobalLimit(Literal(3), LocalLimit(Literal(3), child))),
+      child => GlobalLimit(Literal(3), LocalLimit(Literal(3), Offset(Literal(1), child))))
+
+    for {
+      expression <- projections
+      wrap <- boundaries
+    } {
+      val project = Project(Seq(a, expression), sorted)
+      val expected = project.copy(child = wrap(sorted))
+      val actual = PushProjectionThroughLimitAndOffset(wrap(project))
+      comparePlans(actual, expected)
+      comparePlans(PushProjectionThroughLimitAndOffset(actual), actual)
+
+      val outer = Project(Seq(Alias(project.output.last, "renamed")()), project)
+      val nestedExpected = outer.copy(child = expected)
+      val nestedActual = PushProjectionThroughLimitAndOffset(wrap(outer))
+      comparePlans(nestedActual, nestedExpected)
+      comparePlans(PushProjectionThroughLimitAndOffset(nestedActual), nestedActual)
+    }
+  }
+
+  test("do not lift unordered, non-deterministic or join-free projections") {
+    val input = LocalRelation(Seq("a".attr.int))
+    val subquery = LocalRelation(Seq("b".attr.int))
+    val a = input.output.head
+    val sorted = Sort(Seq(SortOrder(a, Ascending)), true, input)
+    val scalar = Alias(ScalarSubquery(subquery,
+      outerAttrs = Seq(OuterReference(a))), "value")()
+    val projects = Seq(
+      Project(Seq(a, scalar), input),
+      Project(Seq(a, scalar, Alias(Rand(Literal(42L)), "random")()), sorted),
+      Project(Seq(a, Alias(ScalarSubquery(subquery), "value")()), sorted))
+    projects.foreach { project =>
+      val query = GlobalLimit(Literal(3), LocalLimit(Literal(3), project))
+      comparePlans(PushProjectionThroughLimitAndOffset(query), query)
     }
   }
 }
