@@ -56,6 +56,56 @@ class DataFrameSubquerySuite extends SharedSparkSession {
     t.createOrReplaceTempView("t")
   }
 
+  test("ordered row boundaries with projected subqueries") {
+    val p = spark.range(6).selectExpr(
+      "id + 1 AS id",
+      "element_at(array('a', 'b', 'c', 'd', 'e', 'f'), cast(id + 1 as int)) AS name",
+      "element_at(array(30, 20, 40, 60, 10, 50), cast(id + 1 as int)) AS age")
+    val k = Seq((1L, 2), (1L, 3), (1L, 5), (2L, 3)).toDF("a", "b")
+    val ordered = p.orderBy($"age".desc)
+    val projections = Seq[(String, Column, Map[String, Any])](
+      ("scalar", k.where($"a" === $"id".outer()).select(count(lit(1))).scalar(),
+        Map("a" -> 3L, "b" -> 1L)),
+      ("exists", k.where($"a" === $"id".outer()).exists(),
+        Map("a" -> true, "b" -> true)),
+      ("in", $"id".isin(k.select($"a")), Map("a" -> true, "b" -> true)))
+    val slices = Seq[(String, DataFrame => DataFrame, Seq[String])](
+      ("limit", _.limit(3), Seq("d", "f", "c")),
+      ("offset", _.offset(3), Seq("a", "b", "e")),
+      ("offset-limit", _.offset(1).limit(3), Seq("f", "c", "a")),
+      ("limit-offset", _.limit(4).offset(1), Seq("f", "c", "a")))
+
+    for {
+      broadcast <- Seq("-1", "10485760")
+      adaptive <- Seq("false", "true")
+    } {
+      withSQLConf(
+          "spark.sql.autoBroadcastJoinThreshold" -> broadcast,
+          "spark.sql.adaptive.enabled" -> adaptive,
+          "spark.sql.shuffle.partitions" -> "3") {
+        for {
+          (kind, expression, hits) <- projections
+          (boundary, slice, names) <- slices
+          projectFirst <- Seq(false, true)
+        } {
+          val query = if (projectFirst) {
+            slice(ordered.select($"name", expression.as("value")))
+          } else {
+            slice(ordered).select($"name", expression.as("value"))
+          }
+          val defaultValue: Any = if (kind == "scalar") 0L else false
+          val expected = names.map(n => Row(n, hits.getOrElse(n, defaultValue))).sortBy(
+            _.getString(0))
+          withClue(s"$kind $boundary projectFirst=$projectFirst " +
+              s"broadcast=$broadcast adaptive=$adaptive\n" +
+              query.queryExecution.toString + "\n") {
+            assert(query.collect().toSeq.sortBy(_.getString(0)) == expected)
+          }
+        }
+      }
+    }
+  }
+
   test("noop outer()") {
     checkAnswer(spark.range(1).select($"id".outer()), Row(0))
     checkError(
